@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
-# nimo Codex 接入：安装/更新脚本（macOS/Linux）
+# nimo Claude Code 接入：安装/更新脚本（macOS/Linux）
 # 用法:
-#   ./install.sh                              安装到默认 CODEX_HOME（或 ~/.codex）
-#   ./install.sh --codex-home <dir>           安装到隔离目录（测试用）
+#   ./install.sh                              安装到默认 CLAUDE_CONFIG_DIR（或 ~/.claude）
+#   ./install.sh --config-dir <dir>           安装到隔离目录（测试用）
 #   ./install.sh --source <repo-root>         指定 nimo 仓库位置（默认取脚本上级目录）
 # 行为:
-#   - 只写入 <codex-home>/skills 下 nimo 自有文件，并记录清单（.nimo-manifest）
-#   - 不触碰 config.toml、auth.json、其他 Skill 或用户任何无关文件
+#   - 只写入 <config-dir>/skills 下 nimo 自有文件，并记录清单（.nimo-manifest）
+#   - 不触碰 settings.json、.claude.json、凭据、其他 Skill 或用户任何无关文件
 #   - 更新时：文件未被用户修改才覆盖；用户修改过的保留现状并报告
 set -euo pipefail
 
-CODEX_HOME_DIR="${CODEX_HOME:-$HOME/.codex}"
+CONFIG_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 SOURCE_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --codex-home) CODEX_HOME_DIR="$2"; shift 2 ;;
+    --config-dir) CONFIG_DIR="$2"; shift 2 ;;
     --source) SOURCE_DIR="$2"; shift 2 ;;
     *) echo "未知参数: $1" >&2; exit 1 ;;
   esac
@@ -27,7 +27,7 @@ if ! SOURCE_DIR="$(cd "$SOURCE_DIR" && pwd)"; then
   exit 1
 fi
 
-SKILLS_DIR="$CODEX_HOME_DIR/skills"
+SKILLS_DIR="$CONFIG_DIR/skills"
 MANIFEST="$SKILLS_DIR/.nimo-manifest"
 
 hash_file() {
