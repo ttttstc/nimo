@@ -32,3 +32,14 @@ D97D594139A80D668D7FA9BDB29F56DBBA2C5357E7EF48D376D61E7E885EBE15 D:\AI\workspace
 
 === [5] install regression (test-install.ps1) ===
 12/12 PASS (T1 files=10, T10 entries=9, expectations computed from source tree)
+
+=== [6] post-review re-verification — 2026-09-06 21:51:22 (A9-reverse task: --version implemented by sole context) ===
+wordcount.py --version ->
+wordcount.py 0.2.0
+
+python test_wordcount.py (8 tests incl. baseline + version) ->
+全部测试通过
+
+final hashes:
+wordcount.py = B2FF189046E447733C1CF04C834345F8BA5EF4DE09A4E69021B20AF404B83D5C
+test_wordcount.py = 9F1391BDAEFE4EF17FC44FB5E5EB5640143DDC8309A013F7EAFD77FECBACEC87

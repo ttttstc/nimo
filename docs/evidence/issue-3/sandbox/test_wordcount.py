@@ -61,6 +61,17 @@ def test_top_rejects_non_positive_n() -> None:
     assert "N 为正整数" in result.stderr
 
 
+# 8. --version 输出版本号（A9 反向实测任务：由唯一上下文直接实现）
+def test_version_flag() -> None:
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT), "--version"],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0
+    assert result.stdout.strip() == "wordcount.py 0.2.0"
+
+
 if __name__ == "__main__":
     test_baseline_count_unchanged()
     test_top_frequency_output()
@@ -69,4 +80,5 @@ if __name__ == "__main__":
     test_top_n_exceeds_distinct_words()
     test_empty_text()
     test_top_rejects_non_positive_n()
+    test_version_flag()
     print("全部测试通过")

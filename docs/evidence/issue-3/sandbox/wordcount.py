@@ -19,6 +19,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="统计文本中的单词数")
     parser.add_argument("text", help="要统计的文本")
     parser.add_argument("--top", type=int, metavar="N", help="输出出现频率最高的 N 个单词")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     args = parser.parse_args()
     if args.top is not None:
         if args.top < 1:
