@@ -37,7 +37,8 @@ nimo 根据自然语言识别意图，优先遵守“先讨论”“不要修改
 **已验证（Windows，PowerShell 5.1；协作纪律实测宿主为 TRAE）：**
 
 - Codex 安装／卸载脚本隔离目录行为测试 12 项全部通过（证据：[docs/evidence/issue-2/install-scripts-test.log](docs/evidence/issue-2/install-scripts-test.log)，可用 `integrations/codex/test-install.ps1` 复跑）：干净安装、幂等重装、用户修改不被覆盖、卸载只删自有文件、他人同名文件冲突保护、干净卸载无残留、过期用户修改文件保留清单记录、`-Source` 相对路径／尾分隔符／8.3 短路径规范化、清单越界路径（`..`／绝对路径）时卸载拒绝删除任何文件、安装跳过旧文件清理并自愈清单。
-- Claude Code 安装／卸载脚本隔离目录行为测试 12 项全部通过（证据：[docs/evidence/issue-8/install-scripts-test.log](docs/evidence/issue-8/install-scripts-test.log)，可用 `integrations/claude-code/test-install.ps1` 复跑），覆盖与 Codex 相同的行为集。
+- Claude Code 安装／卸载脚本隔离目录行为测试 12 项全部通过（证据：[docs/evidence/issue-8/install-scripts-test.log](docs/evidence/issue-8/install-scripts-test.log)，可用 `integrations/claude-code/test-install.ps1` 复跑），覆盖与 Codex 相同的行为集；期望文件数按源目录动态计算。
+- **Claude Code 内真实发现与调用 nimo**（Windows，Claude Code 2.1.233，隔离 `CLAUDE_CONFIG_DIR` + 独立测试仓库）：`claude -p "使用 nimo skill：……先讨论，不要修改任何文件。"` exit=0；会话 transcript 22 条 assistant 消息均带 `attributionSkill: nimo`（skill 实际加载）；回复包含当前状态／主要缺口／优先动作／完成条件四要素；调用后 `git status` 无文件修改。证据：[docs/evidence/issue-8/real-invocation.log](docs/evidence/issue-8/real-invocation.log) 与 [real-invocation-reply.md](docs/evidence/issue-8/real-invocation-reply.md)。注意：本次实测经第三方 Anthropic 兼容网关（模型 MiniMax-M3）；官方端点、`/nimo` 交互式调用与“继续只承接提议”未逐项实测。
 - 子 Agent 协作纪律 10 项实测通过（证据：[docs/evidence/issue-3/README.md](docs/evidence/issue-3/README.md) 与 [final-verification.log](docs/evidence/issue-3/final-verification.log)）：Feature 任务默认委派＋父 Agent 验收、启动规格三用例（默认／部分指定／不可用指定报错）、嵌套禁止（合同＋宿主双重）、必需分片缺失不误报完成、检查点证据失效识别与重跑、停止未知先核实现场、独立上下文审查实际差异、无独立上下文时自检不冒充独立审查（如实标注“独立审查未完成”）、非强制跳过如实标注且强制门禁不被对话覆盖、检查点单一写入所有者。
 - Skill 文件布局与内部引用静态检查。
 
@@ -45,7 +46,7 @@ nimo 根据自然语言识别意图，优先遵守“先讨论”“不要修改
 
 - **候选比较（A17）、Bug Playbook 端到端、正向嵌套拆分、子 Agent 级暂停／取消传递**：见 [docs/evidence/issue-3/README.md](docs/evidence/issue-3/README.md) 未验证清单；对应规则已写入指令，行为未经实跑。
 - **Codex 内真实发现与调用 nimo**（含“先讨论不写文件”“继续只承接提议”“仅位于 `~/.agents/skills` 的 provider 检测”，以及委派调用约定在 Codex 内的行为）。复验步骤：按 [integrations/codex/README.md](integrations/codex/README.md)「隔离测试安装」与「验证发现与调用」两节，在隔离 `CODEX_HOME` 安装后运行 `codex exec "使用 nimo skill：……先讨论，不要修改任何文件。"`，核对回答包含现状／缺口／下一步，且 `git status` 无文件修改。
-- **Claude Code 内真实发现与调用 nimo**。复验步骤：按 [integrations/claude-code/README.md](integrations/claude-code/README.md)「隔离测试安装」与「验证发现与调用」两节，在隔离 `CLAUDE_CONFIG_DIR` 安装后运行 `claude -p "使用 nimo skill：……先讨论，不要修改任何文件。"`（或交互会话 `/nimo`），核对回答包含现状／缺口／下一步，且 `git status` 无文件修改。
+- **Claude Code 官方 Anthropic 端点下的真实调用**、`/nimo` 交互式调用、“继续只承接提议”（本次实测为第三方网关 + `claude -p`，见上方已验证条目的注意项）。复验步骤：按 [integrations/claude-code/README.md](integrations/claude-code/README.md)「隔离测试安装」与「验证发现与调用」两节操作。
 - **macOS／Linux 安装脚本**：Claude Code 的 `install.sh`／`uninstall.sh` 已在 Windows Git Bash 完成语法检查与隔离目录冒烟测试（干净安装、幂等重装、干净卸载无残留，证据：[docs/evidence/issue-8/bash-scripts-smoke-test.log](docs/evidence/issue-8/bash-scripts-smoke-test.log)）；Codex 的 `install.sh` 修复了 `invalid_old` 未初始化导致的 `set -u` 报错并通过同一冒烟测试。两者均未在原生 macOS／Linux 环境验证，不视为已可用；四个脚本均已带可执行位。
 - Cursor 接入未开始。
 

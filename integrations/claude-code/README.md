@@ -2,7 +2,7 @@
 
 nimo 以 Skill 包形式接入 Claude Code。安装脚本只写入 `<CLAUDE_CONFIG_DIR>/skills`（默认 `~/.claude/skills`）下的 nimo 自有文件，并以清单（`.nimo-manifest`）记录所有权；不触碰 `settings.json`、`.claude.json`、凭据、其他 Skill 或用户任何无关配置。
 
-适用：Claude Code 2.x 及以上（依赖其 `~/.claude/skills` 个人级 Skill 目录约定；该目录下的变更可在当前会话内被实时检测，若安装前 skills 目录不存在则需重启 Claude Code）。
+适用：Claude Code **2.0.20 及以上**（2.0.20 起支持 Agent Skills 与 `~/.claude/skills` 个人级 Skill 目录，见官方 changelog；该目录下的变更可在当前会话内被实时检测，若安装前 skills 目录不存在则需重启 Claude Code）。安装前可用 `claude --version` 确认版本。
 
 nimo 的 Skill 内容与 Codex 接入完全共用（同一套 `skills/nimo/`、`skills/nimo-setup/` 与 `defaults/capabilities.yaml`，遵循 Agent Skills 标准的 `SKILL.md` 格式），仅安装目标目录与配置目录解析不同。
 

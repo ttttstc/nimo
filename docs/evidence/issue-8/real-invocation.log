@@ -1,0 +1,33 @@
+Claude Code 真实发现与调用 nimo 实测记录（2026-09-06）
+
+环境：
+- Windows，PowerShell 5.1，Claude Code 2.1.233
+- 隔离 CLAUDE_CONFIG_DIR（%TEMP%\nimo-claude-real-test\cfg），经 integrations/claude-code/install.ps1 干净安装（9 个文件 + 清单）
+- 测试项目：独立临时 git 仓库 demo-app（仅 README，一次 init 提交），与 nimo 仓库无关
+- 认证：隔离目录内 settings.json 复制本机网关配置（凭据不随本文件留存）
+
+命令（于测试项目目录执行）：
+  claude -p "使用 nimo skill：看看这个项目接下来应该怎么推进，先讨论，不要修改任何文件。请给出：当前状态、主要缺口、优先动作、完成条件。"
+  → exit=0
+
+发现与调用证据：
+- 会话 transcript 中 22 条 assistant 消息均带 attributionSkill: "nimo"，证明 Claude Code 实际发现并加载了 nimo skill，而非仅回复文本。
+
+"先讨论，不要修改任何文件"证据：
+- 回复明确声明："本轮只读扫描没有修改业务文件"（子 Agent 只读扫描使用了隔离 worktree，其运行元数据位于 .claude/，Claude Code 自动排除出版本控制）。
+- 调用后 git status --short 输出为空（工作区无任何文件修改）。
+
+指导输出四要素核对：
+- 当前状态：✓（识别为"项目占位仓库"，列出无源码/无测试/无配置/单条 init 提交）
+- 主要缺口：✓（目标与验收标准不明确、无最小可运行闭环、无可重复验证机制、工程基础设施未建立、版本历史不支持回溯）
+- 优先动作：✓（五个优先级：先定一页产品规格 → 最小垂直切片 → 核心行为测试 → 按需工程配置 → 干净环境端到端验证）
+- 完成条件：✓（必须满足/按需满足两级条件 + 建议验收表）
+
+回复节选（结论段）：
+"**结论：** 现在最应该推进的不是选框架或写代码，而是先把 Demo 的目标和最小可观察行为定下来。规格一旦明确，下一步应直接做一个可运行、可测试的最小闭环。"
+
+完整回复（2455 字符）见同目录 real-invocation-reply.md。
+
+已知限制：
+- 本机 Claude Code 经第三方 Anthropic 兼容网关认证（模型 MiniMax-M3），官方 Anthropic 端点下的行为未另行验证。
+- "继续只承接提议"、`/nimo` 交互式调用未逐项实测。

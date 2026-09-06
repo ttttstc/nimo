@@ -13,6 +13,9 @@ param([switch]$KeepFailed)
 $ErrorActionPreference = "Continue"
 $Here = $PSScriptRoot
 $RepoRoot = (Resolve-Path (Join-Path $Here "..\..")).Path
+# 期望文件数按源目录动态计算（源 skills 文件 + defaults 受控副本 + 清单），避免新增 reference 后假失败
+$ExpectedSkillsFiles = @(Get-ChildItem (Join-Path $RepoRoot "skills\nimo") -Recurse -File).Count + @(Get-ChildItem (Join-Path $RepoRoot "skills\nimo-setup") -Recurse -File).Count + 2
+$ExpectedManifestEntries = $ExpectedSkillsFiles - 1
 $TempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("nimo-claude-test-" + [guid]::NewGuid().ToString("N").Substring(0, 8))
 $results = @()
 
@@ -37,8 +40,8 @@ try {
     $p = Run-Script "install.ps1" @() $t1
     $files = @()
     if (Test-Path "$t1\skills") { $files = Get-ChildItem "$t1\skills" -Recurse -File | ForEach-Object { $_.FullName.Substring("$t1\skills\".Length) } }
-    $t1ok = ($p.ExitCode -eq 0) -and (Test-Path "$t1\skills\nimo\SKILL.md") -and (Test-Path "$t1\skills\nimo-setup\SKILL.md") -and (Test-Path "$t1\skills\nimo\references\defaults\capabilities.yaml") -and (Test-Path "$t1\skills\.nimo-manifest") -and ($files.Count -eq 6)
-    Check "T1 干净安装" $t1ok "exit=$($p.ExitCode), files=$($files.Count) (期望 6)"
+    $t1ok = ($p.ExitCode -eq 0) -and (Test-Path "$t1\skills\nimo\SKILL.md") -and (Test-Path "$t1\skills\nimo-setup\SKILL.md") -and (Test-Path "$t1\skills\nimo\references\defaults\capabilities.yaml") -and (Test-Path "$t1\skills\.nimo-manifest") -and ($files.Count -eq $ExpectedSkillsFiles)
+    Check "T1 干净安装" $t1ok "exit=$($p.ExitCode), files=$($files.Count) (期望 $ExpectedSkillsFiles)"
 
     # T2 未修改重装（幂等更新）
     $p = Run-Script "install.ps1" @() $t1
@@ -140,8 +143,8 @@ try {
     $entries10 = @($manifest10 | Where-Object { $_ -notmatch '^#' })
     $sentinel2Kept = Test-Path "$t10\sentinel2.txt"
     $noEscape = -not ($manifest10 -match 'sentinel')
-    $t10ok = ($p.ExitCode -eq 1) -and $sentinel2Kept -and (Test-Path "$t10\skills\nimo\SKILL.md") -and ($entries10.Count -eq 5) -and $noEscape
-    Check "T10 越界清单跳过清理" $t10ok "exit=$($p.ExitCode) (期望 1), 哨兵保留=$sentinel2Kept, 新清单条目=$($entries10.Count) (期望 5, 不含越界项=$noEscape)"
+    $t10ok = ($p.ExitCode -eq 1) -and $sentinel2Kept -and (Test-Path "$t10\skills\nimo\SKILL.md") -and ($entries10.Count -eq $ExpectedManifestEntries) -and $noEscape
+    Check "T10 越界清单跳过清理" $t10ok "exit=$($p.ExitCode) (期望 1), 哨兵保留=$sentinel2Kept, 新清单条目=$($entries10.Count) (期望 $ExpectedManifestEntries, 不含越界项=$noEscape)"
 }
 finally {
     if (-not ($KeepFailed -and ($results | Where-Object { $_.Result -eq "FAIL" }))) {
