@@ -1,12 +1,19 @@
 ﻿
-Test        Result Detail                                 
-----        ------ ------                                 
-T1 干净安装     PASS   exit=0, files=6 (期望 6)                 
-T2 幂等重装     PASS   exit=0 (期望 0)                          
-T3 用户修改不被覆盖 PASS   exit=1 (期望 1), 用户内容保留=1 (期望 1)         
-T4 卸载只删自有文件 PASS   exit=1 (期望 1), 残留=2 个 (期望 2: 用户修改文件+清单)
-T5 他人文件冲突保护 PASS   exit=1 (期望 1), 他人内容保留=True             
+Test            Result Detail                                                       
+----            ------ ------                                                       
+T1 干净安装         PASS   exit=0, files=6 (期望 6)                                       
+T2 幂等重装         PASS   exit=0 (期望 0)                                                
+T3 用户修改不被覆盖     PASS   exit=1 (期望 1), 用户内容保留=1 (期望 1)                               
+T4 卸载只删自有文件     PASS   exit=1 (期望 1), 残留=2 个 (期望 2: 用户修改文件+清单)                      
+T5 他人文件冲突保护     PASS   exit=1 (期望 1), 他人内容保留=True                                   
+T6 干净卸载无残留      PASS   exit=0 (期望 0), 残留文件=0 (期望 0), skills 目录已删=True               
+T7 过期用户文件保留清单   PASS   升级exit=1 (期望1), 清单保留managed=0=True, 卸载exit=1 (期望1), 文件保留=True
+T8a Source 相对路径 PASS   exit=0 (期望 0), 入口在标准位置=True, 无错误嵌套目录=True                    
+T8b Source 尾分隔符 PASS   exit=0 (期望 0), 入口在标准位置=True                                  
+T8c Source 短路径  PASS   short=D:\AI\WORKSP~1\nimo, exit=0 (期望 0), 入口在标准位置=True       
+T9 越界清单卸载拒绝     PASS   exit=1 (期望 1), 哨兵保留=True, nimo 文件未删=True, 清单保留=True          
+T10 越界清单跳过清理    PASS   exit=1 (期望 1), 哨兵保留=True, 新清单条目=5 (期望 5, 不含越界项=True)         
 
 
 
-总计 5 项，通过 5 项，失败 0 项
+总计 12 项，通过 12 项，失败 0 项

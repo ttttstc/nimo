@@ -24,6 +24,22 @@ hash_file() {
   else shasum -a 256 "$1" | cut -d' ' -f1; fi
 }
 
+# 清单相对路径只能位于 nimo/ 或 nimo-setup/ 之下；拒绝绝对路径、反斜杠、.. 与空段
+valid_rel() {
+  local rel="$1" seg
+  case "$rel" in
+    /*|*\\*) return 1 ;;
+    nimo/*|nimo-setup/*) ;;
+    *) return 1 ;;
+  esac
+  local IFS='/'
+  for seg in $rel; do
+    [ "$seg" = ".." ] && return 1
+    [ -z "$seg" ] && return 1
+  done
+  return 0
+}
+
 if [ ! -f "$MANIFEST" ]; then
   echo "未找到安装清单 $MANIFEST，无 nimo 安装记录，不做任何删除。"
   exit 0
@@ -33,9 +49,24 @@ deleted=0
 preserved_count=0
 preserved=""
 missing=""
+invalid=""
 
+# 阶段 1：校验清单，存在越界路径时不删除任何文件
 while read -r sha managed rel; do
-  case "$rel" in ''|'#'*) continue ;; esac
+  case "$sha" in ''|'#'*) continue ;; esac
+  if ! valid_rel "$rel"; then
+    invalid="$invalid$rel\n"
+  fi
+done < "$MANIFEST"
+if [ -n "$invalid" ]; then
+  echo "安装清单包含越界或非法路径，已停止卸载（未删除任何文件，清单保留待人工检查）："
+  printf '%b' "$invalid" | sed 's/^/    - /'
+  exit 1
+fi
+
+# 阶段 2：删除自有且未被修改的文件
+while read -r sha managed rel; do
+  case "$sha" in ''|'#'*) continue ;; esac
   dst="$SKILLS_DIR/$rel"
   if [ ! -f "$dst" ]; then
     missing="$missing$rel\n"

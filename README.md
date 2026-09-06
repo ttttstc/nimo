@@ -34,13 +34,13 @@ nimo 根据自然语言识别意图，优先遵守“先讨论”“不要修改
 
 **已验证（Windows，PowerShell 5.1）：**
 
-- 安装／卸载脚本隔离目录行为：干净安装、幂等重装、用户修改不被覆盖、卸载只删自有文件、他人同名文件冲突保护，5 项全部通过（证据：[docs/evidence/issue-2/install-scripts-test.log](docs/evidence/issue-2/install-scripts-test.log)，可用 `integrations/codex/test-install.ps1` 复跑）。
+- 安装／卸载脚本隔离目录行为测试 12 项全部通过（证据：[docs/evidence/issue-2/install-scripts-test.log](docs/evidence/issue-2/install-scripts-test.log)，可用 `integrations/codex/test-install.ps1` 复跑）：干净安装、幂等重装、用户修改不被覆盖、卸载只删自有文件、他人同名文件冲突保护、干净卸载无残留、过期用户修改文件保留清单记录、`-Source` 相对路径／尾分隔符／8.3 短路径规范化、清单越界路径（`..`／绝对路径）时卸载拒绝删除任何文件、安装跳过旧文件清理并自愈清单。
 - Skill 文件布局与内部引用静态检查。
 
 **未验证（不视为已可用）：**
 
-- **Codex 内真实发现与调用 nimo**。复验步骤：按 [integrations/codex/README.md](integrations/codex/README.md)「隔离测试安装」与「验证发现与调用」两节，在隔离 `CODEX_HOME` 安装后运行 `codex exec "使用 nimo skill：……先讨论，不要修改任何文件。"`，核对回答包含现状／缺口／下一步，且 `git status` 无文件修改。
-- **macOS／Linux 安装脚本**（本机无 bash 执行环境，仅静态复查）。
+- **Codex 内真实发现与调用 nimo**（含“先讨论不写文件”“继续只承接提议”“仅位于 `~/.agents/skills` 的 provider 检测”）。复验步骤：按 [integrations/codex/README.md](integrations/codex/README.md)「隔离测试安装」与「验证发现与调用」两节，在隔离 `CODEX_HOME` 安装后运行 `codex exec "使用 nimo skill：……先讨论，不要修改任何文件。"`，核对回答包含现状／缺口／下一步，且 `git status` 无文件修改。
+- **macOS／Linux 安装脚本**（本机无 bash 执行环境，仅静态复查；两个脚本已带可执行位）。
 - Cursor、Claude Code 接入未开始。
 
 ## 工具接入计划

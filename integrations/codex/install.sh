@@ -21,12 +21,34 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+# 规范化 SOURCE_DIR 为绝对路径（相对路径、尾分隔符统一），保证后续前缀截取一致
+if ! SOURCE_DIR="$(cd "$SOURCE_DIR" && pwd)"; then
+  echo "无效 --source: $SOURCE_DIR" >&2
+  exit 1
+fi
+
 SKILLS_DIR="$CODEX_HOME_DIR/skills"
 MANIFEST="$SKILLS_DIR/.nimo-manifest"
 
 hash_file() {
   if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1" | cut -d' ' -f1
   else shasum -a 256 "$1" | cut -d' ' -f1; fi
+}
+
+# 清单相对路径只能位于 nimo/ 或 nimo-setup/ 之下；拒绝绝对路径、反斜杠、.. 与空段
+valid_rel() {
+  local rel="$1" seg
+  case "$rel" in
+    /*|*\\*) return 1 ;;
+    nimo/*|nimo-setup/*) ;;
+    *) return 1 ;;
+  esac
+  local IFS='/'
+  for seg in $rel; do
+    [ "$seg" = ".." ] && return 1
+    [ -z "$seg" ] && return 1
+  done
+  return 0
 }
 
 # 输出旧清单中某路径的 "sha managed"，无记录时输出空
@@ -81,23 +103,33 @@ done
 # 默认能力组合受控复制进 nimo Skill，保持单一权威副本在仓库 defaults/
 handle "$DEFAULTS_SRC" "nimo/references/defaults/capabilities.yaml"
 
-# 清理旧版本已删除的文件
+# 清理旧版本已删除的文件（清单含越界路径时整体跳过清理，不删除任何旧文件）
 if [ -f "$MANIFEST" ]; then
   while read -r sha managed rel; do
     case "$sha" in ''|'#'*) continue ;; esac
-    if ! awk -v p="$rel" '$1==p {found=1} END {exit found?0:1}' "$managed_tmp"; then
-      dst="$SKILLS_DIR/$rel"
-      if [ -f "$dst" ]; then
-        cur="$(hash_file "$dst")"
-        if [ "$managed" = "1" ] && [ "$cur" = "$sha" ]; then
-          rm "$dst"
-          removed=$((removed + 1))
-        else
-          kept_stale="$kept_stale$rel\n"
-        fi
-      fi
+    if ! valid_rel "$rel"; then
+      invalid_old="$invalid_old$rel\n"
     fi
   done < "$MANIFEST"
+  if [ -z "$invalid_old" ]; then
+    while read -r sha managed rel; do
+      case "$sha" in ''|'#'*) continue ;; esac
+      if ! awk -v p="$rel" '$1==p {found=1} END {exit found?0:1}' "$managed_tmp"; then
+        dst="$SKILLS_DIR/$rel"
+        if [ -f "$dst" ]; then
+          cur="$(hash_file "$dst")"
+          if [ "$managed" = "1" ] && [ "$cur" = "$sha" ]; then
+            rm "$dst"
+            removed=$((removed + 1))
+          else
+            kept_stale="$kept_stale$rel\n"
+            # 保留的过期文件继续记录在清单中（managed=0），卸载时可如实报告
+            echo "$rel 0" >> "$managed_tmp"
+          fi
+        fi
+      fi
+    done < "$MANIFEST"
+  fi
 fi
 
 # 写新清单
@@ -122,8 +154,12 @@ if [ -n "$skipped" ]; then
   printf '%b' "$skipped" | sed 's/^/    - /'
 fi
 if [ -n "$kept_stale" ]; then
-  echo "  以下旧文件已被用户修改，未随本次更新删除："
+  echo "  以下旧文件已被用户修改，未随本次更新删除（已在清单中标记为非托管）："
   printf '%b' "$kept_stale" | sed 's/^/    - /'
 fi
-if [ -n "$skipped" ] || [ -n "$kept_stale" ]; then exit 1; fi
+if [ -n "$invalid_old" ]; then
+  echo "  旧清单包含越界或非法路径，已跳过全部旧文件清理（未删除任何旧文件）："
+  printf '%b' "$invalid_old" | sed 's/^/    - /'
+fi
+if [ -n "$skipped" ] || [ -n "$kept_stale" ] || [ -n "$invalid_old" ]; then exit 1; fi
 exit 0

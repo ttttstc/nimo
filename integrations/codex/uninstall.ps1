@@ -25,16 +25,38 @@ function Get-Sha256([string]$Path) {
     (Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash.ToLowerInvariant()
 }
 
-$deleted = 0
-$preserved = @()
-$missing = @()
+function Test-ManagedRelPath([string]$Rel) {
+    # 清单相对路径只能位于 nimo/ 或 nimo-setup/ 之下；拒绝绝对路径、.. 与空段
+    if ([string]::IsNullOrWhiteSpace($Rel)) { return $false }
+    if ($Rel -match '^[a-zA-Z]:') { return $false }
+    if ($Rel -match '^[\\/]') { return $false }
+    $parts = @($Rel.Replace('\', '/') -split '/' | Where-Object { $_ -ne '' })
+    if ($parts.Count -lt 2) { return $false }
+    if ($parts[0] -ne 'nimo' -and $parts[0] -ne 'nimo-setup') { return $false }
+    if ($parts -contains '..') { return $false }
+    return $true
+}
+
+# ---- 阶段 1：解析并校验清单，存在越界路径时不删除任何文件 ----
 $records = @()
+$invalid = @()
 foreach ($line in Get-Content -LiteralPath $ManifestPath) {
     if ($line -match '^#') { continue }
     $parts = $line -split '\s+', 3
-    if ($parts.Count -eq 3) { $records += ,@($parts[0], $parts[1], $parts[2]) }
+    if ($parts.Count -ne 3) { continue }
+    if (-not (Test-ManagedRelPath $parts[2])) { $invalid += $parts[2]; continue }
+    $records += ,@($parts[0], $parts[1], $parts[2])
+}
+if ($invalid.Count -gt 0) {
+    Write-Host "安装清单包含越界或非法路径，已停止卸载（未删除任何文件，清单保留待人工检查）："
+    $invalid | ForEach-Object { Write-Host "    - $_" }
+    exit 1
 }
 
+# ---- 阶段 2：删除自有且未被修改的文件 ----
+$deleted = 0
+$preserved = @()
+$missing = @()
 foreach ($r in $records) {
     $sha = $r[0]; $managed = $r[1]; $rel = $r[2]
     $dst = Join-Path $SkillsDir ($rel.Replace("/", "\"))
@@ -48,19 +70,26 @@ foreach ($r in $records) {
     }
 }
 
-# 清理空目录（只清理 nimo 自有的 Skill 目录名，失败忽略）
+# 清理空目录（只清理 nimo 自有的 Skill 目录名；自底向上删除，避免交互确认）
 foreach ($name in @("nimo", "nimo-setup")) {
     $dir = Join-Path $SkillsDir $name
     if (Test-Path -LiteralPath $dir) {
-        $left = Get-ChildItem -LiteralPath $dir -Recurse -File
-        if (-not $left) { Remove-Item -LiteralPath $dir -Force }
+        $left = Get-ChildItem -LiteralPath $dir -Recurse -File -Force
+        if (-not $left) {
+            Get-ChildItem -LiteralPath $dir -Recurse -Directory -Force |
+                Sort-Object FullName -Descending |
+                ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force }
+            Remove-Item -LiteralPath $dir -Force
+        }
     }
 }
 if ($preserved.Count -eq 0) {
     # 所有自有文件均已删除，移除清单
     Remove-Item -LiteralPath $ManifestPath -Force
     $skillsLeft = Get-ChildItem -LiteralPath $SkillsDir -Force -ErrorAction SilentlyContinue
-    if (-not $skillsLeft) { Remove-Item -LiteralPath $SkillsDir -Force -ErrorAction SilentlyContinue }
+    if (-not $skillsLeft) {
+        try { Remove-Item -LiteralPath $SkillsDir -Force -ErrorAction Stop } catch { }
+    }
 }
 
 Write-Host "nimo 卸载完成：删除 $deleted 个文件。"

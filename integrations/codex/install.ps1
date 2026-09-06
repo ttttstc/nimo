@@ -13,7 +13,12 @@ param(
 )
 $ErrorActionPreference = "Stop"
 
-if (-not $Source) { $Source = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path }
+if (-not $Source) { $Source = Join-Path $PSScriptRoot "..\.." }
+# 规范化 Source：相对路径 -> 绝对路径，统一去掉尾分隔符（GetFullPath 处理盘根与相对形式）
+$Source = [System.IO.Path]::GetFullPath($Source)
+if (-not (Test-Path -LiteralPath $Source)) {
+    Write-Error "Source 路径不存在: $Source"; exit 1
+}
 if (-not $CodexHome) {
     if ($env:CODEX_HOME) { $CodexHome = $env:CODEX_HOME } else { $CodexHome = Join-Path $HOME ".codex" }
 }
@@ -24,6 +29,35 @@ function Get-Sha256([string]$Path) {
     (Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash.ToLowerInvariant()
 }
 
+function Get-LongPath([string]$Path) {
+    # 含 ~ 才可能是 8.3 短路径；否则原样返回
+    if ($Path -notmatch '~') { return $Path }
+    try {
+        if (-not ('NimoInstall.NimoLongPath' -as [type])) {
+            Add-Type -MemberDefinition '[DllImport("kernel32.dll", SetLastError=true, CharSet=CharSet.Unicode)]public static extern uint GetLongPathNameW(string lpszShortPath, System.Text.StringBuilder lpszLongPath, uint cchBuffer);' -Name 'NimoLongPath' -Namespace 'NimoInstall' | Out-Null
+        }
+        $sb = New-Object System.Text.StringBuilder ([Math]::Max(260, $Path.Length * 2))
+        $r = [NimoInstall.NimoLongPath]::GetLongPathNameW($Path, $sb, [uint32]$sb.Capacity)
+        if ($r -gt 0) { return $sb.ToString() }
+    } catch { }
+    return $Path
+}
+
+function Test-ManagedRelPath([string]$Rel) {
+    # 清单相对路径只能位于 nimo/ 或 nimo-setup/ 之下；拒绝绝对路径、.. 与空段
+    if ([string]::IsNullOrWhiteSpace($Rel)) { return $false }
+    if ($Rel -match '^[a-zA-Z]:') { return $false }
+    if ($Rel -match '^[\\/]') { return $false }
+    $parts = @($Rel.Replace('\', '/') -split '/' | Where-Object { $_ -ne '' })
+    if ($parts.Count -lt 2) { return $false }
+    if ($parts[0] -ne 'nimo' -and $parts[0] -ne 'nimo-setup') { return $false }
+    if ($parts -contains '..') { return $false }
+    return $true
+}
+
+# 展开 8.3 短路径，保证与 Get-ChildItem 返回的 FullName 形式一致（须在函数定义之后调用）
+$Source = Get-LongPath $Source
+
 # ---- 收集来源文件（相对 skills 目录的路径，一律用 / ）----
 $SkillNames = @("nimo", "nimo-setup")
 $entries = @()
@@ -33,6 +67,9 @@ foreach ($name in $SkillNames) {
         Write-Error "来源缺少 skills/$name/SKILL.md（Source=$Source）"; exit 1
     }
     Get-ChildItem -LiteralPath $dir -Recurse -File | ForEach-Object {
+        if (-not $_.FullName.StartsWith($dir, [System.StringComparison]::OrdinalIgnoreCase)) {
+            Write-Error "来源路径形式不一致：$($_.FullName) 不在 $dir 之下，拒绝安装"; exit 1
+        }
         $rel = $_.FullName.Substring($dir.Length + 1).Replace("\", "/")
         $entries += [pscustomobject]@{ Src = $_.FullName; Rel = "$name/$rel" }
     }
@@ -46,11 +83,14 @@ $entries += [pscustomobject]@{ Src = $defaultsSrc; Rel = "nimo/references/defaul
 
 # ---- 读取旧清单: path -> @(sha256, managed) ----
 $oldFiles = @{}
+$invalidOld = @()
 if (Test-Path -LiteralPath $ManifestPath) {
     foreach ($line in Get-Content -LiteralPath $ManifestPath) {
         if ($line -match '^#') { continue }
         $parts = $line -split '\s+', 3
-        if ($parts.Count -eq 3) { $oldFiles[$parts[2]] = @($parts[0], $parts[1]) }
+        if ($parts.Count -ne 3) { continue }
+        if (-not (Test-ManagedRelPath $parts[2])) { $invalidOld += $parts[2]; continue }
+        $oldFiles[$parts[2]] = @($parts[0], $parts[1])
     }
 }
 
@@ -86,16 +126,18 @@ foreach ($e in $entries) {
     }
 }
 
-# ---- 清理旧版本已删除的文件 ----
-foreach ($p in @($oldFiles.Keys)) {
-    if (-not ($entries | Where-Object { $_.Rel -eq $p })) {
-        $dst = Join-Path $SkillsDir ($p.Replace("/", "\"))
-        if (Test-Path -LiteralPath $dst) {
-            if ($oldFiles[$p][1] -eq "1" -and (Get-Sha256 $dst) -eq $oldFiles[$p][0]) {
-                Remove-Item -LiteralPath $dst
-                $removed++
-            } else {
-                $keptStale += $p
+# ---- 清理旧版本已删除的文件（清单含越界路径时整体跳过清理，不删除任何旧文件）----
+if ($invalidOld.Count -eq 0) {
+    foreach ($p in @($oldFiles.Keys)) {
+        if (-not ($entries | Where-Object { $_.Rel -eq $p })) {
+            $dst = Join-Path $SkillsDir ($p.Replace("/", "\"))
+            if (Test-Path -LiteralPath $dst) {
+                if ($oldFiles[$p][1] -eq "1" -and (Get-Sha256 $dst) -eq $oldFiles[$p][0]) {
+                    Remove-Item -LiteralPath $dst
+                    $removed++
+                } else {
+                    $keptStale += $p
+                }
             }
         }
     }
@@ -119,6 +161,11 @@ foreach ($e in $entries) {
     $dst = Join-Path $SkillsDir ($e.Rel.Replace("/", "\"))
     $lines += "$(Get-Sha256 $dst) $($resultManaged[$e.Rel]) $($e.Rel)"
 }
+# 保留的过期文件（源已删除但用户改过）继续记录在清单中（managed=0），卸载时可如实报告
+foreach ($p in $keptStale) {
+    $dst = Join-Path $SkillsDir ($p.Replace("/", "\"))
+    $lines += "$(Get-Sha256 $dst) 0 $p"
+}
 New-Item -ItemType Directory -Path $SkillsDir -Force | Out-Null
 Set-Content -LiteralPath $ManifestPath -Value $lines -Encoding UTF8
 
@@ -130,7 +177,11 @@ if ($skipped.Count -gt 0) {
     $skipped | ForEach-Object { Write-Host "    - $_" }
 }
 if ($keptStale.Count -gt 0) {
-    Write-Host "  以下旧文件已被用户修改，未随本次更新删除："
+    Write-Host "  以下旧文件已被用户修改，未随本次更新删除（已在清单中标记为非托管）："
     $keptStale | ForEach-Object { Write-Host "    - $_" }
 }
-if (($skipped.Count -gt 0) -or ($keptStale.Count -gt 0)) { exit 1 } else { exit 0 }
+if ($invalidOld.Count -gt 0) {
+    Write-Host "  旧清单包含越界或非法路径，已跳过全部旧文件清理（未删除任何旧文件）："
+    $invalidOld | ForEach-Object { Write-Host "    - $_" }
+}
+if (($skipped.Count -gt 0) -or ($keptStale.Count -gt 0) -or ($invalidOld.Count -gt 0)) { exit 1 } else { exit 0 }
