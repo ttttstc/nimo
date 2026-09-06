@@ -1,0 +1,23 @@
+Claude Code install.sh / uninstall.sh（Windows Git Bash 隔离目录冒烟测试，2026-09-06）
+
+nimo 安装到 /tmp/tmp.WvWORfZ7am/cfg/skills
+  新增 5 个文件；更新 0 个文件；清理 0 个旧文件
+--- files:
+skills/.nimo-manifest
+skills/nimo-setup/SKILL.md
+skills/nimo/SKILL.md
+skills/nimo/references/capabilities.md
+skills/nimo/references/defaults/capabilities.yaml
+skills/nimo/references/principles.md
+--- reinstall:
+idempotent OK
+--- uninstall:
+nimo 卸载完成：删除 5 个文件。
+clean uninstall OK
+
+Codex install.sh / uninstall.sh（invalid_old 未初始化修复后，同一环境回归）
+
+codex idempotent OK
+codex clean uninstall OK
+
+说明：bash -n 语法检查两套四脚本均通过；Git Bash 为 Windows 环境，非原生 macOS/Linux。
