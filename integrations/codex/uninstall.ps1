@@ -15,6 +15,7 @@ if (-not $CodexHome) {
 }
 $SkillsDir = Join-Path $CodexHome "skills"
 $ManifestPath = Join-Path $SkillsDir ".nimo-manifest"
+$SkillNames = @("nimo", "nimo-setup", "verification-create", "verification-maintain", "skill-evaluate")
 
 if (-not (Test-Path -LiteralPath $ManifestPath)) {
     Write-Host "未找到安装清单 $ManifestPath，无 nimo 安装记录，不做任何删除。"
@@ -26,13 +27,13 @@ function Get-Sha256([string]$Path) {
 }
 
 function Test-ManagedRelPath([string]$Rel) {
-    # 清单相对路径只能位于 nimo/ 或 nimo-setup/ 之下；拒绝绝对路径、.. 与空段
+    # 清单相对路径只能位于 nimo 自有 Skill 目录之下；拒绝绝对路径、.. 与空段
     if ([string]::IsNullOrWhiteSpace($Rel)) { return $false }
     if ($Rel -match '^[a-zA-Z]:') { return $false }
     if ($Rel -match '^[\\/]') { return $false }
     $parts = @($Rel.Replace('\', '/') -split '/' | Where-Object { $_ -ne '' })
     if ($parts.Count -lt 2) { return $false }
-    if ($parts[0] -ne 'nimo' -and $parts[0] -ne 'nimo-setup') { return $false }
+    if ($SkillNames -notcontains $parts[0]) { return $false }
     if ($parts -contains '..') { return $false }
     return $true
 }
@@ -71,7 +72,7 @@ foreach ($r in $records) {
 }
 
 # 清理空目录（只清理 nimo 自有的 Skill 目录名；自底向上删除，避免交互确认）
-foreach ($name in @("nimo", "nimo-setup")) {
+foreach ($name in $SkillNames) {
     $dir = Join-Path $SkillsDir $name
     if (Test-Path -LiteralPath $dir) {
         $left = Get-ChildItem -LiteralPath $dir -Recurse -File -Force

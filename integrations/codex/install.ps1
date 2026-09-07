@@ -43,14 +43,16 @@ function Get-LongPath([string]$Path) {
     return $Path
 }
 
+$SkillNames = @("nimo", "nimo-setup", "verification-create", "verification-maintain", "skill-evaluate")
+
 function Test-ManagedRelPath([string]$Rel) {
-    # 清单相对路径只能位于 nimo/ 或 nimo-setup/ 之下；拒绝绝对路径、.. 与空段
+    # 清单相对路径只能位于 nimo 自有 Skill 目录之下；拒绝绝对路径、.. 与空段
     if ([string]::IsNullOrWhiteSpace($Rel)) { return $false }
     if ($Rel -match '^[a-zA-Z]:') { return $false }
     if ($Rel -match '^[\\/]') { return $false }
     $parts = @($Rel.Replace('\', '/') -split '/' | Where-Object { $_ -ne '' })
     if ($parts.Count -lt 2) { return $false }
-    if ($parts[0] -ne 'nimo' -and $parts[0] -ne 'nimo-setup') { return $false }
+    if ($SkillNames -notcontains $parts[0]) { return $false }
     if ($parts -contains '..') { return $false }
     return $true
 }
@@ -59,7 +61,6 @@ function Test-ManagedRelPath([string]$Rel) {
 $Source = Get-LongPath $Source
 
 # ---- 收集来源文件（相对 skills 目录的路径，一律用 / ）----
-$SkillNames = @("nimo", "nimo-setup")
 $entries = @()
 foreach ($name in $SkillNames) {
     $dir = Join-Path $Source ("skills\" + $name)

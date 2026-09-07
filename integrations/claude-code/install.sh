@@ -35,14 +35,20 @@ hash_file() {
   else shasum -a 256 "$1" | cut -d' ' -f1; fi
 }
 
-# 清单相对路径只能位于 nimo/ 或 nimo-setup/ 之下；拒绝绝对路径、反斜杠、.. 与空段
+SKILLS="nimo nimo-setup verification-create verification-maintain skill-evaluate"
+
+# 清单相对路径只能位于 nimo 自有 Skill 目录之下；拒绝绝对路径、反斜杠、.. 与空段
 valid_rel() {
-  local rel="$1" seg
+  local rel="$1" seg name ok=1
   case "$rel" in
     /*|*\\*) return 1 ;;
-    nimo/*|nimo-setup/*) ;;
-    *) return 1 ;;
   esac
+  for name in $SKILLS; do
+    case "$rel" in
+      "$name"/*) ok=0 ;;
+    esac
+  done
+  [ "$ok" -eq 0 ] || return 1
   local IFS='/'
   for seg in $rel; do
     [ "$seg" = ".." ] && return 1
@@ -57,8 +63,9 @@ old_lookup() {
   awk -v p="$1" '!/^#/ && NF==3 && $3==p {print $1, $2; exit}' "$MANIFEST"
 }
 
-[ -f "$SOURCE_DIR/skills/nimo/SKILL.md" ] || { echo "来源缺少 skills/nimo/SKILL.md（--source=$SOURCE_DIR）" >&2; exit 1; }
-[ -f "$SOURCE_DIR/skills/nimo-setup/SKILL.md" ] || { echo "来源缺少 skills/nimo-setup/SKILL.md" >&2; exit 1; }
+for name in $SKILLS; do
+  [ -f "$SOURCE_DIR/skills/$name/SKILL.md" ] || { echo "来源缺少 skills/$name/SKILL.md（--source=$SOURCE_DIR）" >&2; exit 1; }
+done
 DEFAULTS_SRC="$SOURCE_DIR/defaults/capabilities.yaml"
 [ -f "$DEFAULTS_SRC" ] || { echo "来源缺少 defaults/capabilities.yaml" >&2; exit 1; }
 
@@ -93,7 +100,7 @@ handle() { # $1=源文件 $2=相对 skills 目录的路径
   fi
 }
 
-for name in nimo nimo-setup; do
+for name in $SKILLS; do
   dir="$SOURCE_DIR/skills/$name"
   while IFS= read -r -d '' f; do
     rel="${f#"$SOURCE_DIR/skills/"}"
