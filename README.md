@@ -2,110 +2,146 @@
 
 # nimo
 
-**AI 原生工程栈。** 以可安装的 Skill 包进入你已有的 AI 编程工具，一个入口提供两种工作方式：知道要做什么时，让 nimo 执行；不知道下一步时，让它基于项目现状给出有依据的建议。
+我维护 nimo。这一年我看着大家把越来越多的活交给 agent：写得越来越快，验证得越来越少，交付越来越像抽奖。我不接受用吞吐换质量。想走得快，先挖得深。
 
-nimo 不负责替你想模型、跑工具——这些由宿主提供。nimo 提供的是工程纪律：原则、任务做法、可替换的研发能力、真实验证和持续改进，并依据产物和证据判断完成情况。
+**nimo 是我的回答。** 它不运行模型、不执行工具——那是宿主（Codex、Claude Code）的事。nimo 做的是工程纪律本身：原则、任务做法、可替换的研发能力、真实验证、持续改进。目标不是最大化代码行数，恰恰相反：**nimo 帮你写得更少，但每一行都有证据。**
 
-## 快速开始
+**nimo 给你可审计的交付。** 每个结论都挂在产物和证据上：没验证就标未验证，缺条件就报告受阻，跳过的检查如实标注。子 agent 说「已完成」不算数，主 agent 核对过才算数。
 
-前置条件：Codex CLI 0.144 及以上。
+**换什么都不换标准。** 换模型、换宿主、换研发 skill，任务目标、工程要求和交付标准不变。换 skill 只换能力层，换宿主只换运行时。
+
+fork 它，改它，把它变成你自己的。欢迎 PR。
+
+## 安装
+
+前置：Codex CLI 0.144+ 或 Claude Code 2.0.20+。
 
 ```powershell
 # Windows（PowerShell）
 git clone https://github.com/ttttstc/nimo.git
 cd nimo
-.\integrations\codex\install.ps1
+.\integrations\codex\install.ps1          # Codex
+.\integrations\claude-code\install.ps1    # Claude Code
 ```
 
 ```bash
 # macOS / Linux
 git clone https://github.com/ttttstc/nimo.git
 cd nimo
-./integrations/codex/install.sh
+./integrations/codex/install.sh           # Codex
+./integrations/claude-code/install.sh     # Claude Code
 ```
 
-安装脚本只写入 `CODEX_HOME/skills` 下的 nimo 自有文件并以清单记录所有权，不触碰你的其他配置；支持隔离目录测试安装与干净卸载（`uninstall.ps1` / `uninstall.sh`）。
+安装脚本只写 nimo 自己的文件，清单记录所有权，不碰你任何其他配置。卸载干净，隔离目录测试安装随时可复跑。
 
-Claude Code 接入方式相同，见 [integrations/claude-code/README.md](integrations/claude-code/README.md)（写入 `CLAUDE_CONFIG_DIR/skills`，默认 `~/.claude/skills`）。
+## 上手
 
-安装后在任意项目目录发起第一次调用：
+两步：
+
+1. 安装（上面已完成）。
+2. 在任意项目目录里说一句：
 
 ```text
-codex exec "使用 nimo skill：看看这个项目接下来应该怎么推进，先讨论，不要修改任何文件。"
+claude -p "使用 nimo skill：看看这个项目接下来应该怎么推进，先讨论，不要修改任何文件。"
 ```
 
-预期得到：当前状态、主要缺口、优先动作和完成条件——且「先讨论」阶段不修改任何文件（可用 `git status` 核对）。更多选项见 [integrations/codex/README.md](integrations/codex/README.md)。
+就这些。预期得到当前状态、主要缺口、优先动作和完成条件——「先讨论」阶段不修改任何文件，`git status` 可以核对。其余 skill 都是按需的，入口会在需要时调用它们。
 
-## 业务大图
+## 怎么用
 
-```mermaid
-flowchart TB
-    U[开发者与产品、技术负责人] --> E[统一入口 nimo<br/>自然语言识别 · 明确措辞优先]
-    E -->|不知道下一步| G[工程指导<br/>现状 · 缺口 · 下一步与完成条件]
-    E -->|明确任务| X[工程执行<br/>Bug 修复 · Feature 开发]
-    G --> R[有依据的建议]
-    X --> R2[工作产物 + 有证据的验证结论]
-    V[项目验证维护<br/>功能地图 · 实际操作 · 漂移修正] -.提供可操作的验证路径.-> X
-    A[Skill 评测维护<br/>案例 · 隔离比较 · 回归检查] -.持续改进工程方法.-> E
-    H[宿主提供：模型 · 工具执行 · 权限 · 会话] -.承载运行.-> E
-    CI[项目现有 CI 与仓库保护] -.强制执行合并与发布门禁.-> X
-```
+在任务开头用统一入口。它读你的请求，从 playbook 里选，按步骤调用其他 skill。
 
-日常调用就是自然语言：
+### 就用 `nimo`
 
 ```text
 $nimo 这个需求接下来应该怎么推进？
-$nimo 看看登录方案还缺什么，先不要实现。
+
 $nimo 修复登录后一直加载的问题，复现并验证。
+
 $nimo 实现项目列表筛选，保持现有接口兼容。
 ```
 
-nimo 优先遵守「先讨论」「不要修改」「开始实现」等明确措辞；「继续」只承接最近一条具体行动提议，不会自动扩大范围。
+被调用后它：
 
-## 能力边界
+1. 判断意图：指导还是执行。判断不了就按指导处理，没有副作用。
+2. 匹配 playbook，拷贝步骤；推荐步骤可按任务重排，必要检查不能静默省略。
+3. 按步骤调用 skill；非简单实现默认委派子 agent，带完整任务合同，主 agent 验收。
+4. 交付带证据的结论：通过、失败、未验证，分别说清。
 
-**第一版做什么：** 工程指导、Bug 修复、Feature 开发，以及支撑它们的项目验证维护和 Skill 评测维护。
+明确措辞永远优先于推断：「先讨论」「不要修改」只读不改；「继续」只承接最近一条具体提议，不扩大范围；「停下」就停下并保存现场。完整约定见 [skills/nimo/SKILL.md](skills/nimo/SKILL.md)。
 
-**不做什么（边界）：**
+### playbooks
 
-- 不自建 Agent Runtime、Workflow Engine、独立任务平台、长期记忆系统或通用插件 SDK——模型调用、工具执行、权限和会话由宿主提供。
+| playbook                                               | 用于                                                                       |
+| ------------------------------------------------------ | -------------------------------------------------------------------------- |
+| [bug](skills/nimo/references/playbooks/bug.md)         | 复现缺陷，保留失败证据，定位根因，最小修复，区分修复前／后结果。                |
+| [feature](skills/nimo/references/playbooks/feature.md) | 新行为或改行为，从明确验收开始，行为验证后交付。                               |
 
-- 不替代你项目现有的强制门禁——合并与发布由项目 CI 和仓库保护执行，nimo 的完成检查不绕过它们，提示词也不是安全沙箱。
+### skills
 
-- 不做长期多项目编排、自动合并发布队列——性能优化、专门重构等可扩展为后续 Playbook，不并入第一版。
+入口会在需要时调用大部分 skill。下表是你要直接用的时候：
 
-- 不自动安装陌生 Skill、不动态拉取未审查脚本——只使用当前环境可见或项目已登记的能力。
+| skill                                                          | 什么时候用                                                               |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| [nimo](skills/nimo/SKILL.md)                                   | 任何正经任务的默认入口。                                                 |
+| [nimo-setup](skills/nimo-setup/SKILL.md)                       | 安装检测与配置：安装、更新、卸载、能力检测。                              |
+| [verification-create](skills/verification-create/SKILL.md)     | 你的项目还没有可证明行为的验证方式。生成项目本地验证 skill 和功能地图。      |
+| [verification-maintain](skills/verification-maintain/SKILL.md) | 功能地图和产品漂移了。源码核对＋实际跑一遍，三分类处置。                    |
+| [skill-evaluate](skills/skill-evaluate/SKILL.md)               | 你想知道改 skill 有没有真的变好。隔离比较，盲评，回归检查。                |
 
-- 宿主能力不足时（无并行、无独立上下文、无产品操作工具），如实降级或报告受阻，不把期望当作执行结果。
+## 在栈里的位置
 
-## 能力状态
+nimo 是 AI 研发栈里的「工程方法层」：
 
-第一版规划的能力均已具备：
+| 层             | 谁提供                        | 管什么                                     |
+| -------------- | ----------------------------- | ------------------------------------------ |
+| 模型层         | LLM                           | 推理                                       |
+| agent 运行时层 | Codex / Claude Code / Cursor  | 模型调用、工具、权限、会话、子 agent        |
+| **工程方法层** | **nimo**                      | 原则、playbook、能力合同、质量门禁、评测维护 |
+| 项目资产层     | 你的项目 `.nimo/`             | 功能地图、验证脚本、检查点                  |
+| 强制控制层     | 你的 CI 和仓库保护            | 合并、发布的强制门禁                       |
 
-| 能力 | 覆盖内容 | 详见 |
-| --- | --- | --- |
-| 统一入口 | 指导／执行意图识别、明确措辞优先、授权承接规则 | [skills/nimo](skills/nimo/SKILL.md) |
-| 工程方法 | 工程原则索引、Bug／Feature Playbook | [references](skills/nimo/references/principles.md) |
-| 子 Agent 协作 | 六项任务合同、启动规格、验收与停止、检查点与恢复 | [issue-3 执行记录](docs/evidence/issue-3/README.md) |
-| 宿主接入 | Codex 与 Claude Code 的安装、更新与卸载 | [integrations](integrations/codex/README.md)、[Claude Code](integrations/claude-code/README.md) |
-| 项目验证 | 功能地图初始化、巡检维护、文档漂移／工具缺口／产品缺陷三分类处置 | [verification-create](skills/verification-create/SKILL.md)、[verification-maintain](skills/verification-maintain/SKILL.md) |
-| Skill 评测 | 基线／候选隔离比较、评分依据、确定性断言与独立评价 | [skill-evaluate](skills/skill-evaluate/SKILL.md) |
+nimo 定义「怎样才算做对了、做完了」，宿主执行，你的 CI 兜底。你的 CI 永远是最后一道门，nimo 不替代它。
 
-运行验证证据按任务在本地保留，不作为 nimo 安装内容；未验证范围以对应任务记录为准。
+## 原则
 
-## 目录导览
+十条工程原则，一条一个。入口在任务开始时读索引，按需展开，不逐条罗列原则名。
 
-```text
-skills/          nimo 入口、安装检测、项目验证与评测 Skill
-integrations/    各宿主的薄接入（Codex、Claude Code）
-defaults/        默认能力组合
-docs/            总体设计文档与项目说明
-```
+| 原则                    | 规则                                                        |
+| ----------------------- | ------------------------------------------------------------ |
+| P1 先理解事实与领域结构  | 先读相关代码、规格与运行方式，弄清结构再动手。                |
+| P2 最少变更完整解决      | 最小变更解决问题，不引入当前任务不需要的抽象。               |
+| P3 验证真实产物         | 结论与证据匹配，不以「代码看起来正确」替代真实验证。         |
+| P4 bug 先复现并定位根因 | 先拿到可重复的失败，再修复；不遮蔽症状。                     |
+| P5 拆成可验证单元       | 长任务拆小，实现顺序按「可验证」组织，不堆未验证变更。        |
+| P6 明确状态所有权       | 明确每份状态的所有者与写入者，优先单一写入者。               |
+| P7 重试前核对副作用     | 可重试操作检查幂等性；超时后先查询结果，不直接重发。          |
+| P8 只携带必要上下文      | 委派与交接传必要摘要和文件引用，不原样转发整个会话。          |
+| P9 确定性错误转成约束   | 重复出现的错误优先转成类型、lint、脚本或 CI，不靠提示词。    |
+| P10 授权范围内自主推进   | 授权范围内自己干，产品取舍列选项交还用户。                   |
 
-## 深入了解
+完整规则、适用情境与例外见 [references/principles.md](skills/nimo/references/principles.md)。
 
-- [nimo 总体设计](docs/nimo-overall-design.md)：系统结构、用户路径、功能地图、评测维护与验收要求
+## 不做什么
 
-- [Codex 接入说明](integrations/codex/README.md) / [Claude Code 接入说明](integrations/claude-code/README.md)：安装、隔离测试、更新与卸载
+- 不自建 agent 运行时、workflow engine、任务平台、长期记忆、插件 SDK。宿主有就用宿主的，宿主没有就如实降级。
+- 不替代你的 CI 和仓库保护。完成检查是工程要求，不是强制门禁；提示词也不是安全沙箱。
+- 不做多项目编排、自动合并发布队列。性能优化、专门重构以后再说，不进第一版。
+- 不自动安装陌生 skill，不动态拉取未审查脚本。只用当前环境可见或项目已登记的能力。
+- 宿主缺能力（无并行、无独立上下文、无产品操作工具）时，如实报告受阻，不把期望当结果。
 
-- [Skill 评测能力](skills/skill-evaluate/SKILL.md)：隔离执行与评分约定
+## 实测状态
+
+部分运行验证证据随仓库归档，其余按任务在本地保留。说几点真的：
+
+- Claude Code 2.1.23 里真实跑通过：会话 attribution 证明 skill 被加载，「先讨论」后 `git status` 干净，指导输出四要素齐全（[issue-8](docs/evidence/issue-8/real-invocation.log)）。
+- 功能地图维护巡检在样例项目上真实抓到过文档漂移、工具缺口和一个真产品缺陷——前两者修了并复跑通过，缺陷如实上报，没改预期去迎合它。
+- 子 agent 协作纪律 10 项实测通过（[issue-3](docs/evidence/issue-3/README.md)）；安装脚本 12 项行为测试通过（[issue-2](docs/evidence/issue-2/install-scripts-test.log)）。
+
+还没验证的：Codex 内真实调用、官方 Anthropic 端点下的行为、原生 macOS/Linux、bug playbook 端到端、候选比较。没验证就不算能用。
+
+## 更多
+
+- [nimo 总体设计](docs/nimo-overall-design.md)：系统结构、用户路径、功能地图、评测维护与验收要求。
+- [Codex 接入](integrations/codex/README.md) / [Claude Code 接入](integrations/claude-code/README.md)：安装、隔离测试、更新与卸载。
+- [skill-evaluate](skills/skill-evaluate/SKILL.md)：评测案例组织、隔离执行与评分流程。
