@@ -7,18 +7,18 @@ description: "nimo 安装与配置检测。当用户要求安装、更新或卸�
 
 职责：安装指导、能力检测、项目初始化、绑定问题排查。检测与排查请求只读，不修改任何文件；仅当用户明确请求安装、更新、卸载或初始化时才执行相应变更，且已有配置不覆盖。
 
-## 安装、更新与卸载（Codex）
+## 安装、更新与卸载
 
-- 一律使用 nimo 仓库 `integrations/codex/` 下的脚本（Windows：`install.ps1`／`uninstall.ps1`；macOS／Linux：`install.sh`／`uninstall.sh`），不要手工复制文件。
-- 脚本只写入 `<CODEX_HOME>/skills` 下的 nimo 自有文件并记录清单（manifest）；不触碰 `config.toml`、`auth.json`、其他 Skill 或用户任何无关配置。
+- 按用户指定的目标宿主选择 nimo 仓库 `integrations/codex/` 或 `integrations/claude-code/` 下的脚本（Windows：`install.ps1`／`uninstall.ps1`；macOS／Linux：`install.sh`／`uninstall.sh`），不要手工复制文件。未指定时使用当前宿主；无法确定时先询问。
+- 两个宿主均安装 `nimo`、`nimo-setup`、`verification-create`、`verification-maintain`、`skill-evaluate`。脚本只写入目标宿主 skills 目录下的 nimo 自有文件并记录清单（manifest）；不触碰宿主配置、凭据、其他 Skill 或用户任何无关配置。
 - 更新时用户修改过的文件会保留并报告；卸载只删除本次安装拥有且未被用户修改的文件。
-- 具体命令与隔离测试方法见仓库 `integrations/codex/README.md`；当前环境找不到仓库时，说明无法定位安装来源并请用户提供，不凭记忆执行安装。
+- 具体命令与隔离测试方法见对应的 `integrations/<宿主>/README.md`；当前环境找不到仓库时，说明无法定位安装来源并请用户提供，不凭记忆执行安装。
 
 ## 能力检测
 
-检测范围（默认 `~/.codex/skills`，或 `CODEX_HOME` 环境变量指向的目录）：
+检测范围按目标宿主确定：Codex 使用 `${CODEX_HOME}/skills`（未设置时为 `~/.codex/skills`）；Claude Code 使用 `${CLAUDE_CONFIG_DIR}/skills`（未设置时为 `~/.claude/skills`）。环境变量指向宿主配置根目录，检测时追加 `skills`。
 
-1. 列出 skills 目录下的 Skill 目录，区分 nimo 自有（`nimo`、`nimo-setup`，后续版本的 `verification-*`、`skill-evaluate`）与第三方 Skill。
+1. 列出 skills 目录下的 Skill 目录，区分 nimo 自有（`nimo`、`nimo-setup`、`verification-create`、`verification-maintain`、`skill-evaluate`）与第三方 Skill。
 2. 校验 `.nimo/project.yaml`（若存在）：每个 `provider: skill` 的条目检查对应 Skill 目录与 SKILL.md 是否存在；`provider` 值不认识时报告为无效绑定。
 3. 输出报告：可用能力、缺失项、无效绑定及原因、使用的默认组合版本（nimo Skill 内 `references/defaults/capabilities.yaml` 的 `version`）。
 

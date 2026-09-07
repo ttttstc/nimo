@@ -22,6 +22,12 @@ nimo 以 Skill 包形式接入 Codex CLI。安装脚本只写入 `<CODEX_HOME>/s
 
 - `skills/nimo-setup/`：安装与配置检测 Skill
 
+- `skills/verification-create/`：项目验证初始化 Skill
+
+- `skills/verification-maintain/`：项目验证与功能地图维护 Skill
+
+- `skills/skill-evaluate/`：Skill 行为评测与版本比较 Skill
+
 - `skills/nimo/references/defaults/capabilities.yaml`：默认能力组合的受控副本（权威副本在仓库 `defaults/capabilities.yaml`，不要手工维护安装副本）
 
 ## 隔离测试安装（不影响用户配置）
@@ -80,11 +86,13 @@ codex exec "使用 nimo skill：看看这个项目接下来应该怎么推进，
 
 ## 安装脚本行为测试
 
+测试需要 Windows PowerShell，以及可通过 `python` 调用的 Python 3 和 PyYAML（用于解析 Skill 元数据）；安装、更新与卸载脚本本身不依赖 Python。
+
 ```powershell
 .\integrations\codex\test-install.ps1
 ```
 
-在隔离临时目录中验证 12 项行为：干净安装、幂等重装、用户修改不被覆盖、卸载只删自有文件、他人同名文件冲突保护、干净卸载无残留、过期用户修改文件保留清单记录、`-Source` 相对路径／尾分隔符／8.3 短路径规范化、清单越界路径（`..`／绝对路径）时卸载拒绝删除任何文件、安装跳过旧文件清理并自愈清单。全部通过时退出码 0，不影响用户配置。
+在隔离临时目录中验证：五个 Skill 的入口与必要元数据、干净安装、幂等重装、用户修改不被覆盖、卸载只删自有文件、他人同名文件冲突保护、干净卸载无残留、过期用户修改文件保留清单记录、`-Source` 路径规范化及非法清单保护。全部通过时退出码 0，不影响用户配置。
 
 ## 已验证范围
 
