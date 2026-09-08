@@ -1,50 +1,14 @@
 ---
 name: nimo-setup
-description: "nimo 安装与配置检测。当用户要求安装、更新或卸载 nimo，检测已安装能力，初始化项目配置（.nimo/project.yaml），或排查能力绑定问题时使用。只检测与报告，不自动安装陌生 Skill，不覆盖用户配置。"
+description: "安装、更新、卸载 nimo 或检查宿主、脚本、Skill 发现和配置可用性时使用。检测只读，变更遵守当前授权。"
 ---
 
-# nimo 安装与配置检测
+# 安装与检测
 
-职责：安装指导、能力检测、项目初始化、绑定问题排查。检测与排查请求只读，不修改任何文件；仅当用户明确请求安装、更新、卸载或初始化时才执行相应变更，且已有配置不覆盖。
+1. 读取 [宿主合同](../nimo-mode/references/host-contract.md)，核对实际终端、独立上下文、模型选择、真实操作和后台能力，不从目录推断。
+2. 脚本需要 Node.js 22+；源码安装另需 npm，GitHub 功能另需已认证 gh。缺失报告，不自动下载运行时或陌生 Skill。
+3. 安装／更新需要用户指定的来源仓库，使用 integrations 对应宿主脚本，目标为宿主 skills 目录。卸载可直接用已安装 nimo-mode/scripts/install.mjs 的 uninstall --target <实际 skills 根目录>，不依赖源码仓库仍存在。找不到更新来源时请用户提供，不凭猜测下载。
+4. 配置检测使用 [configure-nimo](../configure-nimo/SKILL.md) 的 inspect/validate，无文件不创建空 YAML。
+5. 报告已发现、已调用与未验证功能，分清三者；提示词不等于后台能力。
 
-## 安装、更新与卸载
-
-- 按用户指定的目标宿主选择 nimo 仓库 `integrations/codex/` 或 `integrations/claude-code/` 下的脚本（Windows：`install.ps1`／`uninstall.ps1`；macOS／Linux：`install.sh`／`uninstall.sh`），不要手工复制文件。未指定时使用当前宿主；无法确定时先询问。
-- 两个宿主均安装 `nimo`、`nimo-setup`、`verification-create`、`verification-maintain`、`skill-evaluate`。脚本只写入目标宿主 skills 目录下的 nimo 自有文件并记录清单（manifest）；不触碰宿主配置、凭据、其他 Skill 或用户任何无关配置。
-- 更新时用户修改过的文件会保留并报告；卸载只删除本次安装拥有且未被用户修改的文件。
-- 具体命令与隔离测试方法见对应的 `integrations/<宿主>/README.md`；当前环境找不到仓库时，说明无法定位安装来源并请用户提供，不凭记忆执行安装。
-
-## 能力检测
-
-检测范围按目标宿主确定：Codex 使用 `${CODEX_HOME}/skills`（未设置时为 `~/.codex/skills`）；Claude Code 使用 `${CLAUDE_CONFIG_DIR}/skills`（未设置时为 `~/.claude/skills`）。环境变量指向宿主配置根目录，检测时追加 `skills`。
-
-1. 列出 skills 目录下的 Skill 目录，区分 nimo 自有（`nimo`、`nimo-setup`、`verification-create`、`verification-maintain`、`skill-evaluate`）与第三方 Skill。
-2. 校验 `.nimo/project.yaml`（若存在）：每个 `provider: skill` 的条目检查对应 Skill 目录与 SKILL.md 是否存在；`provider` 值不认识时报告为无效绑定。
-3. 输出报告：可用能力、缺失项、无效绑定及原因、使用的默认组合版本（nimo Skill 内 `references/defaults/capabilities.yaml` 的 `version`）。
-
-规则：缺失或无效如实反馈；不静默回退到其他实现；不自动安装任何 Skill；用户明确限定实现时，报告该实现不可用而不是替换。
-
-## 项目初始化
-
-用户要求“初始化 nimo 项目配置”时：
-
-- `.nimo/project.yaml` 不存在 → 创建最小模板（见下）。
-- 已存在 → 只校验与报告，不覆盖、不重排用户内容。
-- 不创建无关目录；`.nimo/tasks/`、`.nimo/verification/` 由相应能力按需创建，初始化时不预建。
-
-模板：
-
-```yaml
-version: 0.1
-# 能力覆盖：仅声明需要覆盖的项，未声明的使用团队默认（宿主原生能力）。
-# capabilities:
-#   implement:
-#     provider: skill
-#     skill: my-implement-skill
-```
-
-## 边界
-
-- 不修改用户全局配置、凭据或其他 Skill 的文件。
-- 检测结果仅描述当前环境事实；能力是否真的可用以实际调用为准，不以“目录存在”等同“能力可用”。
-- 发现安装冲突（目标文件已存在且无法证明为 nimo 所有）时报告清单与处理建议，不强行覆盖。
+安装不改宿主模型、权限、凭据或个人引用。更新冲突保留文件，不强行覆盖。

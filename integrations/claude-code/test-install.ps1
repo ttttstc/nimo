@@ -1,248 +1,29 @@
-# nimo Claude Code 接入：安装脚本行为测试（隔离目录，不影响用户配置）
-# 用法: .\test-install.ps1 [-KeepFailed]
-# 覆盖 Issue #8 验收项（与 Codex 接入同等行为测试）：
-#   T1 干净安装 / T2 幂等重装 / T3 用户修改不被覆盖 / T4 卸载只删自有文件
-#   T5 他人文件冲突保护
-#   T6 干净安装后完全卸载（空目录自底向上清理，非交互成功）
-#   T7 源已删除但用户修改过的旧文件保留在清单（managed=0），卸载时如实报告
-#   T8 -Source 相对路径/尾分隔符/短路径规范化，入口位于标准位置
-#   T9 清单越界路径：卸载拒绝删除任何文件
-#   T10 清单越界路径：安装跳过旧文件清理
-#   T11 旧版两 Skill 安装状态升级到五个 Skill；新增 Skill 用户修改保留
-# 全部通过时退出码 0。
-param([switch]$KeepFailed)
-$ErrorActionPreference = "Continue"
-$Here = $PSScriptRoot
-$RepoRoot = (Resolve-Path (Join-Path $Here "..\..")).Path
-# 期望文件数按源目录动态计算（源 skills 文件 + defaults 受控副本 + 清单），避免新增 reference 后假失败
-$AllSkillDirs = @("nimo", "nimo-setup", "verification-create", "verification-maintain", "skill-evaluate")
-$ExpectedSkillsFiles = ($AllSkillDirs | ForEach-Object { @(Get-ChildItem (Join-Path $RepoRoot ("skills\" + $_)) -Recurse -File).Count } | Measure-Object -Sum).Sum + 2
-$ExpectedManifestEntries = $ExpectedSkillsFiles - 1
-$TempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("nimo-claude-test-" + [guid]::NewGuid().ToString("N").Substring(0, 8))
-$results = @()
-$FrontmatterCheck = 'import pathlib,sys,yaml; p=pathlib.Path(sys.argv[2]); expected=sys.argv[3]; lines=p.read_text(encoding="utf-8").splitlines(); assert lines and lines[0].strip()=="---"; end=next(i for i,line in enumerate(lines[1:],1) if line.strip()=="---"); metadata=yaml.safe_load("\n".join(lines[1:end])); assert isinstance(metadata,dict); assert metadata.get("name")==expected; description=metadata.get("description"); assert isinstance(description,str) and description.strip()'
-$FrontmatterCheckEncoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($FrontmatterCheck))
+# nimo Claude Code 安装黑盒测试入口。
+# 测试数据始终创建在 os.tmpdir；宿主目录参数只为兼容旧调用保留，不会被写入。
+param(
+    [string]$Source = "",
+    [string]$ClaudeConfigDir = "",
+    [switch]$KeepFailed
+)
 
-function Check([string]$Name, [bool]$Ok, [string]$Detail) {
-    $script:results += [pscustomobject]@{ Test = $Name; Result = $(if ($Ok) { "PASS" } else { "FAIL" }); Detail = $Detail }
-}
-function Run-Script([string]$Script, [string[]]$ExtraArgs, [string]$TargetDir, [string]$WorkingDir = $RepoRoot) {
-    $argList = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", (Join-Path $Here $Script), "-ClaudeConfigDir", $TargetDir) + $ExtraArgs
-    Start-Process powershell -ArgumentList $argList -WorkingDirectory $WorkingDir -Wait -PassThru -WindowStyle Hidden
-}
-function Get-Sha([string]$Path) {
-    (Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash.ToLowerInvariant()
-}
-function Test-SkillFrontmatter([string]$Path, [string]$ExpectedName) {
-    & python -c 'import sys,base64;exec(base64.b64decode(sys.argv[1]))' $FrontmatterCheckEncoded $Path $ExpectedName 2>$null
-    ($LASTEXITCODE -eq 0)
-}
-function Test-EntriesAt([string]$Dir) {
-    # 五个入口 Skill 位于标准位置，且 frontmatter 可由 PyYAML 解析
-    $ok = $true
-    foreach ($n in $AllSkillDirs) {
-        $entry = Join-Path $Dir ("skills\" + $n + "\SKILL.md")
-        if (-not (Test-Path -LiteralPath $entry) -or -not (Test-SkillFrontmatter $entry $n)) { $ok = $false }
-    }
-    $ok
-}
-function Remove-TestTempRoot {
-    if (-not (Test-Path -LiteralPath $TempRoot)) { return }
-    $tempRootFull = [System.IO.Path]::GetFullPath($TempRoot).TrimEnd('\')
-    $tempBaseFull = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath()).TrimEnd('\') + '\'
-    if ($tempRootFull -eq $tempBaseFull.TrimEnd('\') -or -not $tempRootFull.StartsWith($tempBaseFull, [System.StringComparison]::OrdinalIgnoreCase)) {
-        throw "Refusing recursive cleanup outside this test's temporary directory: $tempRootFull"
-    }
-    Remove-Item -LiteralPath $tempRootFull -Recurse -Force -ErrorAction SilentlyContinue
-}
-function New-LegacyInstallState([string]$TargetDir) {
-    $skillsDir = Join-Path $TargetDir "skills"
-    New-Item -ItemType Directory -Path $skillsDir -Force | Out-Null
-    foreach ($name in @("nimo", "nimo-setup")) {
-        $sourceDir = Join-Path $RepoRoot ("skills\" + $name)
-        $targetDir = Join-Path $skillsDir $name
-        Copy-Item -LiteralPath $sourceDir -Destination $targetDir -Recurse -Force
-    }
-    $defaultsTarget = Join-Path $skillsDir "nimo\references\defaults\capabilities.yaml"
-    New-Item -ItemType Directory -Path (Split-Path $defaultsTarget -Parent) -Force | Out-Null
-    Copy-Item -LiteralPath (Join-Path $RepoRoot "defaults\capabilities.yaml") -Destination $defaultsTarget -Force
-
-    $lines = @(
-        "# nimo install manifest",
-        "# version: legacy-two-skills",
-        "# source-commit: legacy",
-        "# installed-at: 1970-01-01T00:00:00Z"
-    )
-    foreach ($name in @("nimo", "nimo-setup")) {
-        $targetDir = Join-Path $skillsDir $name
-        foreach ($file in Get-ChildItem -LiteralPath $targetDir -Recurse -File) {
-            $rel = $file.FullName.Substring($skillsDir.Length + 1).Replace('\', '/')
-            $lines += "$(Get-Sha $file.FullName) 1 $rel"
-        }
-    }
-    $manifestPath = Join-Path $skillsDir ".nimo-manifest"
-    Set-Content -LiteralPath $manifestPath -Value $lines -Encoding UTF8
+$ErrorActionPreference = "Stop"
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
+$testFiles = @(
+    (Join-Path $repoRoot "tests\installation\install.test.mjs"),
+    (Join-Path $repoRoot "tests\installation\host-wrapper.test.mjs")
+)
+if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+    throw "Node.js 22+ is required to run installation tests"
 }
 
+$oldSource = $env:NIMO_TEST_SOURCE
+$oldKeepFailed = $env:NIMO_KEEP_FAILED
 try {
-    # T1 干净隔离目录首次安装
-    $t1 = Join-Path $TempRoot "t1"
-    $p = Run-Script "install.ps1" @() $t1
-    $files = @()
-    if (Test-Path "$t1\skills") { $files = Get-ChildItem "$t1\skills" -Recurse -File | ForEach-Object { $_.FullName.Substring("$t1\skills\".Length) } }
-    $entriesValid = Test-EntriesAt $t1
-    Check "T0 五个 Skill 入口与 frontmatter" $entriesValid "入口位置、name 与非空 description 均由 PyYAML 核对"
-    $t1ok = ($p.ExitCode -eq 0) -and $entriesValid -and (Test-Path "$t1\skills\nimo\references\defaults\capabilities.yaml") -and (Test-Path "$t1\skills\.nimo-manifest") -and ($files.Count -eq $ExpectedSkillsFiles)
-    Check "T1 干净安装" $t1ok "exit=$($p.ExitCode), files=$($files.Count) (期望 $ExpectedSkillsFiles)"
-
-    # T2 未修改重装（幂等更新）
-    $p = Run-Script "install.ps1" @() $t1
-    Check "T2 幂等重装" ($p.ExitCode -eq 0) "exit=$($p.ExitCode) (期望 0)"
-
-    # T3 用户修改后重装：不覆盖用户修改，退出码 1
-    Add-Content "$t1\skills\nimo\references\principles.md" "`n# 用户自定义补充"
-    $p = Run-Script "install.ps1" @() $t1
-    $kept = (Select-String -Path "$t1\skills\nimo\references\principles.md" -Pattern "用户自定义补充").Count
-    Check "T3 用户修改不被覆盖" ($p.ExitCode -eq 1 -and $kept -eq 1) "exit=$($p.ExitCode) (期望 1), 用户内容保留=$kept (期望 1)"
-
-    # T4 卸载：只删自有未修改文件；用户修改文件与清单保留
-    $p = Run-Script "uninstall.ps1" @() $t1
-    $remain = @()
-    if (Test-Path $t1) { $remain = Get-ChildItem $t1 -Recurse -File -Force | ForEach-Object { $_.FullName.Substring($t1.Length + 1) } }
-    $t4ok = ($p.ExitCode -eq 1) -and ($remain.Count -eq 2) -and ($remain -contains "skills\.nimo-manifest") -and ($remain -contains "skills\nimo\references\principles.md")
-    Check "T4 卸载只删自有文件" $t4ok "exit=$($p.ExitCode) (期望 1), 残留=$($remain.Count) 个 (期望 2: 用户修改文件+清单)"
-
-    # T5 他人已有同名文件：五个入口均冲突保护，不覆盖
-    $t5 = Join-Path $TempRoot "t5"
-    foreach ($name in $AllSkillDirs) {
-        $foreignPath = Join-Path $t5 ("skills\" + $name + "\SKILL.md")
-        New-Item -ItemType Directory -Path (Split-Path $foreignPath -Parent) -Force | Out-Null
-        Set-Content -LiteralPath $foreignPath "someone else's $name skill"
-    }
-    $p = Run-Script "install.ps1" @() $t5
-    $foreignKept = $true
-    foreach ($name in $AllSkillDirs) {
-        $foreignPath = Join-Path $t5 ("skills\" + $name + "\SKILL.md")
-        $foreignKept = $foreignKept -and ((Get-Content -LiteralPath $foreignPath -Raw).Trim() -eq "someone else's $name skill")
-    }
-    Check "T5 五个同名外来 Skill 冲突保护" ($p.ExitCode -eq 1 -and $foreignKept) "exit=$($p.ExitCode) (期望 1), 五个外来入口均保留=$foreignKept"
-
-    # T6 干净安装后完全卸载：非交互成功，全部清除（含嵌套空目录与清单）
-    $t6 = Join-Path $TempRoot "t6"
-    $p = Run-Script "install.ps1" @() $t6
-    $p = Run-Script "uninstall.ps1" @() $t6
-    $leftFiles = @()
-    if (Test-Path $t6) { $leftFiles = Get-ChildItem $t6 -Recurse -File -Force }
-    $skillsGone = -not (Test-Path "$t6\skills")
-    $t6ok = ($p.ExitCode -eq 0) -and ($leftFiles.Count -eq 0) -and $skillsGone
-    Check "T6 干净卸载无残留" $t6ok "exit=$($p.ExitCode) (期望 0), 残留文件=$($leftFiles.Count) (期望 0), skills 目录已删=$skillsGone"
-
-    # T7 源已删除但用户修改过的旧文件：升级保留并留在清单（managed=0），卸载如实报告
-    $t7 = Join-Path $TempRoot "t7"
-    $p = Run-Script "install.ps1" @() $t7
-    Set-Content "$t7\skills\nimo\obsolete.md" "original"
-    $shaA = Get-Sha "$t7\skills\nimo\obsolete.md"
-    Add-Content "$t7\skills\.nimo-manifest" "$shaA 1 nimo/obsolete.md"
-    Set-Content "$t7\skills\nimo\obsolete.md" "user changed"
-    $shaB = Get-Sha "$t7\skills\nimo\obsolete.md"
-    $p = Run-Script "install.ps1" @() $t7
-    $manifest7 = Get-Content "$t7\skills\.nimo-manifest"
-    $carried = ($manifest7 -match "^$shaB 0 nimo/obsolete\.md$").Count
-    $contentOk = ((Get-Content "$t7\skills\nimo\obsolete.md" -Raw).Trim() -eq "user changed")
-    $p2 = Run-Script "uninstall.ps1" @() $t7
-    $obsoleteKept = Test-Path "$t7\skills\nimo\obsolete.md"
-    $t7ok = ($p.ExitCode -eq 1) -and ($carried -eq 1) -and $contentOk -and ($p2.ExitCode -eq 1) -and $obsoleteKept
-    Check "T7 过期用户文件保留清单" $t7ok "升级exit=$($p.ExitCode) (期望1), 清单保留managed=0=$(($carried -eq 1)), 卸载exit=$($p2.ExitCode) (期望1), 文件保留=$obsoleteKept"
-
-    # T8 -Source 规范化：相对路径、尾分隔符、短路径，入口须位于标准位置
-    $t8 = Join-Path $TempRoot "t8"
-    $p = Run-Script "install.ps1" @("-Source", ".") $t8   # 工作目录为仓库根
-    $entryA = Test-EntriesAt $t8
-    $noWrongDir = -not (Test-Path "$t8\nimo")
-    $t8a = ($p.ExitCode -eq 0) -and $entryA -and $noWrongDir
-    Check "T8a Source 相对路径" $t8a "exit=$($p.ExitCode) (期望 0), 入口在标准位置=$entryA, 无错误嵌套目录=$noWrongDir"
-
-    $t8b = Join-Path $TempRoot "t8b"
-    $p = Run-Script "install.ps1" @("-Source", "$RepoRoot\") $t8b
-    $entryB = Test-EntriesAt $t8b
-    Check "T8b Source 尾分隔符" (($p.ExitCode -eq 0) -and $entryB) "exit=$($p.ExitCode) (期望 0), 入口在标准位置=$entryB"
-
-    $shortRoot = (& cmd /c "for %A in (`"$RepoRoot`") do @echo %~sA" | Select-Object -First 1)
-    if ($shortRoot -and ($shortRoot.Trim() -ne $RepoRoot)) {
-        $t8c = Join-Path $TempRoot "t8c"
-        $p = Run-Script "install.ps1" @("-Source", $shortRoot.Trim()) $t8c
-        $entryC = Test-EntriesAt $t8c
-        Check "T8c Source 短路径" (($p.ExitCode -eq 0) -and $entryC) "short=$shortRoot, exit=$($p.ExitCode) (期望 0), 入口在标准位置=$entryC"
-    } else {
-        Check "T8c Source 短路径" $true "本机 8.3 短路径不可用（%~sA 与长路径相同），跳过动态用例"
-    }
-
-    # T9 清单越界路径：卸载拒绝删除任何文件
-    $t9 = Join-Path $TempRoot "t9"
-    $p = Run-Script "install.ps1" @() $t9
-    Set-Content "$t9\sentinel.txt" "sentinel"
-    $shaS = Get-Sha "$t9\sentinel.txt"
-    Add-Content "$t9\skills\.nimo-manifest" "$shaS 1 ../sentinel.txt"
-    $p = Run-Script "uninstall.ps1" @() $t9
-    $sentinelKept = Test-Path "$t9\sentinel.txt"
-    $nimoKept = Test-Path "$t9\skills\nimo\SKILL.md"
-    $manifestKept = Test-Path "$t9\skills\.nimo-manifest"
-    $t9ok = ($p.ExitCode -eq 1) -and $sentinelKept -and $nimoKept -and $manifestKept
-    Check "T9 越界清单卸载拒绝" $t9ok "exit=$($p.ExitCode) (期望 1), 哨兵保留=$sentinelKept, nimo 文件未删=$nimoKept, 清单保留=$manifestKept"
-
-    # T10 清单越界路径：安装跳过旧文件清理，新清单自愈
-    $t10 = Join-Path $TempRoot "t10"
-    $p = Run-Script "install.ps1" @() $t10
-    Set-Content "$t10\sentinel2.txt" "sentinel2"
-    $shaS2 = Get-Sha "$t10\sentinel2.txt"
-    Add-Content "$t10\skills\.nimo-manifest" "$shaS2 1 ../sentinel2.txt"
-    $p = Run-Script "install.ps1" @() $t10
-    $manifest10 = Get-Content "$t10\skills\.nimo-manifest"
-    $entries10 = @($manifest10 | Where-Object { $_ -notmatch '^#' })
-    $sentinel2Kept = Test-Path "$t10\sentinel2.txt"
-    $noEscape = -not ($manifest10 -match 'sentinel')
-    $t10ok = ($p.ExitCode -eq 1) -and $sentinel2Kept -and (Test-Path "$t10\skills\nimo\SKILL.md") -and ($entries10.Count -eq $ExpectedManifestEntries) -and $noEscape
-    Check "T10 越界清单跳过清理" $t10ok "exit=$($p.ExitCode) (期望 1), 哨兵保留=$sentinel2Kept, 新清单条目=$($entries10.Count) (期望 $ExpectedManifestEntries, 不含越界项=$noEscape)"
-
-    # T11 旧版两 Skill 安装状态升级为五个；新增 Skill 的用户修改在更新与卸载时保留
-    $t11 = Join-Path $TempRoot "t11"
-    New-LegacyInstallState $t11
-    $p = Run-Script "install.ps1" @() $t11
-    $manifest11 = Get-Content -LiteralPath "$t11\skills\.nimo-manifest"
-    $newSkillsAdded = $true
-    foreach ($name in @("verification-create", "verification-maintain", "skill-evaluate")) {
-        $newSkillsAdded = $newSkillsAdded -and (Test-Path -LiteralPath (Join-Path $t11 ("skills\" + $name + "\SKILL.md")))
-    }
-    $upgradeOk = ($p.ExitCode -eq 0) -and $newSkillsAdded -and (Test-EntriesAt $t11) -and (($manifest11 | Where-Object { $_ -match ' (verification-create|verification-maintain|skill-evaluate)/' }).Count -gt 0)
-    Check "T11a 旧版两 Skill 升级到五个" $upgradeOk "exit=$($p.ExitCode) (期望 0), 新增三个入口=$newSkillsAdded, 五个入口元数据有效=$(Test-EntriesAt $t11)"
-
-    foreach ($name in @("verification-create", "verification-maintain", "skill-evaluate")) {
-        Add-Content -LiteralPath (Join-Path $t11 ("skills\" + $name + "\SKILL.md")) "`n# 用户自定义补充 $name"
-    }
-    $p = Run-Script "install.ps1" @() $t11
-    $modifiedKept = $true
-    $modifiedManifest = $true
-    foreach ($name in @("verification-create", "verification-maintain", "skill-evaluate")) {
-        $entry = Join-Path $t11 ("skills\" + $name + "\SKILL.md")
-        $modifiedKept = $modifiedKept -and ((Select-String -LiteralPath $entry -Pattern "用户自定义补充 $name").Count -eq 1)
-        $modifiedManifest = $modifiedManifest -and (($manifest11 = Get-Content -LiteralPath "$t11\skills\.nimo-manifest") -match " 0 $name/SKILL\.md")
-    }
-    $p2 = Run-Script "uninstall.ps1" @() $t11
-    $uninstallKept = $true
-    foreach ($name in @("verification-create", "verification-maintain", "skill-evaluate")) {
-        $entry = Join-Path $t11 ("skills\" + $name + "\SKILL.md")
-        $uninstallKept = $uninstallKept -and (Test-Path -LiteralPath $entry) -and ((Select-String -LiteralPath $entry -Pattern "用户自定义补充 $name").Count -eq 1)
-    }
-    $t11ok = ($p.ExitCode -eq 1) -and $modifiedKept -and $modifiedManifest -and ($p2.ExitCode -eq 1) -and $uninstallKept -and (Test-Path -LiteralPath "$t11\skills\.nimo-manifest")
-    Check "T11b 新增 Skill 用户修改保留" $t11ok "更新exit=$($p.ExitCode) (期望 1), 修改与 managed=0 保留=$modifiedKept/$modifiedManifest, 卸载exit=$($p2.ExitCode) (期望 1), 三个入口保留=$uninstallKept"
+    if ($Source) { $env:NIMO_TEST_SOURCE = [System.IO.Path]::GetFullPath($Source) }
+    if ($KeepFailed) { $env:NIMO_KEEP_FAILED = "1" }
+    & node --test @testFiles
+    exit $LASTEXITCODE
+} finally {
+    if ($null -eq $oldSource) { Remove-Item Env:NIMO_TEST_SOURCE -ErrorAction SilentlyContinue } else { $env:NIMO_TEST_SOURCE = $oldSource }
+    if ($null -eq $oldKeepFailed) { Remove-Item Env:NIMO_KEEP_FAILED -ErrorAction SilentlyContinue } else { $env:NIMO_KEEP_FAILED = $oldKeepFailed }
 }
-finally {
-    if (-not ($KeepFailed -and ($results | Where-Object { $_.Result -eq "FAIL" }))) {
-        Remove-TestTempRoot
-    }
-}
-
-$results | Format-Table -AutoSize | Out-String -Width 200
-$failed = @($results | Where-Object { $_.Result -eq "FAIL" }).Count
-Write-Host ("总计 {0} 项，通过 {1} 项，失败 {2} 项" -f $results.Count, ($results.Count - $failed), $failed)
-exit $(if ($failed -eq 0) { 0 } else { 1 })

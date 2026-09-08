@@ -1,0 +1,6 @@
+node_modules/
+.worktrees/
+.nimo/tasks/
+evals/runs/
+docs/evidence/issue-13/
+*.tmp
