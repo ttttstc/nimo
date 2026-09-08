@@ -62,7 +62,7 @@ knowledge:
 - 持续工作：单目标自主执行、项目协调、独立事项自动交付、PR 链交付。
 - 现场：恢复、暂停、核实后清理工作目录。
 
-全部流程见 [Playbook 目录](skills/nimo-mode/playbooks)；固定来源和差异见 [pstack 对照](docs/upstream/pstack-coverage.md)。
+全部流程见 [Playbook 目录](skills/nimo-mode/playbooks)。
 
 ## 实现与验证
 

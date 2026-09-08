@@ -38,4 +38,4 @@ Project-relative paths use the project root; personal-relative paths use the hom
 
 The host supplies agents, model selection, permissions, UI tools, and background wakeups. Missing facilities are reported rather than simulated.
 
-See the [implementation specification](docs/nimo-v1-issue-13-spec.md), [playbooks](skills/nimo-mode/playbooks), [source mapping](docs/upstream/pstack-coverage.md), [behavior evaluation](evals/README.md), and [third-party notices](THIRD_PARTY_NOTICES.md).
+See the [implementation specification](docs/nimo-v1-issue-13-spec.md), [playbooks](skills/nimo-mode/playbooks), [behavior evaluation](evals/README.md), and [third-party notices](THIRD_PARTY_NOTICES.md).

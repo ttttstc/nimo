@@ -259,11 +259,3 @@ test('negative eval cases are backed by rule anchors that exist', () => {
   }
   if (failures.length > 0) throw new Error(`negative eval cases not backed by rules:\n  ${failures.join('\n  ')}`);
 });
-
-test('upstream manifest lists only artifacts that exist', () => {
-  const manifest = read('docs/upstream/upstream-manifest.md');
-  const links = [...manifest.matchAll(/\]\((\.\.\/\.\.\/skills\/[^)#]+)\)/g)].map((match) => match[1]);
-  if (links.length < 60) throw new Error(`upstream manifest lists only ${links.length} artifacts; expected the full derived set`);
-  const missing = links.filter((link) => !fs.existsSync(path.resolve(path.join(projectRoot, 'docs/upstream'), link)));
-  if (missing.length > 0) throw new Error(`upstream manifest references missing artifacts:\n  ${missing.join('\n  ')}`);
-});

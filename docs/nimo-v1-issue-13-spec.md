@@ -133,7 +133,6 @@ nimo/
 │   └── README.md
 └── docs/
     ├── nimo-v1-issue-13-spec.md
-    ├── upstream/pstack-coverage.md
     └── evidence/issue-13/
 ```
 
@@ -693,7 +692,7 @@ stateDiagram-v2
 | 运行中重新读取 trunk 最新规则 | 当前任务固定包版本；更新需显式发生并重新核对 | 避免长期任务中途改变执行合同 |
 | 普遍英文措辞与个人表达习惯 | 中文优先，保留技术标识，遵守用户写作要求 | 方法复用不等于复制作者人设 |
 
-`docs/upstream/pstack-coverage.md` 在实施时记录每个上游文件的固定来源、目标文件、适配点和对应测试。它是开发追踪材料，不参与运行时解析。
+上游版本和许可信息保存在 `THIRD_PARTY_NOTICES.md`、`licenses/pstack-MIT.txt` 以及各 Skill 的来源链接中。这些说明只用于归属和审查，不参与运行时解析。
 
 ## 4. 质量、安全与异常处理
 
@@ -755,9 +754,9 @@ stateDiagram-v2
 
 ### 5.2 阶段一：固定资产清单与运行合同
 
-新增上游对照、42 个目标 Skill 清单、23 个 Playbook 清单、21 个原则清单和基本测试入口。先确定 host-contract、配置规则和包引用写法，再移植正文。
+新增 42 个目标 Skill 清单、23 个 Playbook 清单、21 个原则清单和基本测试入口。先确定 host-contract、配置规则和包引用写法，再移植正文。
 
-产物：`VERSION`、许可说明、`docs/upstream/pstack-coverage.md`、资产校验、参考合同。不得用占位 SKILL.md 通过检查。
+产物：`VERSION`、许可说明、资产校验、参考合同。不得用占位 SKILL.md 通过检查。
 
 验收：目标清单没有重复和重名；固定来源可追溯；静态检查能识别缺文件、错误链接和 Cursor 残留调用。此时不宣布功能完成。
 
