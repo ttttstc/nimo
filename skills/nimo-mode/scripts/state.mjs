@@ -4,6 +4,8 @@ import { absolute, atomicWrite, fail, guarded, hash, main, readOptional, respons
 
 const executionStates = ['running', 'waiting-input', 'blocked', 'paused', 'delivered', 'cancelled'];
 const unitStates = ['queued', 'running', 'returned', 'accepted', 'integrated', 'failed', 'abandoned', 'cancelled'];
+const confirmedStates = ['accepted', 'integrated'];
+const reopenTargets = ['queued', 'running', 'returned', 'failed'];
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const text = value => typeof value === 'string' && value.length > 0;
 const writable = ['executionState', 'stopReason', 'owners', 'units', 'verifications', 'frontier', 'gates'];
@@ -16,7 +18,13 @@ function validate(program) {
     if (!object(unit) || !text(unit.id) || ids.has(unit.id) || !unitStates.includes(unit.state) || !Array.isArray(unit.dependencies)) fail('INVALID_UNIT', 'Units need unique ids, valid state, and dependencies');
     ids.add(unit.id);
     if (['returned', 'accepted', 'integrated'].includes(unit.state) && !text(unit.report)) fail('MISSING_REPORT', 'Returned units require a report');
-    if (['accepted', 'integrated'].includes(unit.state) && (!text(unit.head) || !program.verifications.some(v => v.unitId === unit.id && v.head === unit.head && v.verdict === 'PASS' && text(v.evidence)))) fail('MISSING_VERIFICATION', 'Accepted units require evidence for their current head');
+    if (confirmedStates.includes(unit.state)) {
+      if (!text(unit.head) || !program.verifications.some(v => v.unitId === unit.id && v.head === unit.head && v.verdict === 'PASS' && text(v.evidence))) fail('MISSING_VERIFICATION', 'Accepted units require evidence for their current head');
+      for (const dependency of unit.dependencies) {
+        const dep = program.units.find(candidate => candidate.id === dependency);
+        if (!confirmedStates.includes(dep.state)) fail('UNSATISFIED_DEPENDENCY', `Unit ${unit.id} cannot be ${unit.state} while dependency ${dependency} is still ${dep.state}; dependencies must be accepted or integrated first`);
+      }
+    }
   }
   const visiting = new Set();
   const visited = new Set();
@@ -80,9 +88,46 @@ export async function run(request) {
               !current.units.some(previous => previous.id === unit.id && previous.state === unit.state))) {
           fail('TERMINAL_STATE', 'A paused, blocked, completed or cancelled task cannot dispatch new work');
         }
+        if (Array.isArray(request.patch.units)) {
+          const nextById = new Map(request.patch.units.map(unit => [unit.id, unit]));
+          const rank = { accepted: 1, integrated: 2 };
+          for (const previous of current.units) {
+            const unit = nextById.get(previous.id);
+            if (!unit) fail('UNIT_REMOVAL', `Unit ${previous.id} is already recorded and cannot be silently deleted by an update`);
+            if (confirmedStates.includes(previous.state) && (!confirmedStates.includes(unit.state) || rank[unit.state] < rank[previous.state])) {
+              fail('STATE_REGRESSION', `Unit ${previous.id} is ${previous.state}; use the reopen operation with a recorded reason instead of regressing it in an update`);
+            }
+          }
+        }
+        if (Array.isArray(request.patch.verifications)) {
+          for (let index = 0; index < current.verifications.length; index++) {
+            if (JSON.stringify(request.patch.verifications[index]) !== JSON.stringify(current.verifications[index])) {
+              fail('VERIFICATION_REMOVAL', 'Recorded verifications cannot be deleted or rewritten by an update; append new evidence instead');
+            }
+          }
+        }
         const next = validate({ ...current, ...request.patch, revision: current.revision + 1 });
         if (['cancelled', 'delivered'].includes(current.executionState) && next.executionState !== current.executionState) fail('TERMINAL_STATE', 'A completed or cancelled task cannot restart silently');
         if (JSON.stringify(next.frontier) !== JSON.stringify(current.frontier) && next.frontier.generation <= current.frontier.generation) fail('STALE_FRONTIER', 'Topology changes need a new generation');
+        await atomicWrite(file, JSON.stringify(next, null, 2) + '\n');
+        return response(next, [], true);
+      });
+    }
+    if (operation === 'reopen') {
+      if (!text(request.unitId) || !text(request.reason) || !Number.isSafeInteger(request.expectedRevision)) fail('INVALID_REQUEST', 'reopen requires unitId, reason, and expectedRevision');
+      const targetState = request.targetState ?? 'queued';
+      if (!reopenTargets.includes(targetState)) fail('INVALID_REQUEST', `reopen target state must be one of ${reopenTargets.join(', ')}`);
+      return withLock(file, async () => {
+        const current = await readProgram(file);
+        if (current.revision !== request.expectedRevision) fail('REVISION_CONFLICT', 'Program changed; reread before updating', 3);
+        const unit = current.units.find(candidate => candidate.id === request.unitId);
+        if (!unit) fail('UNKNOWN_UNIT', `Unknown unit ${request.unitId}`);
+        if (!confirmedStates.includes(unit.state)) fail('NOT_CONFIRMED', `Only accepted or integrated units can be reopened; ${request.unitId} is ${unit.state}`);
+        const confirmedDependents = current.units.filter(candidate => confirmedStates.includes(candidate.state) && candidate.dependencies.includes(request.unitId));
+        if (confirmedDependents.length > 0) fail('DEPENDENT_CONFIRMED', `Reopen confirmed dependents first: ${confirmedDependents.map(candidate => candidate.id).join(', ')}`);
+        const reopened = { ...unit, state: targetState,
+          history: [...(Array.isArray(unit.history) ? unit.history : []), { from: unit.state, to: targetState, reason: request.reason, revision: current.revision + 1 }] };
+        const next = validate({ ...current, units: current.units.map(candidate => candidate.id === request.unitId ? reopened : candidate), revision: current.revision + 1 });
         await atomicWrite(file, JSON.stringify(next, null, 2) + '\n');
         return response(next, [], true);
       });

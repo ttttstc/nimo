@@ -494,6 +494,297 @@ test('paused and blocked programs require explicit running recovery before dispa
   }
 });
 
+test('confirmed units cannot outrun unfinished dependencies', async () => {
+  const fixture = await makeFixture('dependency-invariant');
+  try {
+    await initFixture(fixture);
+    const queued = await run({
+      operation: 'update',
+      store: fixture.store,
+      expectedRevision: await revision(fixture),
+      patch: {
+        units: [
+          { id: 'base', state: 'queued', dependencies: [] },
+          { id: 'top', state: 'queued', dependencies: ['base'] },
+        ],
+        verifications: [{ unitId: 'top', head: 'head-top', verifier: 'luna-max', evidence: 'evidence/top.json', verdict: 'PASS' }],
+      },
+    });
+    assert.equal(queued.status, 'OK');
+    const currentRevision = queued.data.revision;
+
+    for (const prematureState of ['accepted', 'integrated']) {
+      const premature = await run({
+        operation: 'update',
+        store: fixture.store,
+        expectedRevision: currentRevision,
+        patch: {
+          units: [
+            { id: 'base', state: 'queued', dependencies: [] },
+            { id: 'top', state: prematureState, dependencies: ['base'], report: 'reports/top.md', head: 'head-top' },
+          ],
+        },
+      });
+      assert.equal(premature.status, 'BLOCK');
+      assert.match(diagnosticText(premature), /depend/i);
+      assert.equal(await revision(fixture), currentRevision);
+    }
+
+    const accepted = await run({
+      operation: 'update',
+      store: fixture.store,
+      expectedRevision: currentRevision,
+      patch: {
+        units: [
+          { id: 'base', state: 'accepted', dependencies: [], report: 'reports/base.md', head: 'head-base' },
+          { id: 'top', state: 'accepted', dependencies: ['base'], report: 'reports/top.md', head: 'head-top' },
+        ],
+        verifications: [
+          { unitId: 'top', head: 'head-top', verifier: 'luna-max', evidence: 'evidence/top.json', verdict: 'PASS' },
+          { unitId: 'base', head: 'head-base', verifier: 'luna-max', evidence: 'evidence/base.json', verdict: 'PASS' },
+        ],
+      },
+    });
+    assert.equal(accepted.status, 'OK');
+    assert.equal(accepted.data.units.find(unit => unit.id === 'top').state, 'accepted');
+  } finally {
+    await removeFixture(fixture);
+  }
+});
+
+test('update cannot silently delete recorded units or regress confirmed ones', async () => {
+  const fixture = await makeFixture('snapshot-protection');
+  try {
+    await initFixture(fixture);
+    const accepted = await run({
+      operation: 'update',
+      store: fixture.store,
+      expectedRevision: await revision(fixture),
+      patch: {
+        units: [
+          { id: 'base', state: 'accepted', dependencies: [], report: 'reports/base.md', head: 'head-base' },
+          { id: 'top', state: 'queued', dependencies: ['base'] },
+        ],
+        verifications: [{ unitId: 'base', head: 'head-base', verifier: 'luna-max', evidence: 'evidence/base.json', verdict: 'PASS' }],
+      },
+    });
+    assert.equal(accepted.status, 'OK');
+    const currentRevision = accepted.data.revision;
+
+    const removed = await run({
+      operation: 'update',
+      store: fixture.store,
+      expectedRevision: currentRevision,
+      patch: { units: [{ id: 'base', state: 'accepted', dependencies: [], report: 'reports/base.md', head: 'head-base' }] },
+    });
+    assert.equal(removed.status, 'BLOCK');
+    assert.match(diagnosticText(removed), /delet|remov|unit/i);
+    assert.equal((await persisted(fixture)).units.length, 2);
+
+    for (const regressedState of ['queued', 'running', 'returned', 'failed', 'abandoned', 'cancelled']) {
+      const regressed = await run({
+        operation: 'update',
+        store: fixture.store,
+        expectedRevision: currentRevision,
+        patch: {
+          units: [
+            { id: 'base', state: regressedState, dependencies: [], report: 'reports/base.md', head: 'head-base' },
+            { id: 'top', state: 'queued', dependencies: ['base'] },
+          ],
+        },
+      });
+      assert.equal(regressed.status, 'BLOCK');
+      assert.match(diagnosticText(regressed), /reopen|regress/i);
+      assert.equal((await persisted(fixture)).units[0].state, 'accepted');
+    }
+
+    const demoted = await run({
+      operation: 'update',
+      store: fixture.store,
+      expectedRevision: currentRevision,
+      patch: {
+        units: [
+          { id: 'base', state: 'integrated', dependencies: [], report: 'reports/base.md', head: 'head-base' },
+          { id: 'top', state: 'queued', dependencies: ['base'] },
+        ],
+      },
+    });
+    assert.equal(demoted.status, 'OK');
+    assert.equal(demoted.data.units[0].state, 'integrated');
+
+    const backToAccepted = await run({
+      operation: 'update',
+      store: fixture.store,
+      expectedRevision: demoted.data.revision,
+      patch: {
+        units: [
+          { id: 'base', state: 'accepted', dependencies: [], report: 'reports/base.md', head: 'head-base' },
+          { id: 'top', state: 'queued', dependencies: ['base'] },
+        ],
+      },
+    });
+    assert.equal(backToAccepted.status, 'BLOCK');
+    assert.match(diagnosticText(backToAccepted), /reopen|regress/i);
+  } finally {
+    await removeFixture(fixture);
+  }
+});
+
+test('update cannot delete or rewrite recorded verifications, only append', async () => {
+  const fixture = await makeFixture('verification-protection');
+  try {
+    await initFixture(fixture);
+    const accepted = await run({
+      operation: 'update',
+      store: fixture.store,
+      expectedRevision: await revision(fixture),
+      patch: {
+        units: [{ id: 'base', state: 'accepted', dependencies: [], report: 'reports/base.md', head: 'head-base' }],
+        verifications: [{ unitId: 'base', head: 'head-base', verifier: 'luna-max', evidence: 'evidence/base.json', verdict: 'PASS' }],
+      },
+    });
+    assert.equal(accepted.status, 'OK');
+    const currentRevision = accepted.data.revision;
+
+    const emptied = await run({
+      operation: 'update',
+      store: fixture.store,
+      expectedRevision: currentRevision,
+      patch: {
+        units: [{ id: 'base', state: 'accepted', dependencies: [], report: 'reports/base.md', head: 'head-base' }],
+        verifications: [],
+      },
+    });
+    assert.equal(emptied.status, 'BLOCK');
+    assert.match(diagnosticText(emptied), /verif|delet|remov|append/i);
+    assert.equal((await persisted(fixture)).verifications.length, 1);
+
+    const rewritten = await run({
+      operation: 'update',
+      store: fixture.store,
+      expectedRevision: currentRevision,
+      patch: {
+        units: [{ id: 'base', state: 'accepted', dependencies: [], report: 'reports/base.md', head: 'head-base' }],
+        verifications: [{ unitId: 'base', head: 'head-base', verifier: 'someone-else', evidence: 'evidence/other.json', verdict: 'PASS' }],
+      },
+    });
+    assert.equal(rewritten.status, 'BLOCK');
+    assert.match(diagnosticText(rewritten), /verif|delet|remov|append|rewrit/i);
+
+    const appended = await run({
+      operation: 'update',
+      store: fixture.store,
+      expectedRevision: currentRevision,
+      patch: {
+        units: [{ id: 'base', state: 'accepted', dependencies: [], report: 'reports/base.md', head: 'head-base' }],
+        verifications: [
+          { unitId: 'base', head: 'head-base', verifier: 'luna-max', evidence: 'evidence/base.json', verdict: 'PASS' },
+          { unitId: 'base', head: 'head-base', verifier: 'second-opinion', evidence: 'evidence/second.json', verdict: 'PASS' },
+        ],
+      },
+    });
+    assert.equal(appended.status, 'OK');
+    assert.equal(appended.data.verifications.length, 2);
+  } finally {
+    await removeFixture(fixture);
+  }
+});
+
+test('reopen explicitly reopens confirmed units with a recorded reason and history', async () => {
+  const fixture = await makeFixture('reopen');
+  try {
+    await initFixture(fixture);
+    const accepted = await run({
+      operation: 'update',
+      store: fixture.store,
+      expectedRevision: await revision(fixture),
+      patch: {
+        units: [
+          { id: 'base', state: 'accepted', dependencies: [], report: 'reports/base.md', head: 'head-base' },
+          { id: 'top', state: 'accepted', dependencies: ['base'], report: 'reports/top.md', head: 'head-top' },
+        ],
+        verifications: [
+          { unitId: 'base', head: 'head-base', verifier: 'luna-max', evidence: 'evidence/base.json', verdict: 'PASS' },
+          { unitId: 'top', head: 'head-top', verifier: 'luna-max', evidence: 'evidence/top.json', verdict: 'PASS' },
+        ],
+      },
+    });
+    assert.equal(accepted.status, 'OK');
+    const currentRevision = accepted.data.revision;
+
+    const blockedByDependent = await run({
+      operation: 'reopen',
+      store: fixture.store,
+      unitId: 'base',
+      reason: 'evidence was forged',
+      expectedRevision: currentRevision,
+    });
+    assert.equal(blockedByDependent.status, 'BLOCK');
+    assert.match(diagnosticText(blockedByDependent), /dependent/i);
+
+    const missingReason = await run({
+      operation: 'reopen',
+      store: fixture.store,
+      unitId: 'top',
+      expectedRevision: currentRevision,
+    });
+    assert.equal(missingReason.status, 'BLOCK');
+    assert.match(diagnosticText(missingReason), /reason/i);
+
+    const notConfirmed = await run({
+      operation: 'reopen',
+      store: fixture.store,
+      unitId: 'missing-unit',
+      reason: 'does not exist',
+      expectedRevision: currentRevision,
+    });
+    assert.equal(notConfirmed.status, 'BLOCK');
+    assert.match(diagnosticText(notConfirmed), /unknown|confirm/i);
+
+    const reopened = await run({
+      operation: 'reopen',
+      store: fixture.store,
+      unitId: 'top',
+      reason: 'verification evidence could not be reproduced',
+      expectedRevision: currentRevision,
+    });
+    assert.equal(reopened.status, 'OK');
+    assert.equal(reopened.changed, true);
+    assert.equal(reopened.data.revision, currentRevision + 1);
+    const reopenedUnit = reopened.data.units.find(unit => unit.id === 'top');
+    assert.equal(reopenedUnit.state, 'queued');
+    assert.deepEqual(reopenedUnit.history, [
+      { from: 'accepted', to: 'queued', reason: 'verification evidence could not be reproduced', revision: currentRevision + 1 },
+    ]);
+
+    const persistedAfter = await persisted(fixture);
+    assert.equal(persistedAfter.units.find(unit => unit.id === 'top').state, 'queued');
+    assert.equal(persistedAfter.units.find(unit => unit.id === 'base').state, 'accepted');
+
+    const resubmitted = await run({
+      operation: 'update',
+      store: fixture.store,
+      expectedRevision: reopened.data.revision,
+      patch: {
+        units: [
+          { id: 'base', state: 'accepted', dependencies: [], report: 'reports/base.md', head: 'head-base' },
+          { id: 'top', state: 'accepted', dependencies: ['base'], report: 'reports/top-v2.md', head: 'head-top-2' },
+        ],
+        verifications: [
+          { unitId: 'base', head: 'head-base', verifier: 'luna-max', evidence: 'evidence/base.json', verdict: 'PASS' },
+          { unitId: 'top', head: 'head-top', verifier: 'luna-max', evidence: 'evidence/top.json', verdict: 'PASS' },
+          { unitId: 'top', head: 'head-top-2', verifier: 'luna-max', evidence: 'evidence/top-2.json', verdict: 'PASS' },
+        ],
+      },
+    });
+    assert.equal(resubmitted.status, 'OK');
+    const finalTop = resubmitted.data.units.find(unit => unit.id === 'top');
+    assert.equal(finalTop.state, 'accepted');
+  } finally {
+    await removeFixture(fixture);
+  }
+});
+
 test('A23 inbox events are idempotent, conflict-safe, and drained in batches', async () => {
   const fixture = await makeFixture('inbox');
   try {
