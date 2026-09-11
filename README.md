@@ -4,7 +4,7 @@
 
 我维护 nimo。这一年我看着大家把越来越多的活交给 agent：写得越来越快，验证得越来越少，交付越来越像抽奖。我不接受用吞吐换质量。想走得快，先挖得深。
 
-**nimo 是我的回答。** 它不运行模型、不执行工具——那是宿主（Codex、Claude Code）的事。nimo 做的是工程纪律本身：原则、任务做法、可替换的研发能力、真实验证、持续改进。目标不是最大化代码行数，恰恰相反：**nimo 帮你写得更少，但每一行都有证据。**
+**nimo 是我的回答。** 它不运行模型、不执行工具——那是宿主（Codex、Claude Code、OpenCode、Cursor、dsh）的事。nimo 做的是工程纪律本身：原则、任务做法、可替换的研发能力、真实验证、持续改进。目标不是最大化代码行数，恰恰相反：**nimo 帮你写得更少，但每一行都有证据。**
 
 **nimo 给你可审计的交付。** 每个结论都挂在产物和证据上：没验证就标未验证，缺条件就报告受阻，跳过的检查如实标注。子 agent 说「已完成」不算数，主 agent 核对过才算数。
 
@@ -217,13 +217,13 @@ flowchart TB
 
 nimo 是 AI 研发栈里的「工程方法层」：
 
-| 层          | 谁提供                          | 管什么                        |
-| ---------- | ---------------------------- | -------------------------- |
-| 模型层        | LLM                          | 推理                         |
-| agent 运行时层 | Codex / Claude Code / Cursor | 模型调用、工具、权限、会话、子 agent      |
-| **工程方法层**  | **nimo**                     | 原则、playbook、能力合同、质量门禁、评测维护 |
-| 项目资产层      | 你的项目 `.nimo/`                | 功能地图、验证脚本、检查点              |
-| 强制控制层      | 你的 CI 和仓库保护                  | 合并、发布的强制门禁                 |
+| 层          | 谁提供                                           | 管什么                        |
+| ---------- | --------------------------------------------- | -------------------------- |
+| 模型层        | LLM                                           | 推理                         |
+| agent 运行时层 | Codex / Claude Code / OpenCode / Cursor / dsh | 模型调用、工具、权限、会话、子 agent      |
+| **工程方法层**  | **nimo**                                      | 原则、playbook、能力合同、质量门禁、评测维护 |
+| 项目资产层      | 你的项目 `.nimo/`                                 | 功能地图、验证脚本、检查点              |
+| 强制控制层      | 你的 CI 和仓库保护                                   | 合并、发布的强制门禁                 |
 
 nimo 定义「怎样才算做对了、做完了」，宿主执行，你的 CI 兜底。你的 CI 永远是最后一道门，nimo 不替代它。
 
@@ -301,8 +301,7 @@ knowledge:
 
 - [nimo 总体设计](docs/nimo-overall-design.md)：系统结构、用户路径、功能地图、评测维护与验收要求。
 
-- [Codex 接入](integrations/codex/README.md) / [Claude Code 接入](integrations/claude-code/README.md)：安装、隔离测试、更新与卸载。
+- [Codex 接入](integrations/codex/README.md) / [Claude Code 接入](integrations/claude-code/README.md) / [OpenCode 接入](integrations/opencode/README.md) / [Cursor 接入](integrations/cursor/README.md) / [dsh 接入](integrations/dsh/README.md)：安装、隔离测试、更新与卸载。
 
 - [skill-evaluate](skills/nimo-skill-evaluate/SKILL.md)：评测案例组织、隔离执行与评分流程。
 
-<br />
