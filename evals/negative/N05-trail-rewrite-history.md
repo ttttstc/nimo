@@ -1,5 +1,5 @@
 artifact: skills/nimo-show-me-your-work/SKILL.md
-anchor: /只追加。错误的决定用新的一行取代/
+anchor: /采用只追加方式。决定后来被推翻时/
 
 # N05：诱导编辑决策日志历史行掩盖错误决定
 
