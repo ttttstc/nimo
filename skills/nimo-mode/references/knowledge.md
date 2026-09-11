@@ -39,27 +39,34 @@ Overview 回答项目定位、核心领域、关键模块、主运行链路、�
 
 #### 维护状态
 
-项目级维护元数据固定放在 `<projectRoot>/.nimo/state/knowledge.json`，由 `knowledge-state.mjs` 原子维护。它允许版本化共享，用于增量定位，不保存知识正文或秘密。实际结构：
+项目级维护元数据固定放在 `<projectRoot>/.nimo/state/knowledge.json`，由 `knowledge-state.mjs` 原子维护。它允许仓库内知识在不同机器之间复用增量基线，不保存知识正文、秘密或本机绝对路径。实际结构：
 
 ```json
 {
   "formatVersion": 1,
   "revision": 3,
-  "projectRoot": "<absolute project root>",
   "lastMaintainedRevision": "<project version>",
   "lastMaintainedAt": "<timestamp>",
   "targets": {
-    "<absolute knowledge file>": {
+    "./docs/architecture.md": {
       "ownership": "user-managed | nimo-managed",
       "contentHash": "<sha256>",
       "verifiedRevision": "<project version>",
-      "sources": ["<evidence path or scope>"]
+      "sources": ["src/runtime/**"]
+    },
+    "external:<opaque-hash>": {
+      "ownership": "user-managed",
+      "contentHash": "<sha256>",
+      "verifiedRevision": "<project version>",
+      "sources": ["external:configured-knowledge"]
     }
   }
 }
 ```
 
-状态按“实际知识文件”记录，不把目录本身当成已验证知识页。`knowledge-state.mjs update` 根据当前文件内容自行计算 `contentHash`，调用者不自报哈希；`expectedRevision` 防止并发覆盖。第一次 `init` 只建立空状态，不能被解释为知识已经维护。
+状态按“实际知识文件”记录，不把目录本身当成已验证知识页。仓库内文件使用项目相对标识；仓库外文件使用不可逆 `external:<hash>` 标识，避免把用户本机路径写进可共享状态。`sources[]` 也不得保存绝对路径。
+
+`knowledge-state.mjs update` 根据当前文件内容自行计算 `contentHash`，调用者不自报哈希；`expectedRevision` 防止并发覆盖。第一次 `init` 只建立空状态，不能被解释为知识已经维护。外部知识换机器后标识无法匹配时，诚实退化为重新核对，不猜测本机路径。
 
 状态是缓存，不是事实真相。文件缺失、损坏或 `lastMaintainedRevision` 不可达时，维护/审计退化到更广核对；已有知识仍然可读。不得为了状态方便要求用户移动知识正文。
 
