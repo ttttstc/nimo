@@ -85,18 +85,20 @@ knowledgeImpact           NOT_APPLICABLE / NONE / REVIEW_RECOMMENDED、原因、
 
 项目知识正文不进入 `.nimo`；维护缓存固定写在 `<projectRoot>/.nimo/state/knowledge.json`。操作为 `init | read | update | status`。
 
-`init` 只建立空状态，不宣称知识已经维护；`update` 必须带 `expectedRevision`、本次 `projectVersion`、`maintainedAt` 和完整知识文件列表。每个知识文件提供绝对路径、`user-managed | nimo-managed` 所有权、`verifiedRevision` 与唯一 `sources[]`。工具自己读取当前知识文件并计算 SHA-256 `contentHash`，不信任调用者自报哈希。
+`init` 只建立空状态，不宣称知识已经维护；`update` 必须带 `expectedRevision`、本次 `projectVersion`、`maintainedAt` 和完整知识文件列表。每个知识文件传入当前宿主可访问的绝对路径、`user-managed | nimo-managed` 所有权、`verifiedRevision` 与唯一 `sources[]`，但绝对路径只用于本次读取，不写入状态。工具解析符号链接后的真实文件，自己计算 SHA-256 `contentHash`，不信任调用者自报哈希。
+
+持久化标识保持可共享且不泄露本机路径：仓库内知识文件记录为项目相对路径（例如 `./docs/architecture.md`）；仓库外知识记录为 `external:<sha256(actual-path)>` 的不可逆本机标识。换机器后外部标识无法匹配时，上层应重新核对外部知识，而不是猜测路径。`sources[]` 不允许绝对路径，使用仓库相对范围或明确的非路径标识。
 
 ```text
-formatVersion / revision / projectRoot
+formatVersion / revision
 lastMaintainedRevision / lastMaintainedAt
 targets{
-  <absolute knowledge file>:
+  ./project-relative-file | external:<opaque-hash>:
     ownership / contentHash / verifiedRevision / sources[]
 }
 ```
 
-状态工具只做确定性记账：不解析知识语义、不扫描仓库判断事实、不决定 Overview/Index/Page 结构，也不把 source 变化判成漂移。知识文件必须是当前可读的普通文件；状态更新使用短锁、revision 比较和原子替换。状态缺失或损坏时上层 audit/maintain 扩大核对范围，而不是把已有知识判失效。
+状态工具只做确定性记账：不解析知识语义、不扫描仓库判断事实、不决定 Overview/Index/Page 结构，也不把 source 变化判成漂移。知识文件必须解析为当前可读普通文件；状态更新使用短锁、revision 比较和原子替换。状态缺失或损坏时上层 audit/maintain 扩大核对范围，而不是把已有知识判失效。
 
 #### PR 状态与依赖链
 
