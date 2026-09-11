@@ -7,7 +7,7 @@
 | 文件 | 输入与输出 | 职责与限制 |
 |---|---|---|
 | config.mjs | JSON 请求 → JSON 引用、诊断或修改结果 | 解析、路径、合并、去重、校验、增删；不决定原则语义冲突 |
-| state.mjs | JSON 请求 → 当前记录或变更结果 | 本地项目单元、收件箱、验证记录和版本；不运行单元 |
+| state.mjs | JSON 请求 → 当前记录或变更结果 | 本地项目单元、收件箱、验证记录、知识影响和版本；不运行单元、不运行知识审计 |
 | inspect-pr.mjs | 仓库与 PR → JSON 状态 | 只读 GitHub 事实，有限请求后返回，不无限轮询 |
 | audit-worktrees.mjs | 仓库 → 目录审计 JSON | 只读枚举和分类，不删除路径 |
 | check-plan.mjs | Markdown 计划 → 问题与行号 | 检查单元依赖、证据、作用域和停止点，不强制模型／宿主句式 |
@@ -69,11 +69,14 @@ units[]                   单元 id、依赖 id、所有者、分支／PR／head
 verifications[]           验证对象版本、base、证据、执行者、独立性、结论
 frontier                  generation、按依赖排序的 PR、当前最底部未合入项
 gates[]                   待决定问题与状态，不带超时自动批准
+knowledgeImpact           NOT_APPLICABLE / NONE / REVIEW_RECOMMENDED、原因、受影响领域、产物版本
 ```
+
+`knowledgeImpact` 是任务完成时的轻量知识影响信号。它不读取知识库、不代表 `nimo-knowledge-audit` 已执行、也不授权 `nimo-knowledge-maintain`。`REVIEW_RECOMMENDED` 必须包含至少一个受影响领域；其他结论的 areas 为空。
 
 依赖 id 只表示已明确的工作前提，工具可以检查缺失、循环和重复，不能据此调度 Agent。`standing-orders.md` 保存范围和运行约束；每次启动与恢复均传递当前版本。
 
-操作为 `init | read | update | inbox-add | inbox-drain | status`。update 携带 `expectedRevision`，由唯一协调者在短锁内校验后原子写入；revision 冲突返回 BLOCK。其余执行者只交报告，不能更新共享 program。收件箱每个结果写独立文件，同一事件标识幂等，drain 只处理本批已取得的结果，期间新到达结果留给下一批。
+操作为 `init | read | update | reopen | inbox-add | inbox-drain | status`。update 携带 `expectedRevision`，由唯一协调者在短锁内校验后原子写入；revision 冲突返回 BLOCK。其余执行者只交报告，不能更新共享 program。收件箱每个结果写独立文件，同一事件标识幂等，drain 只处理本批已取得的结果，期间新到达结果留给下一批。
 
 不引入服务数据库或常驻进程。锁不可取得时报告占用；不能仅因时间较久就强行清锁。自动回收仅限能够证明本机持有进程已结束的情况，其他情况交由当前所有者核实。
 
