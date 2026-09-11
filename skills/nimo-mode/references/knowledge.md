@@ -39,16 +39,19 @@ Overview 回答项目定位、核心领域、关键模块、主运行链路、�
 
 #### 维护状态
 
-项目级维护元数据放在 `.nimo/state/knowledge.json`。它允许版本化共享，用于增量定位，不保存知识正文或秘密。建议字段：
+项目级维护元数据固定放在 `<projectRoot>/.nimo/state/knowledge.json`，由 `knowledge-state.mjs` 原子维护。它允许版本化共享，用于增量定位，不保存知识正文或秘密。实际结构：
 
 ```json
 {
   "formatVersion": 1,
+  "revision": 3,
+  "projectRoot": "<absolute project root>",
   "lastMaintainedRevision": "<project version>",
+  "lastMaintainedAt": "<timestamp>",
   "targets": {
-    "<resolved knowledge target>": {
+    "<absolute knowledge file>": {
       "ownership": "user-managed | nimo-managed",
-      "contentHash": "<hash>",
+      "contentHash": "<sha256>",
       "verifiedRevision": "<project version>",
       "sources": ["<evidence path or scope>"]
     }
@@ -56,7 +59,9 @@ Overview 回答项目定位、核心领域、关键模块、主运行链路、�
 }
 ```
 
-状态是缓存，不是事实真相。文件缺失、损坏或 revision 不可达时，维护/审计退化到更广核对；已有知识仍然可读。不得为了状态方便要求用户移动知识正文。
+状态按“实际知识文件”记录，不把目录本身当成已验证知识页。`knowledge-state.mjs update` 根据当前文件内容自行计算 `contentHash`，调用者不自报哈希；`expectedRevision` 防止并发覆盖。第一次 `init` 只建立空状态，不能被解释为知识已经维护。
+
+状态是缓存，不是事实真相。文件缺失、损坏或 `lastMaintainedRevision` 不可达时，维护/审计退化到更广核对；已有知识仍然可读。不得为了状态方便要求用户移动知识正文。
 
 #### 知识飞轮
 
@@ -74,8 +79,9 @@ Knowledge Impact 只利用当前任务已经掌握的 diff、设计决定和验�
 
 #### 维护与审计分工
 
-- `nimo-knowledge-maintain`：写操作；基线生成、增量刷新、全量核对；持续编译 Overview → Index → Pages。
+- `nimo-knowledge-maintain`：写操作；基线生成、增量刷新、全量核对；持续编译 Overview → Index → Pages，并在成功后通过 `knowledge-state.mjs` 建立新的增量基线。
 - `nimo-knowledge-audit`：严格只读；审事实漂移、覆盖漂移、Index/Overview 漂移和孤儿/断链；输出 CLEAN / DRIFTED / BLOCKED。
 - `configure-nimo`：只负责知识路径在哪里，不承担事实刷新。
+- `knowledge-state.mjs`：只做确定性维护状态记账，不理解知识语义，不判定漂移。
 
 事实源发生变化只代表 `stale candidate`；重新核对后证明知识主张或导航已失真，才是 `DRIFTED`。
