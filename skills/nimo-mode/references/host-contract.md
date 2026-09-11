@@ -4,7 +4,7 @@
 
 #### 调用与发现
 
-宿主能够读取 Markdown 和执行本地命令即可使用基础流程。nimo-setup 展示当前实际可见的功能及缺口，不创建永久 capability registry。通用接入文档定义如何找到包入口、使用本机路径和传递任务结果；Codex / Claude Code 文档给出各自经过验证的具体方法。
+宿主能够读取 Markdown 和执行本地命令即可使用基础流程。nimo-setup 展示当前实际可见的功能及缺口，不创建永久 capability registry。各宿主接入文档定义如何找到包入口、使用本机路径和传递任务结果；支持面仅限 integrations 清单内宿主，清单外宿主未测试、不承诺。Codex / Claude Code 文档给出各自经过验证的具体方法。
 
 宿主自动触发机制不足时，用户通过明确调用进入 nimo。不能仅靠安装 Skill 就声称所有会话自动启用 Mode。
 

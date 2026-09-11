@@ -2,7 +2,7 @@
 
 使用相同的 42 个 Skill 和 Node.js 工具。安装前需要 Node.js 22+ 和 npm；宿主自身必须支持读取 Skill。
 
-目标为 `~/.cursor/skills`（用户级，较新版本支持）。只在单个项目生效时，改用[通用接入](../generic/README.md)安装到该项目的 `.cursor/skills/`。安装不修改宿主模型、权限或凭据。
+目标为 `~/.cursor/skills`（用户级，较新版本支持）；本集成不覆盖项目级 `.cursor/skills/`。安装不修改宿主模型、权限或凭据。
 
 ```powershell
 .\integrations\cursor\install.ps1
