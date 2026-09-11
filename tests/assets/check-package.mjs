@@ -36,6 +36,7 @@ export const TASK_SKILLS = Object.freeze([
 ]);
 
 export const PRINCIPLE_NAMES = Object.freeze([
+  'attack-the-premise',
   'boundary-discipline',
   'build-the-lever',
   'encode-lessons-in-structure',
@@ -56,6 +57,7 @@ export const PRINCIPLE_NAMES = Object.freeze([
   'separate-before-serializing-shared-state',
   'sequence-verifiable-units',
   'subtract-before-you-add',
+  'test-behavior-not-implementation',
   'type-system-discipline',
 ]);
 
@@ -97,8 +99,8 @@ export const EXPECTED_SKILLS = Object.freeze([
 
 assert.equal(ENTRY_SKILLS.length, 3, 'asset contract: three entry Skills');
 assert.equal(TASK_SKILLS.length, 18, 'asset contract: eighteen task Skills');
-assert.equal(PRINCIPLE_SKILLS.length, 21, 'asset contract: twenty-one principle Skills');
-assert.equal(new Set(EXPECTED_SKILLS).size, 42, 'asset contract: Skill names must be unique');
+assert.equal(PRINCIPLE_SKILLS.length, 23, 'asset contract: twenty-three principle Skills');
+assert.equal(new Set(EXPECTED_SKILLS).size, 44, 'asset contract: Skill names must be unique');
 assert.equal(PLAYBOOKS.length, 23, 'asset contract: twenty-three Playbooks');
 assert.equal(new Set(PLAYBOOKS).size, 23, 'asset contract: Playbook names must be unique');
 
