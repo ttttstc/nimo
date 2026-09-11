@@ -102,7 +102,7 @@ flowchart TB
 | [feature](skills/nimo-mode/playbooks/feature.md)                     | 新行为或改行为，从明确验收开始，行为验证后交付。                  |
 | [bug-fix](skills/nimo-mode/playbooks/bug-fix.md)                     | 复现缺陷，保留失败证据，定位根因，最小修复，区分修复前／后结果。          |
 | [investigation](skills/nimo-mode/playbooks/investigation.md)         | 只读理解与判断：X 如何工作、Y 为什么这样建、确信与否。             |
-| [refactoring](skills/nimo-mode/playbooks/refactoring.md)             | 保持行为的结构调整或改形。                             |
+| [refactoring](skills/nimo-mode/playbooks/refactoring.md)             | 保持行为不变的结构调整。                               |
 | [prototype](skills/nimo-mode/playbooks/prototype.md)                 | 廉价试验回答设计问题，或并行比较后选择。                      |
 | [perf-issue](skills/nimo-mode/playbooks/perf-issue.md)               | 一次性能问题：定位、测量、改善，对比基线。                     |
 | [hillclimb](skills/nimo-mode/playbooks/hillclimb.md)                 | 持续科学改善一个指标：假设循环，前后测量，每次接受一个赢的提交。          |
@@ -152,13 +152,11 @@ how:               $how 我们怎么取消 run？逐个 run 查找取消时有�
 
 why:               $why 这个 feature flag 还没打开？
 
-architect:         先 /architect，把插桩设计成高信号无假阳性。
+architect:         先 /architect，把插桩设计成高信号无假阳性的结构。
 
-arena:             $arena 把我的 prompt 原样送去竞技场，我想比较它们和你
-                   的提案。
+arena:             $arena 把我的 prompt 原样送去竞技场，我想比较它们和你的提案。
 
-swarm:             $swarm 对 packages/ 下每个包跑 check.sh，一个包一个
-                   worker，一份汇总报告。
+swarm:             $swarm 对 packages/ 下每个包跑 check.sh，一个包一个执行者，一份汇总报告。
 
 interrogate:       $interrogate 评审这个 PR。
 
@@ -168,7 +166,7 @@ unslop:            能不能 unslop 并收紧新改动？
 
 reflect:           $reflect 那次跑太久了。把学到的记下来，下次不重复。
 
-show-me-your-work: $show-me-your-work 保留一条决策轨迹，我回来能审查。
+show-me-your-work: $show-me-your-work 保留一份决策记录，我回来能审查。
 
 ```
 
@@ -179,19 +177,19 @@ show-me-your-work: $show-me-your-work 保留一条决策轨迹，我回来能审
 | skill                                                                    | 什么时候用                                                 |
 | ------------------------------------------------------------------------ | ----------------------------------------------------- |
 | [nimo-mode](skills/nimo-mode/SKILL.md)                                   | 任何正经任务的默认入口。                                          |
-| [nimo-how](skills/nimo-how/SKILL.md)                                     | 想走读一个子系统如何工作。                                         |
+| [nimo-how](skills/nimo-how/SKILL.md)                                     | 理解子系统如何工作、代码应该放在哪一层或由谁负责。                          |
 | [nimo-why](skills/nimo-why/SKILL.md)                                     | 想知道某东西为什么这样建——运行时枚举七类证据并行查。                           |
-| [nimo-architect](skills/nimo-architect/SKILL.md)                         | 准备写跨函数边界代码，先定调用方用法、类型与模块形状。                           |
-| [nimo-arena](skills/nimo-arena/SKILL.md)                                 | 同一任务并行 N 个候选，逐字读完后嫁接最强部分。                             |
-| [nimo-swarm](skills/nimo-swarm/SKILL.md)                                 | N 个并行 worker 各管一个切片或竞速，一份汇总报告。                        |
-| [nimo-interrogate](skills/nimo-interrogate/SKILL.md)                     | 有个 diff，想让几个不同模型试着打破它，含严格代码质量视角。                      |
-| [nimo-figure-it-out](skills/nimo-figure-it-out/SKILL.md)                 | 没有更窄 playbook 可用——设计可审计执行方案（大型迁移、多部分改动）。              |
-| [nimo-tdd](skills/nimo-tdd/SKILL.md)                                     | 修 bug 且有便宜本地测试路径——先写失败测试，再写修复。                        |
+| [nimo-architect](skills/nimo-architect/SKILL.md)                         | 非简单实现前先确定调用方式、类型、接口和模块结构。                            |
+| [nimo-arena](skills/nimo-arena/SKILL.md)                                 | 同一任务并行生成多个完整候选，统一评分，选基线并整合其他候选的优点。                   |
+| [nimo-swarm](skills/nimo-swarm/SKILL.md)                                 | 多个执行者并行覆盖不同分片或竞速，最后汇总一份报告。                            |
+| [nimo-interrogate](skills/nimo-interrogate/SKILL.md)                     | 让多个模型按同一标准独立挑战代码或方案，再由主 Agent 裁决。                      |
+| [nimo-figure-it-out](skills/nimo-figure-it-out/SKILL.md)                 | 没有更具体 Playbook 可用时，为大型迁移或多部分改动设计可审计流程。                 |
+| [nimo-tdd](skills/nimo-tdd/SKILL.md)                                     | 用户明确要求 TDD／回归测试，或缺陷存在便宜、明确的本地测试目标。                     |
 | [nimo-verify](skills/nimo-verify/SKILL.md)                               | 实现后 / 回归 / 合入 / 交付前验证——走真实用户路径，不放宽预期。                 |
 | [nimo-deslop](skills/nimo-deslop/SKILL.md)                               | 提交前清理本次差异：叙述性注释、死兼容路径、无关改动。                           |
 | [nimo-unslop](skills/nimo-unslop/SKILL.md)                               | 删除任何文字中的 AI 腔调，加回人的声音。                                |
 | [nimo-no-comments](skills/nimo-no-comments/SKILL.md)                     | 清理 / 评审注释；约束注释优先转成类型 / 运行时 / 测试 / CI 约束。              |
-| [nimo-show-me-your-work](skills/nimo-show-me-your-work/SKILL.md)         | 长时 / 无人值守工作，保留可审查决策轨迹（TSV 日志）。                        |
+| [nimo-show-me-your-work](skills/nimo-show-me-your-work/SKILL.md)         | 长时 / 无人值守工作，保留可审查的决策记录（TSV 日志）。                        |
 | [nimo-skill-author](skills/nimo-skill-author/SKILL.md)                   | 创建或修改 SKILL.md：编写可运行、可验证的 Skill。                      |
 | [nimo-skill-evaluate](skills/nimo-skill-evaluate/SKILL.md)               | Skill 行为评测与版本比较：候选盲跑、隔离运行、评分。                         |
 | [nimo-technical-writing](skills/nimo-technical-writing/SKILL.md)         | 四层技术写作标准：Diataxis 结构、Google 风格、STE 规则、Global English。 |
@@ -229,31 +227,33 @@ nimo 定义「怎样才算做对了、做完了」，宿主执行，你的 CI �
 
 ## 原则
 
-十六条工程原则，一条一个。入口在任务开始时读索引，按需展开，不逐条罗列原则名。
+当前共有 23 条工程原则，一条一个。入口在任务开始时读取索引，按任务需要展开对应原则，不机械逐条执行。
 
 | 原则                                       | 规则                                 |
 | ---------------------------------------- | ---------------------------------- |
-| laziness-protocol                        | 偏向删除，以及能解决问题的最小改动。                 |
-| foundational-thinking                    | 写逻辑前先把数据结构做对，让下游代码变得显然。            |
-| subtract-before-you-add                  | 先删死重／冗余校验器／桩引用，再在更简单基础上构建。         |
-| minimize-reader-load                     | 统计问题与答案之间层数，内联单调用者包装，缩小可变作用域。      |
-| outcome-oriented-execution               | 收敛到目标架构，不用一次性兼容代码维持平滑中间状态。         |
-| experience-first                         | 取舍时选用户愉悦而非实现方便；更少打磨 > 更多粗糙。        |
-| exhaust-the-design-space                 | 面对不确定决策时建 2-3 个竞争原型并排比较。           |
-| build-the-lever                          | 构建可复跑工具而非手工执行；工具是审阅者可复跑的产物。        |
-| redesign-from-first-principles           | 把新需求当作基础假设重新设计，而非外挂补丁。             |
-| model-the-domain                         | 把领域编码进结构，而非散落的条件判断。                |
-| boundary-discipline                      | 防护集中在系统边界，内部信任类型，业务逻辑保持纯函数。        |
-| type-system-discipline                   | 让非法状态不可表示，从权威 schema 派生。           |
-| make-operations-idempotent               | 命令在崩溃／重启中收敛到同一正确终态。                |
-| prove-it-works                           | 对着真实产物验证，而非代理信号／自报／"能编译"。          |
-| fix-root-causes                          | 追到根因修复，先复现，连续追问为什么，抵制压崩溃。          |
-| sequence-verifiable-units                | 多步工作拆成每个以可验证状态收尾的小单元，交付顺序自证。       |
-| guard-the-context-window                 | 上下文接近占满时把大宗路由给子 agent，主上下文保留摘要。    |
-| never-block-on-the-human                 | 可逆工作先推进，确认只留给不可逆动作。                |
-| encode-lessons-in-structure              | 把反复出现的规则编码为 lint／元数据／运行时检查，而非更多文字。 |
-| separate-before-serializing-shared-state | 并发写同一状态时先消除共享，单一写者时才结构化串行。         |
-| migrate-callers-then-delete-legacy-apis  | 同一波次里迁移调用方并删除旧 API，不留兼容层。          |
+| attack-the-premise                       | 多个基于同一前提的修复连续失败时，先验证共同前提。          |
+| laziness-protocol                        | 偏向删除，以及能完整解决问题的最小改动。                |
+| foundational-thinking                    | 写逻辑前先把核心类型、数据结构和共享状态关系定对。            |
+| subtract-before-you-add                  | 先删死代码、重复校验和遗留桩，再在更简单基础上构建。           |
+| minimize-reader-load                     | 减少理解一个问题需要跨越的层数和必须记住的隐藏状态。           |
+| outcome-oriented-execution               | 仅在阶段边界明确的计划性迁移／重写中直接收敛目标架构。          |
+| experience-first                         | 产品和交互取舍时优先用户体验；宁可少做但打磨完整。             |
+| exhaust-the-design-space                 | 没有先例的新交互或架构决策先比较 2-3 个竞争方案。            |
+| build-the-lever                          | 非简单工作优先构建可复跑工具；工具本身就是可审查产物。           |
+| redesign-from-first-principles           | 把新要求当作从第一天就存在的基础条件重新设计。              |
+| model-the-domain                         | 用明确结构表达领域，而不是把同一假设散落在条件判断里。           |
+| boundary-discipline                      | 防护集中在系统边界，内部信任类型，业务逻辑保持纯净。             |
+| type-system-discipline                   | 让非法状态不可表示，外部数据在边界解析。                  |
+| make-operations-idempotent               | 崩溃、重启和重试后仍收敛到同一正确终态。                  |
+| prove-it-works                           | 完成前直接验证真实产物，不接受代理信号或自报替代。              |
+| fix-root-causes                          | 先复现，再追到根因修复，不用保护分支把症状压下去。              |
+| sequence-verifiable-units                | 多步工作拆成每一步都能独立达到可验证状态的小单元。              |
+| test-behavior-not-implementation         | 测试真实调用方式和用户可观察结果，不锁死内部实现。              |
+| guard-the-context-window                 | 大输出和批量调查交给子 agent，主上下文只保留必要结论。          |
+| never-block-on-the-human                 | 可逆工作先推进，确认只留给不可逆动作。                    |
+| encode-lessons-in-structure              | 重复提醒第二次出现时，把规则编码成检查或自动化约束。             |
+| separate-before-serializing-shared-state | 并发写同一状态时先消除共享；确实必须共享时再结构化串行。           |
+| migrate-callers-then-delete-legacy-apis  | 同一轮迁移调用方并删除旧内部 API，不长期保留兼容层。            |
 
 完整规则、适用情境与例外见 [skills/nimo-mode/SKILL.md](skills/nimo-mode/SKILL.md)。
 
