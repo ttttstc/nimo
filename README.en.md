@@ -4,7 +4,7 @@
 
 i maintain nimo. over the past year i've watched people hand more and more work to agents: writing faster, verifying less, shipping something closer to a lottery draw. i don't accept throughput as a substitute for quality. if you want to go fast, go deep first.
 
-**nimo is my answer.** it runs no models and executes no tools — that's the host's job (Codex, Claude Code). nimo is the engineering discipline itself: principles, task playbooks, replaceable engineering capabilities, real verification, continuous improvement. the goal is not to maximize loc. it's the opposite: **nimo helps you write less, but every line comes with evidence.**
+**nimo is my answer.** it runs no models and executes no tools — that's the host's job (Codex, Claude Code, OpenCode, Cursor, dsh). nimo is the engineering discipline itself: principles, task playbooks, replaceable engineering capabilities, real verification, continuous improvement. the goal is not to maximize loc. it's the opposite: **nimo helps you write less, but every line comes with evidence.**
 
 **nimo gives you auditable delivery.** every conclusion is anchored to artifacts and evidence: unverified is labeled unverified, missing conditions are reported as blockers, skipped checks are marked as skipped. a sub-agent saying "done" doesn't count; it counts when the main agent has verified it.
 
@@ -14,35 +14,124 @@ fork it. improve it. make it yours. PRs are welcome!
 
 ## install
 
-prerequisite: Codex CLI 0.144+ or Claude Code 2.0.20+.
+prerequisites: Node.js 22+ and npm. with Codex you also need Codex CLI 0.144+, with Claude Code you also need Claude Code 2.0.20+.
+
+five hosts are supported — pick one. every installer behaves the same: it writes only nimo-owned files, tracks ownership in a manifest, and never touches your other configuration. uninstall is clean, and isolated test installs can be re-run any time.
+
+### with Codex
+
+<details>
+<summary>Windows (PowerShell) and macOS / Linux commands</summary>
 
 ```powershell
-# Windows (PowerShell)
 git clone https://github.com/ttttstc/nimo.git
 cd nimo
-.\integrations\codex\install.ps1          # Codex
-.\integrations\claude-code\install.ps1    # Claude Code
+.\integrations\codex\install.ps1
 ```
 
 ```bash
-# macOS / Linux
 git clone https://github.com/ttttstc/nimo.git
 cd nimo
-./integrations/codex/install.sh           # Codex
-./integrations/claude-code/install.sh     # Claude Code
+./integrations/codex/install.sh
 ```
 
-the installer writes only nimo-owned files, tracks ownership in a manifest, and never touches your other configuration. uninstall is clean, and isolated test installs can be re-run any time.
+</details>
+
+targets `CODEX_HOME/skills` (or `~/.codex/skills` when unset). full flags for isolated install, custom source path, and uninstall: [codex integration](integrations/codex/README.md).
+
+### with Claude Code
+
+<details>
+<summary>Windows (PowerShell) and macOS / Linux commands</summary>
+
+```powershell
+git clone https://github.com/ttttstc/nimo.git
+cd nimo
+.\integrations\claude-code\install.ps1
+```
+
+```bash
+git clone https://github.com/ttttstc/nimo.git
+cd nimo
+./integrations/claude-code/install.sh
+```
+
+</details>
+
+targets `CLAUDE_CONFIG_DIR/skills` (or `~/.claude/skills` when unset). full flags for isolated install, custom source path, and uninstall: [claude-code integration](integrations/claude-code/README.md).
+
+### with OpenCode
+
+<details>
+<summary>Windows (PowerShell) and macOS / Linux commands</summary>
+
+```powershell
+git clone https://github.com/ttttstc/nimo.git
+cd nimo
+.\integrations\opencode\install.ps1
+```
+
+```bash
+git clone https://github.com/ttttstc/nimo.git
+cd nimo
+./integrations/opencode/install.sh
+```
+
+</details>
+
+targets `~/.config/opencode/skills` (`$XDG_CONFIG_HOME/opencode/skills` when `XDG_CONFIG_HOME` is set). OpenCode also reads `~/.claude/skills/` and `~/.agents/skills/` — if you already installed via Claude Code, no reinstall needed. full flags: [opencode integration](integrations/opencode/README.md).
+
+### with Cursor
+
+<details>
+<summary>Windows (PowerShell) and macOS / Linux commands</summary>
+
+```powershell
+git clone https://github.com/ttttstc/nimo.git
+cd nimo
+.\integrations\cursor\install.ps1
+```
+
+```bash
+git clone https://github.com/ttttstc/nimo.git
+cd nimo
+./integrations/cursor/install.sh
+```
+
+</details>
+
+targets `~/.cursor/skills` (user-level, supported by newer versions; project-level `.cursor/skills/` is not in scope). full flags: [cursor integration](integrations/cursor/README.md).
+
+### with dsh (DeepSeek Harness)
+
+<details>
+<summary>Windows (PowerShell) and macOS / Linux commands</summary>
+
+```powershell
+git clone https://github.com/ttttstc/nimo.git
+cd nimo
+.\integrations\dsh\install.ps1
+```
+
+```bash
+git clone https://github.com/ttttstc/nimo.git
+cd nimo
+./integrations/dsh/install.sh
+```
+
+</details>
+
+targets `~/.dsh/skills` (`$DSH_HOME/skills` when `DSH_HOME` is set). dsh also scans `~/.agents/skills/` and project-level `.dsh/skills/`, `.agents/skills/`. dsh is in rc, so if directory conventions change, follow the host docs. full flags: [dsh integration](integrations/dsh/README.md).
 
 ## get started
 
 two steps:
 
 1. install (done above).
-2. in any project directory, say:
+2. in any project directory, say to your agent:
 
 ```text
-codex exec "Use the nimo skill: look at this project and advise how to proceed. Discuss only — do not modify any files."
+use the nimo skill: look at this project and advise how to proceed. discuss only — do not modify any files.
 ```
 
 that's it. expect: current status, main gaps, the priority action, and the definition of done — and the "discuss first" phase modifies no files (verify with `git status`). the other skills are situational; the mode skill uses them for you as needed.
@@ -122,6 +211,31 @@ key points:
 | [multi-phase-plan](skills/nimo-mode/playbooks/multi-phase-plan.md)   | work that spans phases or stacked PRs.                                                                      |
 | [worktree-cleanup](skills/nimo-mode/playbooks/worktree-cleanup.md)   | reclaim disk by pruning merged or abandoned worktrees, safety-gated.                                        |
 | [opening-a-pr](skills/nimo-mode/playbooks/opening-a-pr.md)           | open a ready PR from small ordered commits. invoked at the end of every other playbook.                     |
+
+### quick reference
+
+how to open the common asks, by scenario:
+
+| scenario                | how to open                                                                                             |
+| ----------------------- | -------------------------------------------------------------------------------------------------------- |
+| figure out next steps   | `$nimo how should we push this requirement forward?`                                                    |
+| fix a bug               | `$nimo fix the endless loading after login. reproduce it and verify.`                                   |
+| new feature             | `$nimo implement project list filtering, keeping the existing API compatible.`                          |
+| performance             | `$nimo a big list takes a second or two to load even though we virtualize. run a CPU trace and tell me why.` |
+| read-only understanding | `$how how do we cancel runs? do we have an N+1 when we look up every run to cancel?`                    |
+| why was it built this way | `$why is this feature flag not on yet?`                                                               |
+| compare prototypes      | `$nimo build two prototypes of the markdown renderer so we can compare. spawn an agent for each.`       |
+| check on a PR           | `$nimo check on PR 123. anything outstanding?`                                                          |
+| visual parity           | `$nimo the row spacing is too tall when this flag is on. the second image is correct. repro and fix until it matches.` |
+| unattended run          | `$nimo i'm going to bed. land the stack even if CI flakes. i want everything merged by morning.`        |
+| large migration         | `$nimo migrate every caller from the synchronous store to the new async one, keeping behavior identical.` |
+| parallel fan-out        | `$swarm check every package under packages/ against its check.sh. one worker per package. one report.`  |
+| compare proposals       | `$arena take my prompt to the arena verbatim. i want to compare their proposals with yours.`             |
+| review a PR             | `$interrogate review this PR.`                                                                          |
+| tdd implementation      | `$tdd implement`                                                                                        |
+| remove AI tells         | `can we unslop and tighten the new changes?`                                                            |
+| retro & improve         | `$reflect that took too long. capture what we learned so the next run doesn't repeat it.`               |
+| keep a decision trail   | `$show-me-your-work keep a decision trail i can review when i'm back.`                                  |
 
 ### examples
 
@@ -223,7 +337,7 @@ nimo is the engineering-method layer in the AI dev stack:
 | layer                        | provided by                  | owns                                                                               |
 | ---------------------------- | ---------------------------- | ---------------------------------------------------------------------------------- |
 | model layer                  | LLM                          | reasoning                                                                          |
-| agent runtime layer          | Codex / Claude Code / Cursor | model calls, tools, permissions, sessions, sub-agents                              |
+| agent runtime layer          | Codex / Claude Code / OpenCode / Cursor / dsh | model calls, tools, permissions, sessions, sub-agents                              |
 | **engineering-method layer** | **nimo**                     | principles, playbooks, capability contracts, quality gates, evaluation maintenance |
 | project asset layer          | your project `.nimo/`        | feature map, verification scripts, checkpoints                                     |
 | enforcement layer            | your CI and repo protection  | mandatory merge and release gates                                                  |
@@ -304,7 +418,7 @@ not yet verified: real invocation inside Codex, behavior on the official Anthrop
 
 - [nimo overall design](docs/nimo-overall-design.md): architecture, user paths, feature maps, evaluation maintenance, and acceptance requirements.
 
-- [Codex integration](integrations/codex/README.md) / [Claude Code integration](integrations/claude-code/README.md): install, isolated testing, update, and uninstall.
+- [codex integration](integrations/codex/README.md) / [claude-code integration](integrations/claude-code/README.md) / [opencode integration](integrations/opencode/README.md) / [cursor integration](integrations/cursor/README.md) / [dsh integration](integrations/dsh/README.md): install, isolated testing, update, and uninstall.
 
 - [skill-evaluate](skills/nimo-skill-evaluate/SKILL.md): case organization, isolated execution, and scoring.
 
