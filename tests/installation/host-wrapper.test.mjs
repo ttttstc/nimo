@@ -20,6 +20,7 @@ const HOSTS = [
     bashInstall: join(REPO_ROOT, 'integrations', 'codex', 'install.sh'),
     bashUninstall: join(REPO_ROOT, 'integrations', 'codex', 'uninstall.sh'),
     bashHome: '--codex-home',
+    skillsDir: (home) => join(home, 'skills'),
   },
   {
     name: 'Claude Code',
@@ -29,6 +30,36 @@ const HOSTS = [
     bashInstall: join(REPO_ROOT, 'integrations', 'claude-code', 'install.sh'),
     bashUninstall: join(REPO_ROOT, 'integrations', 'claude-code', 'uninstall.sh'),
     bashHome: '--claude-config-dir',
+  },
+  {
+    name: 'OpenCode',
+    powershellHome: '-ConfigDir',
+    powershellInstall: join(REPO_ROOT, 'integrations', 'opencode', 'install.ps1'),
+    powershellUninstall: join(REPO_ROOT, 'integrations', 'opencode', 'uninstall.ps1'),
+    bashInstall: join(REPO_ROOT, 'integrations', 'opencode', 'install.sh'),
+    bashUninstall: join(REPO_ROOT, 'integrations', 'opencode', 'uninstall.sh'),
+    bashHome: '--config-dir',
+    skillsDir: (home) => join(home, 'skills'),
+  },
+  {
+    name: 'Cursor',
+    powershellHome: '-CursorHome',
+    powershellInstall: join(REPO_ROOT, 'integrations', 'cursor', 'install.ps1'),
+    powershellUninstall: join(REPO_ROOT, 'integrations', 'cursor', 'uninstall.ps1'),
+    bashInstall: join(REPO_ROOT, 'integrations', 'cursor', 'install.sh'),
+    bashUninstall: join(REPO_ROOT, 'integrations', 'cursor', 'uninstall.sh'),
+    bashHome: '--cursor-home',
+    skillsDir: (home) => join(home, 'skills'),
+  },
+  {
+    name: 'dsh',
+    powershellHome: '-DshHome',
+    powershellInstall: join(REPO_ROOT, 'integrations', 'dsh', 'install.ps1'),
+    powershellUninstall: join(REPO_ROOT, 'integrations', 'dsh', 'uninstall.ps1'),
+    bashInstall: join(REPO_ROOT, 'integrations', 'dsh', 'install.sh'),
+    bashUninstall: join(REPO_ROOT, 'integrations', 'dsh', 'uninstall.sh'),
+    bashHome: '--dsh-home',
+    skillsDir: (home) => join(home, 'skills'),
   },
 ];
 
@@ -133,7 +164,7 @@ async function findGitBash() {
   return undefined;
 }
 
-test('PowerShell Codex and Claude Code wrappers install and uninstall in isolated homes', async t => {
+test('PowerShell host wrappers install and uninstall in isolated homes', async t => {
   if (!(await powershellAvailable())) {
     t.skip('PowerShell is unavailable on this platform');
     return;
