@@ -20,6 +20,7 @@ const HOSTS = [
     bashInstall: join(REPO_ROOT, 'integrations', 'codex', 'install.sh'),
     bashUninstall: join(REPO_ROOT, 'integrations', 'codex', 'uninstall.sh'),
     bashHome: '--codex-home',
+    skillsDir: (home) => join(home, 'skills'),
   },
   {
     name: 'Claude Code',
@@ -29,6 +30,47 @@ const HOSTS = [
     bashInstall: join(REPO_ROOT, 'integrations', 'claude-code', 'install.sh'),
     bashUninstall: join(REPO_ROOT, 'integrations', 'claude-code', 'uninstall.sh'),
     bashHome: '--claude-config-dir',
+    skillsDir: (home) => join(home, 'skills'),
+  },
+  {
+    name: 'Generic',
+    powershellHome: '-Target',
+    powershellInstall: join(REPO_ROOT, 'integrations', 'generic', 'install.ps1'),
+    powershellUninstall: join(REPO_ROOT, 'integrations', 'generic', 'uninstall.ps1'),
+    bashInstall: join(REPO_ROOT, 'integrations', 'generic', 'install.sh'),
+    bashUninstall: join(REPO_ROOT, 'integrations', 'generic', 'uninstall.sh'),
+    bashHome: '--target',
+    skillsDir: (home) => home,
+  },
+  {
+    name: 'OpenCode',
+    powershellHome: '-ConfigDir',
+    powershellInstall: join(REPO_ROOT, 'integrations', 'opencode', 'install.ps1'),
+    powershellUninstall: join(REPO_ROOT, 'integrations', 'opencode', 'uninstall.ps1'),
+    bashInstall: join(REPO_ROOT, 'integrations', 'opencode', 'install.sh'),
+    bashUninstall: join(REPO_ROOT, 'integrations', 'opencode', 'uninstall.sh'),
+    bashHome: '--config-dir',
+    skillsDir: (home) => join(home, 'skills'),
+  },
+  {
+    name: 'Cursor',
+    powershellHome: '-CursorHome',
+    powershellInstall: join(REPO_ROOT, 'integrations', 'cursor', 'install.ps1'),
+    powershellUninstall: join(REPO_ROOT, 'integrations', 'cursor', 'uninstall.ps1'),
+    bashInstall: join(REPO_ROOT, 'integrations', 'cursor', 'install.sh'),
+    bashUninstall: join(REPO_ROOT, 'integrations', 'cursor', 'uninstall.sh'),
+    bashHome: '--cursor-home',
+    skillsDir: (home) => join(home, 'skills'),
+  },
+  {
+    name: 'dsh',
+    powershellHome: '-DshHome',
+    powershellInstall: join(REPO_ROOT, 'integrations', 'dsh', 'install.ps1'),
+    powershellUninstall: join(REPO_ROOT, 'integrations', 'dsh', 'uninstall.ps1'),
+    bashInstall: join(REPO_ROOT, 'integrations', 'dsh', 'install.sh'),
+    bashUninstall: join(REPO_ROOT, 'integrations', 'dsh', 'uninstall.sh'),
+    bashHome: '--dsh-home',
+    skillsDir: (home) => join(home, 'skills'),
   },
 ];
 
@@ -69,7 +111,7 @@ async function removeTemp(root) {
 
 async function assertLifecycle(host, root, install, uninstall, homeArgs) {
   const home = join(root, `${host.name} home 中文 with spaces`);
-  const skillsRoot = join(home, 'skills');
+  const skillsRoot = host.skillsDir(home);
   const npmCache = join(root, `${host.name.replaceAll(' ', '-')}-npm-cache`);
   await mkdir(npmCache, { recursive: true });
   const env = { ...process.env, npm_config_cache: npmCache };
@@ -133,7 +175,7 @@ async function findGitBash() {
   return undefined;
 }
 
-test('PowerShell Codex and Claude Code wrappers install and uninstall in isolated homes', async t => {
+test('PowerShell host wrappers install and uninstall in isolated homes', async t => {
   if (!(await powershellAvailable())) {
     t.skip('PowerShell is unavailable on this platform');
     return;
@@ -184,7 +226,7 @@ test('Bash wrappers pass syntax checks and smoke install/uninstall when Git Bash
       const homeArg = await bashPath(home);
       const env = { ...process.env, npm_config_cache: npmCache };
       await run(bash, [host.bashInstall, '--source', sourceArg, host.bashHome, homeArg], env);
-      const skillsRoot = join(home, 'skills');
+      const skillsRoot = host.skillsDir(home);
       assert.equal((await skillDirectories(skillsRoot)).length, 42, `${host.name} Bash wrapper installed all 42 Skills`);
       await run(bash, [host.bashUninstall, '--source', sourceArg, host.bashHome, homeArg], env);
       assert.equal(await exists(join(skillsRoot, '.nimo-manifest.json')), false, `${host.name} Bash wrapper removed its manifest`);
