@@ -1,6 +1,6 @@
 ---
 name: nimo-mode
-description: "nimo 工程任务总入口。用户明确调用 nimo，或任务涉及非简单开发、修复、设计、调查、验证、PR 跟进或任务恢复时使用。根据用户意图选择流程，并遵守授权边界、工程原则和真实验证要求。"
+description: "nimo 工程任务总入口。用户明确调用 nimo，或任务涉及工程开发、修复、设计、调查、验证、PR 跟进或任务恢复时使用。根据用户意图选择流程，并遵守授权边界、工程原则和真实验证要求。"
 ---
 
 # nimo
@@ -18,7 +18,7 @@ description: "nimo 工程任务总入口。用户明确调用 nimo，或任务�
 
 ## 原则索引
 
-- [先质疑共同前提](../nimo-principle-attack-the-premise/SKILL.md)：多个基于同一前提的修复连续失败。
+- [先质疑共同前提](../nimo-principle-attack-the-premise/SKILL.md)：多个共享同一前提的修复连续在同一验证门槛失败。
 - [边界校验](../nimo-principle-boundary-discipline/SKILL.md)：外部配置、网络或工具输入进入系统。
 - [建立可重复的工具](../nimo-principle-build-the-lever/SKILL.md)：非简单修改、迁移、分析或验证。
 - [把重复错误变成约束](../nimo-principle-encode-lessons-in-structure/SKILL.md)：同一纠正或错误反复出现。
