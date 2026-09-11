@@ -1,6 +1,6 @@
 ---
 name: nimo-mode
-description: "nimo 工程总入口。用户明确使用 nimo，或进行工程开发、修复、设计、调查、验证、PR 跟进与任务恢复时，依据意图路由，遵守授权与真实验证。"
+description: "nimo 工程任务总入口。用户明确调用 nimo，或任务涉及非简单开发、修复、设计、调查、验证、PR 跟进或任务恢复时使用。根据用户意图选择流程，并遵守授权边界、工程原则和真实验证要求。"
 ---
 
 # nimo
@@ -12,32 +12,34 @@ description: "nimo 工程总入口。用户明确使用 nimo，或进行工程�
 3. 按 [配置规则](references/configuration.md) 读取团队和个人引用，按需检索知识，不一次读取全部目录；错误不能静默忽略。
 4. 读取匹配 Playbook，把其编号步骤原样保留到任务清单，具体步骤可细化。跳过写原因和影响，必要证据缺失不能通过。
 5. 非简单变更先 nimo-how。跨边界或实质设计取舍使用 nimo-architect。实现委派与审查分离；主 Agent 保留设计、Bug 原始复现、实际差异审阅和最终验收。
-6. 写有状态代码前明确数据形状。真实操作面验证不能被编译、类型检查或子任务自报替代。
+6. 写有状态代码前明确数据结构。编写或修改测试时验证真实行为，不把内部调用关系当成结果。真实操作面验证不能被编译、类型检查或子任务自报替代。
 7. 提交前 nimo-deslop，审查前 nimo-no-comments，技术说明使用 nimo-technical-writing 和 nimo-unslop。只清理本任务制造的问题。
 8. 模型、工具、独立上下文、权限和后台能力按 [宿主合同](references/host-contract.md) 使用，不假造不存在的接口。
 
 ## 原则索引
 
+- [先质疑共同前提](../nimo-principle-attack-the-premise/SKILL.md)：多个基于同一前提的修复连续失败。
 - [边界校验](../nimo-principle-boundary-discipline/SKILL.md)：外部配置、网络或工具输入进入系统。
 - [建立可重复的工具](../nimo-principle-build-the-lever/SKILL.md)：非简单修改、迁移、分析或验证。
 - [把重复错误变成约束](../nimo-principle-encode-lessons-in-structure/SKILL.md)：同一纠正或错误反复出现。
 - [比较实质方案](../nimo-principle-exhaust-the-design-space/SKILL.md)：缺少先例且存在多个可行结构或交互。
 - [以使用结果为先](../nimo-principle-experience-first/SKILL.md)：产品、交互、接口和范围取舍。
 - [修复根因](../nimo-principle-fix-root-causes/SKILL.md)：缺陷或运行状态异常。
-- [先明确数据结构](../nimo-principle-foundational-thinking/SKILL.md)：写有状态逻辑、选择边界或安排顺序。
-- [保留必要上下文](../nimo-principle-guard-the-context-window/SKILL.md)：大文件、复杂调查、委派和恢复。
-- [最少实现完整解决](../nimo-principle-laziness-protocol/SKILL.md)：准备增加抽象、配置或整理差异。
-- [重复操作收敛](../nimo-principle-make-operations-idempotent/SKILL.md)：可能超时、重试或中断的写操作。
+- [先明确数据结构](../nimo-principle-foundational-thinking/SKILL.md)：写逻辑前选择核心类型、数据结构或共享状态关系。
+- [保留必要上下文](../nimo-principle-guard-the-context-window/SKILL.md)：大文件、大输出、复杂调查、委派和恢复。
+- [最少实现完整解决](../nimo-principle-laziness-protocol/SKILL.md)：准备增加抽象、层级、配置或扩大差异。
+- [重复操作收敛](../nimo-principle-make-operations-idempotent/SKILL.md)：可能崩溃、重启、超时或重试的操作。
 - [迁完调用再删旧接口](../nimo-principle-migrate-callers-then-delete-legacy-apis/SKILL.md)：内部 API 或数据模型被替换。
 - [减少理解成本](../nimo-principle-minimize-reader-load/SKILL.md)：代码多层跳转或隐藏可变状态。
-- [让结构表达领域](../nimo-principle-model-the-domain/SKILL.md)：状态分支、重复形状或并发逻辑。
-- [授权内自主推进](../nimo-principle-never-block-on-the-human/SKILL.md)：想询问可逆细节或如何继续。
-- [按最终结果组织执行](../nimo-principle-outcome-oriented-execution/SKILL.md)：重构、重建或分阶段交付。
+- [让结构表达领域](../nimo-principle-model-the-domain/SKILL.md)：状态分支多、重复结构假设或复杂状态逻辑。
+- [授权内自主推进](../nimo-principle-never-block-on-the-human/SKILL.md)：想询问可逆细节或是否继续。
+- [按目标架构收敛](../nimo-principle-outcome-oriented-execution/SKILL.md)：阶段边界明确的计划性重写或迁移。
 - [验证真实产物](../nimo-principle-prove-it-works/SKILL.md)：交付、合入或宣称问题解决前。
 - [从新约束推导结构](../nimo-principle-redesign-from-first-principles/SKILL.md)：新要求改变原有架构前提。
-- [先分离再串行共享写入](../nimo-principle-separate-before-serializing-shared-state/SKILL.md)：执行者可能写同一文件、分支或记录。
+- [先分离再串行共享写入](../nimo-principle-separate-before-serializing-shared-state/SKILL.md)：执行者可能写同一文件、分支、键或状态对象。
 - [分成可验证单元](../nimo-principle-sequence-verifiable-units/SKILL.md)：多文件任务、迁移或 PR 依赖链。
 - [先减少再增加](../nimo-principle-subtract-before-you-add/SKILL.md)：扩展、重写或重构已有系统。
+- [测试行为而非实现细节](../nimo-principle-test-behavior-not-implementation/SKILL.md)：编写、修改或决定是否保留测试。
 - [让类型排除错误](../nimo-principle-type-system-discipline/SKILL.md)：类型、签名和外部数据边界。
 
 ## 请求与路由
