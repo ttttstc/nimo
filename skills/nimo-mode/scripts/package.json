@@ -1,0 +1,20 @@
+{
+  "name": "nimo-tools",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node ../../../tests/run.mjs",
+    "check": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "yaml": "2.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.30",
+    "typescript": "5.8.3"
+  }
+}

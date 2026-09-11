@@ -1,99 +1,19 @@
-# Codex 接入
+# codex 接入
 
-nimo 以 Skill 包形式接入 Codex CLI。安装脚本只写入 `<CODEX_HOME>/skills` 下的 nimo 自有文件，并以清单（`.nimo-manifest`）记录所有权；不触碰 `config.toml`、`auth.json`、其他 Skill 或用户任何无关配置。
+使用相同的 42 个 Skill 和 Node.js 工具。安装前需要 Node.js 22+ 和 npm，PR 操作另需 gh；宿主自身必须支持读取 Skill。
 
-适用：Codex CLI 0.144 及以上（依赖其 `skills` 目录约定）。
-
-## 安装
+目标为 CODEX_HOME/skills，环境变量未设置时为 ~/.codex/skills。安装不修改宿主模型、权限或凭据。
 
 ```powershell
-# Windows（PowerShell）
 .\integrations\codex\install.ps1
+.\integrations\codex\install.ps1 -Source 'D:\work\nimo' -CodexHome 'D:\temp\isolated-host'
+.\integrations\codex\uninstall.ps1 -CodexHome 'D:\temp\isolated-host'
 ```
 
-```bash
-# macOS / Linux
-./integrations/codex/install.sh
-```
+macOS/Linux 使用同目录 Bash 脚本，参数为 --source 和 --codex-home。绝对路径中包含空格时加引号。
 
-默认安装到 `CODEX_HOME` 环境变量指向的目录（未设置时为 `~/.codex`）。安装内容：
+安装器先在临时目录准备锁定的生产依赖，再完整预检目标。无归属或已修改的同名文件会阻止更新，不混装。卸载只删除清单哈希仍匹配的内容，保留项目知识、验证地图、证据和用户自定义文件。
 
-- `skills/nimo/`：统一入口 Skill
+安装后重新加载宿主的 Skill 发现，再明确调用 nimo-mode；是否需要重启由宿主决定。以实际调用确认可用，不只检查文件存在。
 
-- `skills/nimo-setup/`：安装与配置检测 Skill
-
-- `skills/verification-create/`：项目验证初始化 Skill
-
-- `skills/verification-maintain/`：项目验证与功能地图维护 Skill
-
-- `skills/skill-evaluate/`：Skill 行为评测与版本比较 Skill
-
-- `skills/nimo/references/defaults/capabilities.yaml`：默认能力组合的受控副本（权威副本在仓库 `defaults/capabilities.yaml`，不要手工维护安装副本）
-
-## 隔离测试安装（不影响用户配置）
-
-```powershell
-$env:CODEX_HOME = "$env:TEMP\nimo-codex-test"
-.\integrations\codex\install.ps1 -CodexHome "$env:TEMP\nimo-codex-test"
-```
-
-```bash
-export CODEX_HOME="$(mktemp -d)/codex"
-./integrations/codex/install.sh
-```
-
-注意：隔离 `CODEX_HOME` 中没有认证凭据，`codex` 需要先 `codex login` 或由用户自行决定凭据提供方式。nimo 脚本不会复制或修改任何凭据。
-
-## 验证发现与调用
-
-安装后在任意项目目录中调用 Codex 并点名 nimo：
-
-```text
-codex exec "使用 nimo skill：看看这个项目接下来应该怎么推进，先讨论，不要修改任何文件。"
-```
-
-预期行为：
-
-- Codex 发现并读取 nimo Skill；
-
-- “先讨论”阶段只读取和分析，不修改任务文件（可用 `git status` 核对）；
-
-- 指导输出包含当前状态、主要缺口、优先动作和完成条件。
-
-## 更新
-
-重新运行安装脚本即可。规则：
-
-- 文件未被用户修改 → 更新为新版本；
-
-- 文件被用户修改过 → 保留现状并报告，不覆盖；
-
-- 新版本中已删除的文件 → 未被修改时清理，被修改过时保留并报告；
-
-- 目标位置存在无法证明为 nimo 所有的同名文件 → 跳过并报告冲突（退出码 1），不强行覆盖。
-
-## 卸载
-
-```powershell
-.\integrations\codex\uninstall.ps1
-```
-
-```bash
-./integrations/codex/uninstall.sh
-```
-
-只删除清单记录且未被用户修改的 nimo 文件；用户修改过的文件保留并报告（此时清单暂存，确认无需保留后可手工删除残留文件与清单）。
-
-## 安装脚本行为测试
-
-测试需要 Windows PowerShell，以及可通过 `python` 调用的 Python 3 和 PyYAML（用于解析 Skill 元数据）；安装、更新与卸载脚本本身不依赖 Python。
-
-```powershell
-.\integrations\codex\test-install.ps1
-```
-
-在隔离临时目录中验证：五个 Skill 的入口与必要元数据、干净安装、幂等重装、用户修改不被覆盖、卸载只删自有文件、他人同名文件冲突保护、干净卸载无残留、过期用户修改文件保留清单记录、`-Source` 路径规范化及非法清单保护。全部通过时退出码 0，不影响用户配置。
-
-## 已验证范围
-
-见仓库根 README「验证状态」一节。Codex 内真实发现与调用的验证状态以该节为准，本 README 不单独声明。
+隔离安装测试入口是 test-install.ps1，全部生成数据位于系统临时目录。程序测试、真实宿主调用和真实平台验证分别报告。
