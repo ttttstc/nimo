@@ -7,12 +7,32 @@ const ownerships = new Set(['user-managed', 'nimo-managed']);
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const text = value => typeof value === 'string' && value.length > 0;
 const sha256 = content => createHash('sha256').update(content).digest('hex');
+const slash = value => value.split(path.sep).join('/');
+
+function portableTargetKey(projectRoot, file) {
+  const relative = path.relative(projectRoot, file);
+  if (relative && relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative)) {
+    return `./${slash(relative)}`;
+  }
+  return `external:${sha256(Buffer.from(file))}`;
+}
+
+function validTargetKey(value) {
+  if (/^external:[a-f0-9]{64}$/.test(value)) return true;
+  if (!value.startsWith('./') || value.includes('\\')) return false;
+  const parts = value.slice(2).split('/');
+  return parts.length > 0 && parts.every(part => part && part !== '.' && part !== '..');
+}
+
+function validSources(sources) {
+  return Array.isArray(sources) && sources.every(source => text(source) && !path.isAbsolute(source)) &&
+    new Set(sources).size === sources.length;
+}
 
 function validateState(state) {
   if (!object(state) || state.formatVersion !== 1 || !Number.isSafeInteger(state.revision) || state.revision < 0) {
     fail('INVALID_KNOWLEDGE_STATE', 'Knowledge state needs formatVersion 1 and a non-negative revision');
   }
-  absolute(state.projectRoot, 'projectRoot');
   if (state.lastMaintainedRevision !== null && !text(state.lastMaintainedRevision)) {
     fail('INVALID_KNOWLEDGE_STATE', 'lastMaintainedRevision must be null or a non-empty string');
   }
@@ -21,10 +41,8 @@ function validateState(state) {
   }
   if (!object(state.targets)) fail('INVALID_KNOWLEDGE_STATE', 'targets must be an object');
   for (const [target, record] of Object.entries(state.targets)) {
-    absolute(target, 'knowledge target');
-    if (!object(record) || !ownerships.has(record.ownership) || !/^[a-f0-9]{64}$/.test(record.contentHash ?? '') ||
-        !text(record.verifiedRevision) || !Array.isArray(record.sources) || record.sources.some(source => !text(source)) ||
-        new Set(record.sources).size !== record.sources.length) {
+    if (!validTargetKey(target) || !object(record) || !ownerships.has(record.ownership) ||
+        !/^[a-f0-9]{64}$/.test(record.contentHash ?? '') || !text(record.verifiedRevision) || !validSources(record.sources)) {
       fail('INVALID_KNOWLEDGE_STATE', `Invalid knowledge target record: ${target}`);
     }
   }
@@ -39,23 +57,24 @@ async function readState(file) {
   return validateState(parsed);
 }
 
-async function materializeTargets(targets) {
+async function materializeTargets(projectRoot, targets) {
   if (!Array.isArray(targets)) fail('INVALID_REQUEST', 'targets must be an array');
   const records = {};
   for (const target of targets) {
     if (!object(target)) fail('INVALID_REQUEST', 'Each knowledge target must be an object');
-    const file = absolute(target.path, 'knowledge target path');
-    if (records[file]) fail('DUPLICATE_TARGET', `Duplicate knowledge target: ${file}`);
-    if (!ownerships.has(target.ownership) || !text(target.verifiedRevision) || !Array.isArray(target.sources) ||
-        target.sources.some(source => !text(source)) || new Set(target.sources).size !== target.sources.length) {
-      fail('INVALID_REQUEST', `Knowledge target needs ownership, verifiedRevision, and unique sources: ${file}`);
+    const requested = absolute(target.path, 'knowledge target path');
+    if (!ownerships.has(target.ownership) || !text(target.verifiedRevision) || !validSources(target.sources)) {
+      fail('INVALID_REQUEST', `Knowledge target needs ownership, verifiedRevision, and unique non-absolute sources: ${requested}`);
     }
-    const stat = await fs.lstat(file).catch(error => { if (error.code === 'ENOENT') return null; throw error; });
-    if (!stat || !stat.isFile() || stat.isSymbolicLink()) fail('INVALID_TARGET', `Knowledge target must be an existing regular file: ${file}`, 4);
-    const content = await fs.readFile(file);
-    records[file] = {
+    const actual = await fs.realpath(requested).catch(error => { if (error.code === 'ENOENT') return null; throw error; });
+    if (!actual) fail('INVALID_TARGET', `Knowledge target does not exist: ${requested}`, 4);
+    const stat = await fs.stat(actual);
+    if (!stat.isFile()) fail('INVALID_TARGET', `Knowledge target must resolve to a regular file: ${requested}`, 4);
+    const key = portableTargetKey(projectRoot, actual);
+    if (records[key]) fail('DUPLICATE_TARGET', `Duplicate knowledge target identity: ${key}`);
+    records[key] = {
       ownership: target.ownership,
-      contentHash: sha256(content),
+      contentHash: sha256(await fs.readFile(actual)),
       verifiedRevision: target.verifiedRevision,
       sources: [...target.sources],
     };
@@ -72,12 +91,10 @@ export async function run(request) {
 
     if (operation === 'init') {
       return withLock(file, async () => {
-        const existing = await readOptional(file);
-        if (existing !== null) return response(validateState(JSON.parse(existing)));
+        if (await readOptional(file) !== null) return response(await readState(file));
         const state = validateState({
           formatVersion: 1,
           revision: 0,
-          projectRoot,
           lastMaintainedRevision: null,
           lastMaintainedAt: null,
           targets: {},
@@ -106,11 +123,10 @@ export async function run(request) {
       if (!Number.isSafeInteger(request.expectedRevision) || !text(request.projectVersion) || !text(request.maintainedAt)) {
         fail('INVALID_REQUEST', 'update requires expectedRevision, projectVersion, and maintainedAt');
       }
-      const targets = await materializeTargets(request.targets);
       return withLock(file, async () => {
         const current = await readState(file);
-        if (current.projectRoot !== projectRoot) fail('PROJECT_ROOT_MISMATCH', 'Knowledge state belongs to another project');
         if (current.revision !== request.expectedRevision) fail('REVISION_CONFLICT', 'Knowledge state changed; reread before updating', 3);
+        const targets = await materializeTargets(projectRoot, request.targets);
         const next = validateState({
           ...current,
           revision: current.revision + 1,
