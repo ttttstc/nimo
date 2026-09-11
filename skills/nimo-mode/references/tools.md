@@ -8,12 +8,13 @@
 |---|---|---|
 | config.mjs | JSON 请求 → JSON 引用、诊断或修改结果 | 解析、路径、合并、去重、校验、增删；不决定原则语义冲突 |
 | state.mjs | JSON 请求 → 当前记录或变更结果 | 本地项目单元、收件箱、验证记录、知识影响和版本；不运行单元、不运行知识审计 |
+| knowledge-state.mjs | JSON 请求 → 知识维护状态 | 原子维护 `.nimo/state/knowledge.json`、计算知识文件内容指纹、保护 revision；不读取知识语义、不决定漂移 |
 | inspect-pr.mjs | 仓库与 PR → JSON 状态 | 只读 GitHub 事实，有限请求后返回，不无限轮询 |
 | audit-worktrees.mjs | 仓库 → 目录审计 JSON | 只读枚举和分类，不删除路径 |
 | check-plan.mjs | Markdown 计划 → 问题与行号 | 检查单元依赖、证据、作用域和停止点，不强制模型／宿主句式 |
 | log.mjs | 一条 JSON 决策 → TSV 记录 | 追加事实、理由、证据与结果，不记录内部推理全文 |
 
-`config.mjs` 与 `state.mjs` 支持 `--input <request.json>`；请求通过文件传递，不把用户路径拼到 shell 代码。其他脚本使用参数数组，调用外部程序一律关闭 shell。stdout 只输出结果，stderr 输出简短诊断，不回显凭据或完整配置内容。
+`config.mjs`、`state.mjs` 与 `knowledge-state.mjs` 支持 `--input <request.json>`；请求通过文件传递，不把用户路径拼到 shell 代码。其他脚本使用参数数组，调用外部程序一律关闭 shell。stdout 只输出结果，stderr 输出简短诊断，不回显凭据或完整配置内容。
 
 公共返回结构：
 
@@ -79,6 +80,23 @@ knowledgeImpact           NOT_APPLICABLE / NONE / REVIEW_RECOMMENDED、原因、
 操作为 `init | read | update | reopen | inbox-add | inbox-drain | status`。update 携带 `expectedRevision`，由唯一协调者在短锁内校验后原子写入；revision 冲突返回 BLOCK。其余执行者只交报告，不能更新共享 program。收件箱每个结果写独立文件，同一事件标识幂等，drain 只处理本批已取得的结果，期间新到达结果留给下一批。
 
 不引入服务数据库或常驻进程。锁不可取得时报告占用；不能仅因时间较久就强行清锁。自动回收仅限能够证明本机持有进程已结束的情况，其他情况交由当前所有者核实。
+
+#### knowledge-state.mjs 与项目知识维护状态
+
+项目知识正文不进入 `.nimo`；维护缓存固定写在 `<projectRoot>/.nimo/state/knowledge.json`。操作为 `init | read | update | status`。
+
+`init` 只建立空状态，不宣称知识已经维护；`update` 必须带 `expectedRevision`、本次 `projectVersion`、`maintainedAt` 和完整知识文件列表。每个知识文件提供绝对路径、`user-managed | nimo-managed` 所有权、`verifiedRevision` 与唯一 `sources[]`。工具自己读取当前知识文件并计算 SHA-256 `contentHash`，不信任调用者自报哈希。
+
+```text
+formatVersion / revision / projectRoot
+lastMaintainedRevision / lastMaintainedAt
+targets{
+  <absolute knowledge file>:
+    ownership / contentHash / verifiedRevision / sources[]
+}
+```
+
+状态工具只做确定性记账：不解析知识语义、不扫描仓库判断事实、不决定 Overview/Index/Page 结构，也不把 source 变化判成漂移。知识文件必须是当前可读的普通文件；状态更新使用短锁、revision 比较和原子替换。状态缺失或损坏时上层 audit/maintain 扩大核对范围，而不是把已有知识判失效。
 
 #### PR 状态与依赖链
 
