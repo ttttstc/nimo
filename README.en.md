@@ -295,7 +295,7 @@ show-me-your-work: $show-me-your-work keep a decision trail i can review when i'
 
 | skill                                                                    | use it when                                                                                                                                |
 | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| [nimo-mode](skills/nimo-mode/SKILL.md)                                   | default entry point for any non-trivial task.                                                                                              |
+| [nimo-mode](skills/nimo-mode/SKILL.md)                                   | default entry point for engineering tasks.                                                                                                 |
 | [nimo-how](skills/nimo-how/SKILL.md)                                     | you want a walkthrough of how a subsystem works.                                                                                           |
 | [nimo-why](skills/nimo-why/SKILL.md)                                     | you want to know why something was built this way. discovers seven evidence categories at run time and queries each in parallel.           |
 | [nimo-architect](skills/nimo-architect/SKILL.md)                         | you're about to write code that crosses a function boundary and want the caller's usage, types, and module shape settled first.            |
@@ -346,10 +346,11 @@ nimo defines "what counts as done right and done complete"; the host executes; y
 
 ## principles
 
-twenty-one engineering principles, one per skill. `nimo-mode` indexes them inline and reads that index at task start. the standalone files are there so other skills can reference a principle by name, and so the index can point at the full rule for each.
+twenty-three engineering principles, one per skill. `nimo-mode` indexes them inline and reads that index at task start. the standalone files are there so other skills can reference a principle by name, and so the index can point at the full rule for each.
 
 | principle                                | rule                                                                                                                                              |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| attack-the-premise                       | When multiple fixes sharing one premise fail the same gate, question the shared premise before another fix.                                      |
 | laziness-protocol                        | Bias toward deletion and the smallest change that solves the problem.                                                                             |
 | foundational-thinking                    | Get the data structures right before writing logic so downstream code becomes obvious.                                                            |
 | subtract-before-you-add                  | Remove dead weight, redundant validators, and stub references first, then build on the simpler base.                                              |
@@ -366,6 +367,7 @@ twenty-one engineering principles, one per skill. `nimo-mode` indexes them inlin
 | prove-it-works                           | Verify against the real artifact (run the feature, read the actual value, inspect the diff), not a proxy, self-report, or 'it compiles.'.         |
 | fix-root-causes                          | Trace each symptom to its root cause and fix it there; reproduce first, ask why until you reach it, resist nil-check guards that silence crashes. |
 | sequence-verifiable-units                | Break work into small units that each end in a verifiable state, check each before the next, and order delivery so the sequence proves itself.    |
+| test-behavior-not-implementation         | Call code the way its users do and assert observable behavior, not internal call structure.                                                       |
 | guard-the-context-window                 | Route bulk to subagents; keep summaries in the main thread, not raw payloads.                                                                     |
 | never-block-on-the-human                 | Proceed, present the result, let the human course-correct after the fact; reserve confirmation for irreversible actions.                          |
 | encode-lessons-in-structure              | Encode the rule as a lint, metadata flag, runtime check, or script instead of more text.                                                          |
@@ -421,4 +423,3 @@ not yet verified: real invocation inside Codex, behavior on the official Anthrop
 - [codex integration](integrations/codex/README.md) / [claude-code integration](integrations/claude-code/README.md) / [opencode integration](integrations/opencode/README.md) / [cursor integration](integrations/cursor/README.md) / [dsh integration](integrations/dsh/README.md): install, isolated testing, update, and uninstall.
 
 - [skill-evaluate](skills/nimo-skill-evaluate/SKILL.md): case organization, isolated execution, and scoring.
-
