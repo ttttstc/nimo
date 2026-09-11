@@ -229,10 +229,11 @@ nimo 定义「怎样才算做对了、做完了」，宿主执行，你的 CI �
 
 ## 原则
 
-十六条工程原则，一条一个。入口在任务开始时读索引，按需展开，不逐条罗列原则名。
+23 条工程原则，一条一个。入口在任务开始时读索引，按需展开，不逐条罗列原则名。
 
 | 原则                                       | 规则                                 |
 | ---------------------------------------- | ---------------------------------- |
+| attack-the-premise                       | 多个共享同一前提的修复连续在同一验证门槛失败时，先质疑共同前提。       |
 | laziness-protocol                        | 偏向删除，以及能解决问题的最小改动。                 |
 | foundational-thinking                    | 写逻辑前先把数据结构做对，让下游代码变得显然。            |
 | subtract-before-you-add                  | 先删死重／冗余校验器／桩引用，再在更简单基础上构建。         |
@@ -249,6 +250,7 @@ nimo 定义「怎样才算做对了、做完了」，宿主执行，你的 CI �
 | prove-it-works                           | 对着真实产物验证，而非代理信号／自报／"能编译"。          |
 | fix-root-causes                          | 追到根因修复，先复现，连续追问为什么，抵制压崩溃。          |
 | sequence-verifiable-units                | 多步工作拆成每个以可验证状态收尾的小单元，交付顺序自证。       |
+| test-behavior-not-implementation         | 按真实调用方式测试可观察行为，不用内部调用关系锁死实现。        |
 | guard-the-context-window                 | 上下文接近占满时把大宗路由给子 agent，主上下文保留摘要。    |
 | never-block-on-the-human                 | 可逆工作先推进，确认只留给不可逆动作。                |
 | encode-lessons-in-structure              | 把反复出现的规则编码为 lint／元数据／运行时检查，而非更多文字。 |
@@ -304,4 +306,3 @@ knowledge:
 - [Codex 接入](integrations/codex/README.md) / [Claude Code 接入](integrations/claude-code/README.md) / [OpenCode 接入](integrations/opencode/README.md) / [Cursor 接入](integrations/cursor/README.md) / [dsh 接入](integrations/dsh/README.md)：安装、隔离测试、更新与卸载。
 
 - [skill-evaluate](skills/nimo-skill-evaluate/SKILL.md)：评测案例组织、隔离执行与评分流程。
-

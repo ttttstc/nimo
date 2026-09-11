@@ -7,16 +7,17 @@ import test from 'node:test';
  * Methodology fidelity layer.
  *
  * check-package proves asset counts and reference closure; it cannot prove
- * that upstream behavioral semantics survived the adaptation.  These tests
- * pin stable semantic anchors (not full-text snapshots) for the artifacts the
- * PR review flagged, verify every directly-derived artifact still cites the
- * pinned upstream SHA, and verify every negative eval case is backed by a
+ * that upstream behavioral semantics survived the adaptation. These tests
+ * pin stable semantic anchors (not full-text snapshots), verify every
+ * directly-derived artifact cites the upstream revision it was actually
+ * synchronized against, and verify every negative eval case is backed by a
  * rule anchor that actually exists in the package.
  */
 
 const testsDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(testsDirectory, '../..');
-const UPSTREAM_SHA = '93b00b89ef425a9c1bac0d0b317dfc49c930ac99';
+const LEGACY_UPSTREAM_SHA = '93b00b89ef425a9c1bac0d0b317dfc49c930ac99';
+const CURRENT_UPSTREAM_SHA = 'f5bdd6826fd0a0d9cbc4347134c3a74a200b9d9d';
 
 const PLAYBOOKS = [
   'feature.md', 'bug-fix.md', 'investigation.md', 'refactoring.md', 'prototype.md',
@@ -28,14 +29,16 @@ const PLAYBOOKS = [
 ];
 
 const PRINCIPLES = [
-  'boundary-discipline', 'build-the-lever', 'encode-lessons-in-structure',
-  'exhaust-the-design-space', 'experience-first', 'fix-root-causes',
-  'foundational-thinking', 'guard-the-context-window', 'laziness-protocol',
-  'make-operations-idempotent', 'migrate-callers-then-delete-legacy-apis',
-  'minimize-reader-load', 'model-the-domain', 'never-block-on-the-human',
-  'outcome-oriented-execution', 'prove-it-works', 'redesign-from-first-principles',
+  'attack-the-premise', 'boundary-discipline', 'build-the-lever',
+  'encode-lessons-in-structure', 'exhaust-the-design-space', 'experience-first',
+  'fix-root-causes', 'foundational-thinking', 'guard-the-context-window',
+  'laziness-protocol', 'make-operations-idempotent',
+  'migrate-callers-then-delete-legacy-apis', 'minimize-reader-load',
+  'model-the-domain', 'never-block-on-the-human', 'outcome-oriented-execution',
+  'prove-it-works', 'redesign-from-first-principles',
   'separate-before-serializing-shared-state', 'sequence-verifiable-units',
-  'subtract-before-you-add', 'type-system-discipline',
+  'subtract-before-you-add', 'test-behavior-not-implementation',
+  'type-system-discipline',
 ];
 
 const DIRECT_TASK_SKILLS = [
@@ -45,12 +48,24 @@ const DIRECT_TASK_SKILLS = [
   'nimo-verification-create', 'nimo-verification-maintain',
 ];
 
+const CURRENT_SYNCED_ARTIFACTS = new Set([
+  'skills/nimo-architect/SKILL.md',
+  'skills/nimo-arena/SKILL.md',
+  'skills/nimo-figure-it-out/SKILL.md',
+  'skills/nimo-how/SKILL.md',
+  'skills/nimo-interrogate/SKILL.md',
+  'skills/nimo-show-me-your-work/SKILL.md',
+  'skills/nimo-swarm/SKILL.md',
+  'skills/nimo-principle-attack-the-premise/SKILL.md',
+  'skills/nimo-principle-test-behavior-not-implementation/SKILL.md',
+]);
+
 function read(relativePath) {
   return fs.readFileSync(path.join(projectRoot, relativePath), 'utf8');
 }
 
 /**
- * Semantic anchors: one row per artifact the review flagged.  Each anchor is a
+ * Semantic anchors: one row per artifact the review flagged. Each anchor is a
  * stable behavioral assertion (regex) that must survive any faithful
  * adaptation; losing it means the methodology was summarized away again.
  */
@@ -150,16 +165,16 @@ const SEMANTIC_ANCHORS = [
   {
     artifact: 'skills/nimo-show-me-your-work/SKILL.md',
     anchors: [
-      { id: 'append-only', pattern: /只追加。错误的决定用新的一行取代/ },
-      { id: 'evidence-pointer', pattern: /证据是指针，不是散文/ },
-      { id: 'trail-vs-runtime-audit', pattern: /对照运行轨迹审计日志/ },
+      { id: 'append-only', pattern: /采用只追加方式。决定后来被推翻时/ },
+      { id: 'evidence-pointer', pattern: /能够直接检查的证据位置/ },
+      { id: 'trail-vs-runtime-audit', pattern: /对照本次运行实际发生的事情检查日志是否真实/ },
     ],
   },
   {
     artifact: 'skills/nimo-arena/SKILL.md',
     anchors: [
       { id: 'cross-judge', pattern: /交叉评审|cross-judge/ },
-      { id: 'convergence-strong-signal', pattern: /强一致信号/ },
+      { id: 'convergence-strong-signal', pattern: /高价值一致性信号/ },
       { id: 'divergence-reframe', pattern: /分歧/ },
     ],
   },
@@ -192,7 +207,7 @@ test('semantic anchors for review-flagged artifacts survive the adaptation', () 
   }
 });
 
-test('every directly-derived artifact cites the pinned upstream SHA', () => {
+test('every directly-derived artifact cites its expected upstream revision', () => {
   const missing = [];
   const citations = [];
   for (const playbook of PLAYBOOKS) {
@@ -205,10 +220,11 @@ test('every directly-derived artifact cites the pinned upstream SHA', () => {
     citations.push(`skills/${skill}/SKILL.md`);
   }
   for (const relativePath of citations) {
-    if (!read(relativePath).includes(UPSTREAM_SHA)) missing.push(relativePath);
+    const expectedSha = CURRENT_SYNCED_ARTIFACTS.has(relativePath) ? CURRENT_UPSTREAM_SHA : LEGACY_UPSTREAM_SHA;
+    if (!read(relativePath).includes(expectedSha)) missing.push(`${relativePath} -> ${expectedSha}`);
   }
   if (missing.length > 0) {
-    throw new Error(`artifacts missing the pinned upstream source citation (${UPSTREAM_SHA}):\n  ${missing.join('\n  ')}`);
+    throw new Error(`artifacts missing their expected pinned upstream source citation:\n  ${missing.join('\n  ')}`);
   }
 });
 

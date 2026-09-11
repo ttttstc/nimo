@@ -1,67 +1,84 @@
 ---
 name: nimo-figure-it-out
-description: "没有更窄的 Playbook 可用时设计可审计的执行方案：大型迁移、跨多处的多部分改动，或用户离开后回来审查的工作。按任务伸缩严格度，跑科学方法假设循环，用 nimo-show-me-your-work 留决策轨迹。用户要求自己想办法、提出大型迁移，或任何更窄的 Playbook 都不匹配时使用。"
+description: "当没有更具体的 Playbook 适用时，为大型迁移、多部分变更或用户离开后再回来审查的工作设计一套可审计执行流程。根据任务风险调整严谨度，以假设、实验、验证循环推进，并通过 nimo-show-me-your-work 记录关键决策。"
 ---
 
-# 自己想办法
+# 为复杂任务设计执行流程
 
-当任务不匹配任何 Playbook 时，设计一个。写代码之前的第一件交付物是工作流本身：一组阶段，严格度随任务伸缩，跑科学方法，并留下人离开后仍可审计的决策轨迹。宁可严格过头：做错东西的代价，远大于小心行事的代价。
+当现有 Playbook 都不适合时，先设计一套专用执行流程。写代码之前的第一项交付物就是工作流本身：明确阶段、验证条件、决策记录和风险控制，让用户即使离开一段时间，回来后仍能审查这项工作为什么可信。
 
-不要重造已有的 Playbook。匹配[缺陷修复](../nimo-mode/playbooks/bug-fix.md)、[性能问题](../nimo-mode/playbooks/perf-issue.md)、[新功能](../nimo-mode/playbooks/feature.md)、[视觉一致](../nimo-mode/playbooks/visual-parity.md)、[Skill 评测](../nimo-mode/playbooks/eval.md)或[多阶段计划](../nimo-mode/playbooks/multi-phase-plan.md)的聚焦单单元任务，路由到对应 Playbook。但一个 Playbook 的大型或横切版本（跨大量调用点的迁移、有雄心的多部分改动），或用户离开后回来审查的工作，属于这里——即使它的单单元版本只是一个新功能。严格度和审计轨迹才是重点。
+不要重新发明已有 Playbook。聚焦的新功能、缺陷修复、性能问题、视觉一致、Skill 评测或普通多阶段工作，应优先使用对应 Playbook。这里处理的是规模更大、跨多个单元、风险更高，或需要无人值守推进后再由人审查的工作。
 
 ## 开始
 
-开一份任务清单，第一项是完整读取 [nimo-mode](../nimo-mode/SKILL.md) 的原则索引；按 nimo-mode 的规则，进入匹配阶段后打开所用原则的完整叶文件。然后把下面各阶段加入清单。
+建立任务清单。第一项是完整读取 [nimo-mode](../nimo-mode/SKILL.md) 的原则索引；随后按实际会用到的原则打开对应叶文件。把下面各阶段加入任务清单。
 
-## 阶段 A：定框
+## 阶段 A：定义完成条件、范围和严谨度
 
-先落地，再承诺。下面三件事说得出来之前，不要开跑：
+正式开始长时间执行前，必须能够明确三件事：
 
-- 完成条件，写成可证伪的谓词（nimo-principle-prove-it-works 原则 Skill）。"做得好"必须是可检查的。
-- 范围，量化：粗略的单元数和工作量，加上摸底过程中浮出的阻塞项。在花掉几个小时之前把它们提出来，而不是在五十个注定失败的提交之后。
-- 严格度，往高了偏。单向门和高爆炸半径的工作多得；可逆的低风险步骤少得。严格度体现为门禁和工件，不是"更努力"。
+- **完成条件**：写成可被证伪的检查条件，遵守 nimo-principle-prove-it-works。不能只写“做完”“质量好”。
+- **任务范围**：量化大致单元数、工作量，以及前期理解过程中发现的阻塞项。
+- **严谨度**：按不可逆性、影响范围和验证难度决定。高风险工作需要更多检查点和可审计产物；低风险、可逆步骤不必机械增加流程。
 
-在投入长时间运行之前，先呈现定框和其中的取舍。可逆的工作照常推进（nimo-principle-never-block-on-the-human 原则 Skill），但一次数小时的运行应换来一个检查点。
+开始多小时级运行前，把这三项和关键取舍展示出来。可逆工作可以继续推进，遵守 nimo-principle-never-block-on-the-human；但长时间运行本身应设置一次人工可见的检查点。
 
 ## 阶段 B：设计工作流
 
-把工作分解为原子化、可独立落地的单元。风险最高的未知项排在最前，让期权价值保持高位。脚手架和验证先于功能（nimo-principle-foundational-thinking 原则 Skill）。
+把工作拆成能够独立落地、独立验证的小单元，优先处理最大的不确定性。脚手架和验证能力先于大规模实现，遵守 nimo-principle-foundational-thinking。
 
-- 在动手之前搭好验证 harness，基线从改动前的状态采集，让检查读作"旧值对比新值"。
-- 单向门性质的设计决策，运行 [nimo-architect](../nimo-architect/SKILL.md)（它运行 [nimo-arena](../nimo-arena/SKILL.md)）：多样、互相隔离、有主见的候选，加上一个用不同模型家族的只读评判——评判从用户配置的模型中优先选与做事者不同家族的一个，只有单一模型时按[委派纪律](../nimo-mode/references/delegation.md)降级并记录。形状已经具体、性质机械的工作跳过它。对已定案的设计再跑一次 arena 是过度工程（nimo-principle-laziness-protocol 原则 Skill）。
-- 决定哪些部分扇出。只在真实的接缝上并行，并给每个执行者自己的 worktree 或分支（nimo-principle-separate-before-serializing-shared-state 原则 Skill）。不要过度扇出。
-- 把设计出来的阶段清单写下来。人审查的就是这份清单。
+- 在主要改动前建立验证工具，并保存改动前基线，让后续验证能够直接比较旧状态与新状态。
+- 对难以回滚的结构性设计决策运行 [nimo-architect](../nimo-architect/SKILL.md)。如果工作只是机械修改且目标结构已经明确，不要重复做设计竞赛。
+- 只有在真实可分离的边界上并行。每个有写操作的执行者都必须使用独立 worktree、分支或其他隔离输出位置，遵守 nimo-principle-separate-before-serializing-shared-state。
+- 把设计出来的阶段和步骤写入任务清单，作为后续执行与审查的共同依据。
 
-然后把设计投入运行。它的各步骤作为具体条目加入任务清单，放在阶段 C 条目之后、阶段 D 条目之前。每一步都按阶段 C 的循环纪律执行，并把阶段 D 的日志编织进去——每落一步记一行——而不是把整条轨迹攒到最后。
+## 阶段 C：按实验循环执行
 
-## 阶段 C：跑循环
+每个工作单元都作为一个可验证实验：
 
-每个单元是一次实验：陈述假设，做最小的改动，在真实产物上对照谓词测量，推进了谓词就保留，没有推进就撤销它。
+1. 先写清假设。
+2. 做能够验证假设的最小改动。
+3. 在真实产物上对照阶段 A 的检查条件测量。
+4. 如果结果推进目标则保留；没有推进则撤销或调整假设。
 
-应用 nimo-principle-sequence-verifiable-units 原则 Skill：验证完一个单元再开始下一个，而不是把检查攒到最后批量做。
+遵守 nimo-principle-sequence-verifiable-units：一个单元验证完成后再开始下一个，不把验证全部堆到最后。
 
-- 靠检查产物来验证，永远不靠自报。当某个东西轻易通过时，先怀疑观察方法，再怀疑系统。一张空白截图能骗过一个懒惰的门禁。
-- 给委派的工作配一个评判者，并亲自审计被委派者的产物之后才信任。如果某个执行者骗过了门禁，重置并硬化它的合同。如果门禁本身错了，用一次独立的改动修门禁，而不是绕开它。
-- 判定是 VERIFIED、NOT VERIFIED 或 INCONCLUSIVE 三者之一。INCONCLUSIVE 不是通过。不要藏起负面结果。
+具体要求：
 
-## 阶段 D：留审计轨迹
+- 直接检查产物，不接受执行者自报作为验证证据。结果“过得太容易”时，优先检查观察方法是否失真。
+- 每个委派执行单元都必须配一个独立评判者；主 Agent 仍要亲自检查实际产物和差异后才能接受结果。
+- 如果执行者绕过或骗过验证门槛，重置该工作单元并收紧任务合同和验证条件；如果验证门槛本身错误，用一次独立改动修正门槛，不得绕开门槛继续推进。
+- 结论只能是 `VERIFIED`、`NOT VERIFIED` 或 `INCONCLUSIVE`。`INCONCLUSIVE` 不能算通过。
 
-通过 [nimo-show-me-your-work](../nimo-show-me-your-work/SKILL.md) 记录这次运行：一份规范 TSV，每个决定一行、每个单元一行，证据用链接。nimo-figure-it-out 的工作通常大到值得把轨迹提交进仓库，让审查者在 PR 里读它；当信心必须被展示时，提交它——提交是写操作，按当前授权边界执行。优先使用由已提交脚本产出的证据，让审查者可以复跑。轨迹加上 diff，才是让人回来后能信任这份工作的东西。
+## 阶段 D：持续记录关键决策
 
-## 阶段 E：验证并交回
+使用 [nimo-show-me-your-work](../nimo-show-me-your-work/SKILL.md) 维护一份统一决策记录。每个重要决策或工作单元一行，记录做了什么、为什么、证据和结果。
 
-对照阶段 A 的谓词，在真实产品上检查整体，而不只是 harness。把反复出现的纠正编码成门禁、lint 规则、检查或脚本，让这个成果无法静默回退（nimo-principle-encode-lessons-in-structure 原则 Skill）。
+记录应随着执行实时更新，而不是最后补写。默认保留在本地；只有任务规模和风险高到评审者需要依赖这份记录判断可信度时，才将它提交进仓库。提交行为继续受当前授权约束。
 
-**回复：**你设计的 Playbook、严格度等级及其理由、决策轨迹的路径、对照谓词已验证的内容、仍然开放的内容。
+优先让证据来自已提交、可复跑的脚本或检查，而不是一次性手工结果。
+
+## 阶段 E：整体验证并交回
+
+最后在真实产品或真实操作面上，对照阶段 A 的完成条件验证整体结果，不能只验证辅助脚本或局部检查。
+
+如果过程中出现重复性纠正，把它编码成检查、lint、运行时约束或脚本，遵守 nimo-principle-encode-lessons-in-structure。
+
+最终回复必须说明：
+
+- 实际采用的执行流程。
+- 严谨度及选择理由。
+- 决策记录的位置。
+- 已经验证通过的完成条件。
+- 尚未完成、未验证或结论不确定的部分。
 
 ## 边界与交付
 
-遵守 [宿主合同](../nimo-mode/references/host-contract.md) 和 [委派纪律](../nimo-mode/references/delegation.md)。只读、方案或停止要求优先，步骤不扩大授权。交付具体产物、当前版本证据、未完成项及原因。跳过保留理由，不能用 Skill 名称列表代替成果。
+遵守 [宿主合同](../nimo-mode/references/host-contract.md) 和 [委派纪律](../nimo-mode/references/delegation.md)。只读、方案或停止要求优先，步骤不扩大授权。交付具体产物、版本证据、未完成项及原因。
 
 ## 必要依赖
 
 - [nimo-architect](../nimo-architect/SKILL.md)
 - [nimo-show-me-your-work](../nimo-show-me-your-work/SKILL.md)
 
-来源：[pstack figure-it-out](https://github.com/cursor/plugins/blob/93b00b89ef425a9c1bac0d0b317dfc49c930ac99/pstack/skills/figure-it-out/SKILL.md)。
-
+来源：[pstack figure-it-out](https://github.com/cursor/plugins/blob/f5bdd6826fd0a0d9cbc4347134c3a74a200b9d9d/pstack/skills/figure-it-out/SKILL.md)。
