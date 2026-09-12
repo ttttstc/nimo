@@ -124,6 +124,11 @@ export async function run(request) {
           }
         }
         const next = validate({ ...current, ...request.patch, revision: current.revision + 1 });
+        const deliveringChangedProgram = current.executionState !== 'delivered' && next.executionState === 'delivered' &&
+          next.units.some(unit => confirmedStates.includes(unit.state));
+        if (deliveringChangedProgram && (!Object.hasOwn(request.patch, 'knowledgeImpact') || request.patch.knowledgeImpact === null)) {
+          fail('MISSING_KNOWLEDGE_IMPACT', 'Delivering a program with accepted or integrated changes requires a fresh knowledgeImpact in the same update');
+        }
         if (['cancelled', 'delivered'].includes(current.executionState) && next.executionState !== current.executionState) fail('TERMINAL_STATE', 'A completed or cancelled task cannot restart silently');
         if (JSON.stringify(next.frontier) !== JSON.stringify(current.frontier) && next.frontier.generation <= current.frontier.generation) fail('STALE_FRONTIER', 'Topology changes need a new generation');
         await atomicWrite(file, JSON.stringify(next, null, 2) + '\n');
