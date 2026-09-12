@@ -66,13 +66,15 @@ Overview 回答项目定位、核心领域、关键模块、主运行链路、�
 
 状态按“实际知识文件”记录，不把目录本身当成已验证知识页。仓库内文件使用项目相对标识；仓库外文件使用 `external-path-sha256:<digest>`，只用于避免把绝对路径明文写入共享状态。这个摘要由路径直接派生，**不是隐私、保密或不可猜测边界**；路径本身敏感时，不应把该外部 Target 纳入共享状态，应由宿主/团队采用本地状态或其他受控标识策略。`sources[]` 也不得保存绝对路径。
 
-`knowledge-state.mjs check` 只读比较当前 Target 内容与保存的 `contentHash`，返回 `UNCHANGED / CHANGED / MISSING / UNTRACKED`。增量审计和维护必须先把 `CHANGED / MISSING / UNTRACKED` 目标纳入候选，再叠加 Evidence Source 变化；不能只看源码 diff。
+`knowledge-state.mjs check` 只读比较当前 Target 内容与保存的 `contentHash`，返回 `UNCHANGED / CHANGED / MISSING / UNTRACKED`。增量审计和维护必须先把 `CHANGED / MISSING / UNTRACKED` 目标纳入候选，再叠加 Evidence Source 变化；不能只看源码 diff。这里的状态只回答“当前内容与上次维护观察是否相同”，不回答“当前知识是否正确”。人工修改 Knowledge 后 state 不同步是正常输入，不要求用户手工修改 state。
+
+`CHANGED` 只表示当前字节与上次维护快照不同。Audit 必须重新对照当前项目事实：如果人工修改后的内容仍然正确，可以输出 CLEAN；如果事实或导航已失真才输出 DRIFTED。为了保持 Audit 严格只读，此时旧 `contentHash` 可以继续留在 state，直到后续获得写入授权的 `nimo-knowledge-maintain` 执行普通增量刷新。
 
 `knowledge-state.mjs update` 使用两层并发保护：`expectedRevision` 防止共享状态覆盖；每个 Target 的 `expectedContentHash` 表示 Agent 刚刚实际验证过的精确内容。工具在持锁期间重新读取文件并计算真实 SHA-256，仅当与 `expectedContentHash` 一致时才写入 `contentHash`。因此调用者提供的哈希只是并发前置条件，不是事实真相源。若文件在验证后被修改，返回 `CONTENT_CHANGED`，不得把新内容标成已验证。
 
 一次 `update` 表示完整维护快照。所有 Target 的 `verifiedRevision` 必须等于同一个 `projectVersion`，成功后才能把全局 `lastMaintainedRevision` 推进到该版本；不允许全局维护基线领先于任一目标的实际验证版本。第一次 `init` 只建立空状态，不能被解释为知识已经维护。外部知识换机器后标识无法匹配时，诚实退化为重新核对，不猜测本机路径。
 
-状态是缓存，不是事实真相。文件缺失、损坏或 `lastMaintainedRevision` 不可达时，维护/审计退化到更广核对；已有知识仍然可读。不得为了状态方便要求用户移动知识正文。
+状态是缓存，不是事实真相。文件缺失、损坏或 `lastMaintainedRevision` 不可达时，维护/审计退化到更广核对；已有知识仍然可读。不得为了状态方便要求用户移动知识正文。Maintain 在重新核对后如果发现当前 Knowledge 已经正确，可以保持正文完全不变，只更新 `contentHash`、`verifiedRevision` 和维护版本；这仍属于普通增量刷新，不新增额外的 rebaseline 状态或模式。
 
 #### 知识飞轮
 
@@ -86,13 +88,13 @@ Overview 回答项目定位、核心领域、关键模块、主运行链路、�
 
 Knowledge Impact 只利用当前任务已经掌握的 diff、设计决定和验证事实；不扫描全部知识、不证明发生漂移、不阻断普通实现过程。存在长期 program 时写入 `knowledgeImpact`；短任务至少在交付摘要中保留 `REVIEW_RECOMMENDED` 及影响领域。长期 program 中只要存在 `accepted` 或 `integrated` 的已确认变更，切换到 `delivered` 的同一次状态更新必须带一个新的合法 `knowledgeImpact`，避免终态缺失或复用旧评估。
 
-`nimo-knowledge-audit` 第一版不被普通任务自动触发，只允许用户显式调用或定时/外部例程调用。Audit 发现 DRIFTED 后请求用户确认，才由 `nimo-knowledge-maintain` 执行写入；预先明确授权的自动维护任务由上层分别调用两者。
+`nimo-knowledge-audit` 第一版不被普通任务自动触发，只允许用户显式调用或定时/外部例程调用。Audit 发现 DRIFTED 后请求用户确认，才由 `nimo-knowledge-maintain` 执行写入；Audit 发现 Knowledge 被人工修改但内容仍正确时，可以输出 CLEAN 并建议 maintain 同步最新维护快照。预先明确授权的“检查并同步”任务由上层先调用 Audit，再调用 Maintain。
 
 #### 维护与审计分工
 
-- `nimo-knowledge-maintain`：写操作；基线生成、增量刷新、全量核对；持续编译 Overview → Index → Pages，并在成功后通过 `knowledge-state.mjs` 建立新的增量基线。
-- `nimo-knowledge-audit`：严格只读；先检查 Target 自身指纹，再审事实漂移、覆盖漂移、Index/Overview 漂移和孤儿/断链；输出 CLEAN / DRIFTED / BLOCKED。
+- `nimo-knowledge-maintain`：写操作；基线生成、增量刷新、全量核对；持续编译 Overview → Index → Pages，并在成功后通过 `knowledge-state.mjs` 建立新的增量基线。当前 Knowledge 已正确时允许零正文修改，仅刷新维护 state。
+- `nimo-knowledge-audit`：严格只读；先检查 Target 自身指纹，再审事实漂移、覆盖漂移、Index/Overview 漂移和孤儿/断链；输出 CLEAN / DRIFTED / BLOCKED。Target 指纹变化本身不改变结论枚举。
 - `configure-nimo`：只负责知识路径在哪里，不承担事实刷新。
 - `knowledge-state.mjs`：只做确定性维护状态记账和指纹比较，不理解知识语义，不判定漂移。
 
-事实源或知识文件发生变化都只代表 `stale candidate`；重新核对后证明知识主张或导航已失真，才是 `DRIFTED`。
+事实源或知识文件发生变化都只代表 `stale candidate`；重新核对后证明知识主张或导航已失真，才是 `DRIFTED`。人工正确修改 Knowledge 后不要求同步编辑 state；下一次 Audit 负责识别并核对，下一次获授权的 Maintain 负责把 state 刷新到已验证的当前内容。
