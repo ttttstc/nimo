@@ -8,17 +8,19 @@ const object = value => value !== null && typeof value === 'object' && !Array.is
 const text = value => typeof value === 'string' && value.length > 0;
 const sha256 = content => createHash('sha256').update(content).digest('hex');
 const slash = value => value.split(path.sep).join('/');
+const hashValue = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
+const externalTargetPrefix = 'external-path-sha256:';
 
 function portableTargetKey(projectRoot, file) {
   const relative = path.relative(projectRoot, file);
   if (relative && relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative)) {
     return `./${slash(relative)}`;
   }
-  return `external:${sha256(Buffer.from(file))}`;
+  return `${externalTargetPrefix}${sha256(Buffer.from(file))}`;
 }
 
 function validTargetKey(value) {
-  if (/^external:[a-f0-9]{64}$/.test(value)) return true;
+  if (new RegExp(`^${externalTargetPrefix}[a-f0-9]{64}$`).test(value)) return true;
   if (!value.startsWith('./') || value.includes('\\')) return false;
   const parts = value.slice(2).split('/');
   return parts.length > 0 && parts.every(part => part && part !== '.' && part !== '..');
@@ -42,7 +44,7 @@ function validateState(state) {
   if (!object(state.targets)) fail('INVALID_KNOWLEDGE_STATE', 'targets must be an object');
   for (const [target, record] of Object.entries(state.targets)) {
     if (!validTargetKey(target) || !object(record) || !ownerships.has(record.ownership) ||
-        !/^[a-f0-9]{64}$/.test(record.contentHash ?? '') || !text(record.verifiedRevision) || !validSources(record.sources)) {
+        !hashValue(record.contentHash) || !text(record.verifiedRevision) || !validSources(record.sources)) {
       fail('INVALID_KNOWLEDGE_STATE', `Invalid knowledge target record: ${target}`);
     }
   }
@@ -57,24 +59,66 @@ async function readState(file) {
   return validateState(parsed);
 }
 
-async function materializeTargets(projectRoot, targets) {
+async function observeTarget(projectRoot, value) {
+  const requested = absolute(value, 'knowledge target path');
+  const unresolvedKey = portableTargetKey(projectRoot, path.resolve(requested));
+  const actual = await fs.realpath(requested).catch(error => { if (error.code === 'ENOENT') return null; throw error; });
+  if (!actual) return { key: unresolvedKey, actualContentHash: null };
+  const stat = await fs.stat(actual);
+  if (!stat.isFile()) fail('INVALID_TARGET', `Knowledge target must resolve to a regular file: ${requested}`, 4);
+  return {
+    key: portableTargetKey(projectRoot, actual),
+    actualContentHash: sha256(await fs.readFile(actual)),
+  };
+}
+
+async function checkTargets(projectRoot, state, targets) {
+  if (!Array.isArray(targets)) fail('INVALID_REQUEST', 'check requires targets to be an array');
+  const seen = new Set();
+  const observations = [];
+  for (const target of targets) {
+    if (!object(target) || !text(target.path)) fail('INVALID_REQUEST', 'Each check target needs an absolute path');
+    const observation = await observeTarget(projectRoot, target.path);
+    if (seen.has(observation.key)) fail('DUPLICATE_TARGET', `Duplicate knowledge target identity: ${observation.key}`);
+    seen.add(observation.key);
+    const baseline = state.targets[observation.key] ?? null;
+    let status;
+    if (observation.actualContentHash === null) status = 'MISSING';
+    else if (!baseline) status = 'UNTRACKED';
+    else status = baseline.contentHash === observation.actualContentHash ? 'UNCHANGED' : 'CHANGED';
+    observations.push({
+      target: observation.key,
+      status,
+      baselineContentHash: baseline?.contentHash ?? null,
+      actualContentHash: observation.actualContentHash,
+      verifiedRevision: baseline?.verifiedRevision ?? null,
+    });
+  }
+  return observations;
+}
+
+async function materializeTargets(projectRoot, targets, projectVersion) {
   if (!Array.isArray(targets)) fail('INVALID_REQUEST', 'targets must be an array');
   const records = {};
   for (const target of targets) {
     if (!object(target)) fail('INVALID_REQUEST', 'Each knowledge target must be an object');
     const requested = absolute(target.path, 'knowledge target path');
-    if (!ownerships.has(target.ownership) || !text(target.verifiedRevision) || !validSources(target.sources)) {
-      fail('INVALID_REQUEST', `Knowledge target needs ownership, verifiedRevision, and unique non-absolute sources: ${requested}`);
+    if (!ownerships.has(target.ownership) || !text(target.verifiedRevision) || !validSources(target.sources) ||
+        !hashValue(target.expectedContentHash)) {
+      fail('INVALID_REQUEST', `Knowledge target needs ownership, verifiedRevision, expectedContentHash, and unique non-absolute sources: ${requested}`);
     }
-    const actual = await fs.realpath(requested).catch(error => { if (error.code === 'ENOENT') return null; throw error; });
-    if (!actual) fail('INVALID_TARGET', `Knowledge target does not exist: ${requested}`, 4);
-    const stat = await fs.stat(actual);
-    if (!stat.isFile()) fail('INVALID_TARGET', `Knowledge target must resolve to a regular file: ${requested}`, 4);
-    const key = portableTargetKey(projectRoot, actual);
-    if (records[key]) fail('DUPLICATE_TARGET', `Duplicate knowledge target identity: ${key}`);
-    records[key] = {
+    if (target.verifiedRevision !== projectVersion) {
+      fail('STALE_TARGET_VERIFICATION', `Knowledge target ${requested} was verified at ${target.verifiedRevision}, not ${projectVersion}`);
+    }
+    const observation = await observeTarget(projectRoot, requested);
+    if (observation.actualContentHash === null) fail('INVALID_TARGET', `Knowledge target does not exist: ${requested}`, 4);
+    if (observation.actualContentHash !== target.expectedContentHash) {
+      fail('CONTENT_CHANGED', `Knowledge target changed after verification: ${requested}`, 3);
+    }
+    if (records[observation.key]) fail('DUPLICATE_TARGET', `Duplicate knowledge target identity: ${observation.key}`);
+    records[observation.key] = {
       ownership: target.ownership,
-      contentHash: sha256(await fs.readFile(actual)),
+      contentHash: observation.actualContentHash,
       verifiedRevision: target.verifiedRevision,
       sources: [...target.sources],
     };
@@ -119,6 +163,15 @@ export async function run(request) {
       });
     }
 
+    if (operation === 'check') {
+      const state = await readState(file);
+      return response({
+        revision: state.revision,
+        lastMaintainedRevision: state.lastMaintainedRevision,
+        targets: await checkTargets(projectRoot, state, request.targets),
+      });
+    }
+
     if (operation === 'update') {
       if (!Number.isSafeInteger(request.expectedRevision) || !text(request.projectVersion) || !text(request.maintainedAt)) {
         fail('INVALID_REQUEST', 'update requires expectedRevision, projectVersion, and maintainedAt');
@@ -126,7 +179,7 @@ export async function run(request) {
       return withLock(file, async () => {
         const current = await readState(file);
         if (current.revision !== request.expectedRevision) fail('REVISION_CONFLICT', 'Knowledge state changed; reread before updating', 3);
-        const targets = await materializeTargets(projectRoot, request.targets);
+        const targets = await materializeTargets(projectRoot, request.targets, request.projectVersion);
         const next = validateState({
           ...current,
           revision: current.revision + 1,
