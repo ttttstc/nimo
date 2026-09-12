@@ -105,6 +105,6 @@ description: "nimo 工程任务总入口。用户明确调用 nimo，或任务�
 - `NONE`：有项目变化，但没有改变稳定项目事实。
 - `REVIEW_RECOMMENDED`：本次差异可能改变稳定项目事实；列出原因和受影响知识领域。
 
-这一步只使用当前任务已经掌握的 diff、设计决定和验证结果，不扫描知识库，不调用 `nimo-knowledge-audit`，也不阻断交付。存在长期 program 时把结果写入 `knowledgeImpact`；短任务至少在最终交付中保留 `REVIEW_RECOMMENDED` 信号，供后续人工或定时审计优先处理。
+这一步只使用当前任务已经掌握的 diff、设计决定和验证结果，不扫描知识库，不调用 `nimo-knowledge-audit`。`NONE` 或 `REVIEW_RECOMMENDED` 的结论本身不阻断交付；但长期 program 已有 `accepted` / `integrated` 变更时，切换到 `delivered` 的同一次状态更新必须记录一个新的合法 `knowledgeImpact`，不能以缺失或旧结论进入终态。短任务至少在最终交付中保留 `REVIEW_RECOMMENDED` 信号，供后续人工或定时审计优先处理。
 
 交付具体产物、版本证据、必要限制及实际使用来源。只列影响结果的原则和资料；查询状态时才显示全部登记项。未验证不能写通过，检查通过不增加动作授权。
