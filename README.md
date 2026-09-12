@@ -66,7 +66,8 @@ $nimo 实现项目列表筛选，保持现有接口兼容。
 1. 判断意图：指导还是执行。判断不了就按指导处理，没有副作用。
 2. 匹配 playbook，拷贝步骤；推荐步骤可按任务重排，必要检查不能静默省略。
 3. 按步骤调用 skill；非简单实现默认委派子 agent，带完整任务合同，主 agent 验收。
-4. 交付带证据的结论：通过、失败、未验证，分别说清。
+4. 对产生项目变更的任务，在交付前做一次轻量知识影响判断；只记录是否建议后续审计，不自动运行知识审计。
+5. 交付带证据的结论：通过、失败、未验证，分别说清。
 
 明确措辞永远优先于推断：「先讨论」「不要修改」只读不改；「继续」只承接最近一条具体提议，不扩大范围；「停下」就停下并保存现场。完整约定见 [skills/nimo-mode/SKILL.md](skills/nimo-mode/SKILL.md)。
 
@@ -86,7 +87,8 @@ flowchart TB
     SUB --> CHK[主 agent 验收<br/>子 agent 说完成不算，核对过才算]
     M --> V[验证：走真实用户路径<br/>不放宽预期]
     CHK --> V
-    V --> OUT2[交付：通过 / 失败 / 未验证<br/>分别说清，附证据]
+    V --> K[知识影响判断<br/>NONE / REVIEW_RECOMMENDED<br/>不自动审计]
+    K --> OUT2[交付：通过 / 失败 / 未验证<br/>附证据与必要知识审计提示]
 ```
 
 要点：
@@ -94,6 +96,7 @@ flowchart TB
 1. 意图判断不了就按指导处理，没有副作用。
 2. 非简单实现默认委派子 agent，主 agent 验收。
 3. 结论只有三种：通过、失败、未验证——没验证就标未验证，缺条件就报告受阻。
+4. 普通工程任务不会自动运行知识审计；重大事实变化只产生后续审计信号。
 
 ### playbooks
 
@@ -170,11 +173,15 @@ reflect:           $reflect 那次跑太久了。把学到的记下来，下次�
 
 show-me-your-work: $show-me-your-work 保留一条决策轨迹，我回来能审查。
 
+knowledge audit:   $nimo 审计项目知识是否过时，检查索引和项目事实有没有漂移。
+
+knowledge refresh: $nimo 刷新项目知识；如果还没有项目事实就建立一份全仓知识基线。
+
 ```
 
 ## skills
 
-`nimo-mode` 在步骤需要时自动调用大部分 skill（`how`、`why`、`architect`、`arena`、`swarm`、`interrogate`、`unslop`、`no-comments`、`technical-writing`、`tdd` 及各原则）。下表是你要直接用的时候：
+`nimo-mode` 在步骤需要时自动调用大部分 skill（`how`、`why`、`architect`、`arena`、`swarm`、`interrogate`、`unslop`、`no-comments`、`technical-writing`、`tdd` 及各原则）。知识审计第一版只接受用户显式调用或定时/外部例程调用，不由普通工程任务主动触发。下表是你要直接用的时候：
 
 | skill                                                                    | 什么时候用                                                 |
 | ------------------------------------------------------------------------ | ----------------------------------------------------- |
@@ -197,6 +204,8 @@ show-me-your-work: $show-me-your-work 保留一条决策轨迹，我回来能审
 | [nimo-technical-writing](skills/nimo-technical-writing/SKILL.md)         | 四层技术写作标准：Diataxis 结构、Google 风格、STE 规则、Global English。 |
 | [nimo-verification-create](skills/nimo-verification-create/SKILL.md)     | 项目还没有可证明行为的验证方式。生成项目本地验证 skill 和功能地图。                 |
 | [nimo-verification-maintain](skills/nimo-verification-maintain/SKILL.md) | 功能地图和产品漂移了。源码核对＋实际跑一遍，三分类处置。                          |
+| [nimo-knowledge-audit](skills/nimo-knowledge-audit/SKILL.md)             | 用户或定时任务要检查项目知识：只读识别事实、概览、索引和关系漂移。                   |
+| [nimo-knowledge-maintain](skills/nimo-knowledge-maintain/SKILL.md)       | 建立或刷新项目知识：支持基线、增量和全量，把全仓事实编译成概览→索引→知识页。             |
 | [nimo-setup](skills/nimo-setup/SKILL.md)                                 | 安装检测与配置：安装、更新、卸载、能力检测。                                |
 | [configure-nimo](skills/configure-nimo/SKILL.md)                         | 添加 / 删除 / 查看 / 校验团队和个人原则与知识来源。                        |
 
@@ -210,6 +219,7 @@ flowchart TB
     G --> R[有依据的建议]
     X --> R2[工作产物 + 有证据的验证结论]
     V[项目验证维护<br/>功能地图 · 实际操作 · 漂移修正] -.提供可操作的验证路径.-> X
+    K[项目知识飞轮<br/>概览 · 快速索引 · 知识页 · 漂移审计] -.提供低成本项目上下文.-> E
     A[Skill 评测维护<br/>案例 · 隔离比较 · 回归检查] -.持续改进工程方法.-> E
     H[宿主提供：模型 · 工具执行 · 权限 · 会话] -.承载运行.-> E
     CI[项目现有 CI 与仓库保护] -.强制执行合并与发布门禁.-> X
@@ -217,13 +227,13 @@ flowchart TB
 
 nimo 是 AI 研发栈里的「工程方法层」：
 
-| 层          | 谁提供                                           | 管什么                        |
-| ---------- | --------------------------------------------- | -------------------------- |
-| 模型层        | LLM                                           | 推理                         |
-| agent 运行时层 | Codex / Claude Code / OpenCode / Cursor / dsh | 模型调用、工具、权限、会话、子 agent      |
-| **工程方法层**  | **nimo**                                      | 原则、playbook、能力合同、质量门禁、评测维护 |
-| 项目资产层      | 你的项目 `.nimo/`                                 | 功能地图、验证脚本、检查点              |
-| 强制控制层      | 你的 CI 和仓库保护                                   | 合并、发布的强制门禁                 |
+| 层          | 谁提供                                           | 管什么                               |
+| ---------- | --------------------------------------------- | --------------------------------- |
+| 模型层        | LLM                                           | 推理                                |
+| agent 运行时层 | Codex / Claude Code / OpenCode / Cursor / dsh | 模型调用、工具、权限、会话、子 agent             |
+| **工程方法层**  | **nimo**                                      | 原则、playbook、能力合同、质量门禁、知识/验证维护、评测维护 |
+| 项目资产层      | 你的项目与已登记知识路径                                 | 代码、原位知识、功能地图、验证脚本、检查点               |
+| 强制控制层      | 你的 CI 和仓库保护                                   | 合并、发布的强制门禁                        |
 
 nimo 定义「怎样才算做对了、做完了」，宿主执行，你的 CI 兜底。你的 CI 永远是最后一道门，nimo 不替代它。
 
@@ -285,7 +295,29 @@ knowledge:
   - ./docs
 ```
 
-团队配置中的相对路径以项目根为准，个人配置以用户主目录为准。对话中相对路径先按当时工作目录定位，再转换保存。配置只保存引用，不复制原资料；知识按任务检索，不整库注入。"这次不用某来源"只影响当前会话。
+团队配置中的相对路径以项目根为准，个人配置以用户主目录为准。对话中相对路径先按当时工作目录定位，再转换保存。配置只保存引用，不复制原资料；知识正文始终保留在用户自己的文件或目录中，不要求搬到 `.nimo`。"这次不用某来源"只影响当前会话。
+
+### 项目知识飞轮
+
+`nimo-knowledge-maintain` 把代码、配置、接口、测试和运行方式中的稳定项目事实编译成适合 Agent 渐进读取的知识：
+
+```text
+Overview（高压缩项目概览）
+    ↓
+Index（全仓快速知识索引）
+    ↓
+Knowledge Pages（具体事实与证据）
+    ↓
+代码 / 配置 / 测试 / 接口
+```
+
+没有项目事实时支持建立基线；已有可信维护基线时默认做增量刷新；用户明确要求或基线不可用时做全量核对。目录、文件位置都由 `knowledge` 配置决定，nimo 只维护明确登记的目标。
+
+`nimo-knowledge-audit` 严格只读，检查事实、覆盖、Overview、Index 和页面关系是否漂移。第一版不会在普通开发任务中自动运行，只由用户显式调用或定时/外部例程触发；发现漂移后提示用户确认是否调用 `nimo-knowledge-maintain`。
+
+普通工程任务只在交付前判断一次 `Knowledge Impact`。重大模块、接口、Schema、配置契约、运行链路等变化会标记 `REVIEW_RECOMMENDED`，供后续人工或定时审计优先消费；这个判断不扫描知识库，也不自动触发审计。`NONE` / `REVIEW_RECOMMENDED` 结论本身不阻断交付；长期 program 已有确认变更时，进入 `delivered` 必须同步记录一个新的合法影响结论，不能以缺失或旧结论结束。
+
+这个闭环把工程变化持续沉淀为下一次 Agent 可复用的上下文：**工程事实 → 变化信号 → 知识审计 → 知识编译 → 低成本查询 → 下一轮工程活动。**
 
 ## 实测状态
 

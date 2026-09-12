@@ -107,7 +107,7 @@ export async function install(options) {
   const staging = await fs.mkdtemp(path.join(os.tmpdir(), 'nimo-install-'));
   try {
     const names = (await fs.readdir(path.join(source, 'skills'), { withFileTypes: true })).filter(item => item.isDirectory()).map(item => item.name);
-    if (names.length !== 44 || names.some(name => !skillName(name))) throw new Error('Source must contain exactly the 44 nimo skills');
+    if (names.length !== 46 || names.some(name => !skillName(name))) throw new Error('Source must contain exactly the 46 nimo skills');
     for (const name of names) {
       const dir = path.join(source, 'skills', name);
       const entry = await fs.readFile(path.join(dir, 'SKILL.md'), 'utf8');

@@ -12,7 +12,7 @@ const SOURCE_ROOT = process.env.NIMO_TEST_SOURCE ? resolve(process.env.NIMO_TEST
 const INSTALLER_URL = pathToFileURL(join(REPO_ROOT, 'skills', 'nimo-mode', 'scripts', 'install.mjs'));
 const EXPECTED_SKILLS = [
   'configure-nimo', 'nimo-arena', 'nimo-architect', 'nimo-deslop', 'nimo-figure-it-out', 'nimo-how', 'nimo-interrogate',
-  'nimo-mode', 'nimo-no-comments', 'nimo-setup', 'nimo-show-me-your-work', 'nimo-skill-author', 'nimo-skill-evaluate',
+  'nimo-knowledge-audit', 'nimo-knowledge-maintain', 'nimo-mode', 'nimo-no-comments', 'nimo-setup', 'nimo-show-me-your-work', 'nimo-skill-author', 'nimo-skill-evaluate',
   'nimo-swarm', 'nimo-tdd', 'nimo-technical-writing', 'nimo-unslop', 'nimo-verification-create', 'nimo-verification-maintain', 'nimo-verify', 'nimo-why',
   'nimo-principle-attack-the-premise', 'nimo-principle-boundary-discipline', 'nimo-principle-build-the-lever', 'nimo-principle-encode-lessons-in-structure',
   'nimo-principle-exhaust-the-design-space', 'nimo-principle-experience-first', 'nimo-principle-fix-root-causes',
@@ -135,14 +135,14 @@ async function removeTemp(root) {
   await rm(resolvedRoot, { recursive: true, force: true });
 }
 
-test('clean install contains all 44 Skills and remains runnable after source removal', async () => {
+test('clean install contains all 46 Skills and remains runnable after source removal', async () => {
   const root = await makeTemp('install');
   try {
     const source = await copySourceFixture(root);
     const home = join(root, '目标 home with spaces 中文');
     const target = join(home, 'skills');
     const sourceSkills = await skillDirectories(join(source, 'skills'));
-    assert.equal(sourceSkills.length, 44, 'the package source must contain exactly 44 Skills');
+    assert.equal(sourceSkills.length, 46, 'the package source must contain exactly 46 Skills');
     assert.deepEqual(sourceSkills, EXPECTED_SKILLS, 'the package source must contain the specified Skill set');
 
     const outcome = await invoke(install, { source, target });
@@ -175,7 +175,7 @@ test('clean install contains all 44 Skills and remains runnable after source rem
     }
 
     // Every installed production module must load without resolving anything from the checkout.
-    const productionScripts = ['config.mjs', 'state.mjs', 'inspect-pr.mjs', 'audit-worktrees.mjs', 'check-plan.mjs', 'log.mjs', 'install.mjs'];
+    const productionScripts = ['config.mjs', 'state.mjs', 'knowledge-state.mjs', 'inspect-pr.mjs', 'audit-worktrees.mjs', 'check-plan.mjs', 'log.mjs', 'install.mjs'];
     for (const script of productionScripts) assert.equal(await exists(join(scriptsRoot, script)), true, `installed production script is missing: ${script}`);
     const importUrls = productionScripts.map(script => pathToFileURL(join(scriptsRoot, script)).href);
     const importProbe = `await Promise.all(${JSON.stringify(importUrls)}.map(url => import(url)))`;

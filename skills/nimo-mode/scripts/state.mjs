@@ -6,13 +6,30 @@ const executionStates = ['running', 'waiting-input', 'blocked', 'paused', 'deliv
 const unitStates = ['queued', 'running', 'returned', 'accepted', 'integrated', 'failed', 'abandoned', 'cancelled'];
 const confirmedStates = ['accepted', 'integrated'];
 const reopenTargets = ['queued', 'running', 'returned', 'failed'];
+const knowledgeImpactVerdicts = ['NOT_APPLICABLE', 'NONE', 'REVIEW_RECOMMENDED'];
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const text = value => typeof value === 'string' && value.length > 0;
-const writable = ['executionState', 'stopReason', 'owners', 'units', 'verifications', 'frontier', 'gates'];
+const writable = ['executionState', 'stopReason', 'owners', 'units', 'verifications', 'frontier', 'gates', 'knowledgeImpact'];
+
+function validateKnowledgeImpact(value) {
+  if (value === null || value === undefined) return;
+  if (!object(value) || !knowledgeImpactVerdicts.includes(value.verdict) || !text(value.reason) ||
+      !Array.isArray(value.areas) || value.areas.some(area => !text(area)) ||
+      new Set(value.areas).size !== value.areas.length || !text(value.sourceVersion)) {
+    fail('INVALID_KNOWLEDGE_IMPACT', 'knowledgeImpact needs verdict, reason, unique string areas, and sourceVersion');
+  }
+  if (value.verdict === 'REVIEW_RECOMMENDED' && value.areas.length === 0) {
+    fail('INVALID_KNOWLEDGE_IMPACT', 'REVIEW_RECOMMENDED knowledgeImpact needs at least one affected area');
+  }
+  if (value.verdict !== 'REVIEW_RECOMMENDED' && value.areas.length !== 0) {
+    fail('INVALID_KNOWLEDGE_IMPACT', 'Only REVIEW_RECOMMENDED knowledgeImpact may list affected areas');
+  }
+}
 
 function validate(program) {
   if (!object(program) || program.formatVersion !== 1 || !Number.isSafeInteger(program.revision) || program.revision < 0 || !executionStates.includes(program.executionState)) fail('INVALID_STATE', 'Invalid program version, revision, or execution state');
   for (const field of ['owners', 'units', 'verifications', 'gates']) if (!Array.isArray(program[field])) fail('INVALID_STATE', `${field} must be an array`);
+  validateKnowledgeImpact(program.knowledgeImpact);
   const ids = new Set();
   for (const unit of program.units) {
     if (!object(unit) || !text(unit.id) || ids.has(unit.id) || !unitStates.includes(unit.state) || !Array.isArray(unit.dependencies)) fail('INVALID_UNIT', 'Units need unique ids, valid state, and dependencies');
@@ -65,7 +82,7 @@ export async function run(request) {
         const program = validate({ formatVersion: 1, revision: 0, taskId: request.taskId, goal: request.goal,
           projectRoot: absolute(request.projectRoot, 'projectRoot'), sourceVersion: request.sourceVersion ?? 'unknown',
           executionState: 'running', stopReason: null, owners: [], units: [], verifications: [],
-          frontier: { generation: 0, prs: [], lowestUnmerged: null }, gates: [] });
+          frontier: { generation: 0, prs: [], lowestUnmerged: null }, gates: [], knowledgeImpact: null });
         await atomicWrite(file, JSON.stringify(program, null, 2) + '\n');
         return response(program, [], true);
       });
@@ -76,7 +93,7 @@ export async function run(request) {
       const counts = {};
       for (const unit of program.units) counts[unit.state] = (counts[unit.state] ?? 0) + 1;
       return response({ revision: program.revision, executionState: program.executionState, counts,
-        frontier: program.frontier, gates: program.gates.filter(g => g.state === 'open') });
+        frontier: program.frontier, gates: program.gates.filter(g => g.state === 'open'), knowledgeImpact: program.knowledgeImpact ?? null });
     }
     if (operation === 'update') {
       if (!Number.isSafeInteger(request.expectedRevision) || !object(request.patch) || Object.keys(request.patch).some(key => !writable.includes(key))) fail('INVALID_UPDATE', 'update requires expectedRevision and a patch of state fields');
@@ -107,6 +124,11 @@ export async function run(request) {
           }
         }
         const next = validate({ ...current, ...request.patch, revision: current.revision + 1 });
+        const deliveringChangedProgram = current.executionState !== 'delivered' && next.executionState === 'delivered' &&
+          next.units.some(unit => confirmedStates.includes(unit.state));
+        if (deliveringChangedProgram && (!Object.hasOwn(request.patch, 'knowledgeImpact') || request.patch.knowledgeImpact === null)) {
+          fail('MISSING_KNOWLEDGE_IMPACT', 'Delivering a program with accepted or integrated changes requires a fresh knowledgeImpact in the same update');
+        }
         if (['cancelled', 'delivered'].includes(current.executionState) && next.executionState !== current.executionState) fail('TERMINAL_STATE', 'A completed or cancelled task cannot restart silently');
         if (JSON.stringify(next.frontier) !== JSON.stringify(current.frontier) && next.frontier.generation <= current.frontier.generation) fail('STALE_FRONTIER', 'Topology changes need a new generation');
         await atomicWrite(file, JSON.stringify(next, null, 2) + '\n');
