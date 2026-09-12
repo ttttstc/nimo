@@ -8,7 +8,7 @@
 |---|---|---|
 | config.mjs | JSON 请求 → JSON 引用、诊断或修改结果 | 解析、路径、合并、去重、校验、增删；不决定原则语义冲突 |
 | state.mjs | JSON 请求 → 当前记录或变更结果 | 本地项目单元、收件箱、验证记录、知识影响和版本；不运行单元、不运行知识审计 |
-| knowledge-state.mjs | JSON 请求 → 知识维护状态 | 原子维护 `.nimo/state/knowledge.json`、计算知识文件内容指纹、保护 revision；不读取知识语义、不决定漂移 |
+| knowledge-state.mjs | JSON 请求 → 知识维护状态 | 原子维护 `.nimo/state/knowledge.json`、计算/比较知识文件内容指纹、保护 revision；不读取知识语义、不决定漂移 |
 | inspect-pr.mjs | 仓库与 PR → JSON 状态 | 只读 GitHub 事实，有限请求后返回，不无限轮询 |
 | audit-worktrees.mjs | 仓库 → 目录审计 JSON | 只读枚举和分类，不删除路径 |
 | check-plan.mjs | Markdown 计划 → 问题与行号 | 检查单元依赖、证据、作用域和停止点，不强制模型／宿主句式 |
@@ -73,7 +73,7 @@ gates[]                   待决定问题与状态，不带超时自动批准
 knowledgeImpact           NOT_APPLICABLE / NONE / REVIEW_RECOMMENDED、原因、受影响领域、产物版本
 ```
 
-`knowledgeImpact` 是任务完成时的轻量知识影响信号。它不读取知识库、不代表 `nimo-knowledge-audit` 已执行、也不授权 `nimo-knowledge-maintain`。`REVIEW_RECOMMENDED` 必须包含至少一个受影响领域；其他结论的 areas 为空。
+`knowledgeImpact` 是任务完成时的轻量知识影响信号。它不读取知识库、不代表 `nimo-knowledge-audit` 已执行、也不授权 `nimo-knowledge-maintain`。`REVIEW_RECOMMENDED` 必须包含至少一个受影响领域；其他结论的 areas 为空。长期 program 中只要有 `accepted` 或 `integrated` 单元，从非 delivered 状态切换到 `delivered` 的**同一次 update** 必须显式带新的非空 `knowledgeImpact`；已有旧值不能被静默复用。
 
 依赖 id 只表示已明确的工作前提，工具可以检查缺失、循环和重复，不能据此调度 Agent。`standing-orders.md` 保存范围和运行约束；每次启动与恢复均传递当前版本。
 
@@ -83,22 +83,26 @@ knowledgeImpact           NOT_APPLICABLE / NONE / REVIEW_RECOMMENDED、原因、
 
 #### knowledge-state.mjs 与项目知识维护状态
 
-项目知识正文不进入 `.nimo`；维护缓存固定写在 `<projectRoot>/.nimo/state/knowledge.json`。操作为 `init | read | update | status`。
+项目知识正文不进入 `.nimo`；维护缓存固定写在 `<projectRoot>/.nimo/state/knowledge.json`。操作为 `init | read | check | update | status`。
 
-`init` 只建立空状态，不宣称知识已经维护；`update` 必须带 `expectedRevision`、本次 `projectVersion`、`maintainedAt` 和完整知识文件列表。每个知识文件传入当前宿主可访问的绝对路径、`user-managed | nimo-managed` 所有权、`verifiedRevision` 与唯一 `sources[]`，但绝对路径只用于本次读取，不写入状态。工具解析符号链接后的真实文件，自己计算 SHA-256 `contentHash`，不信任调用者自报哈希。
+`init` 只建立空状态，不宣称知识已经维护。`check` 是严格只读的内容指纹比较：调用者传当前配置解析出的目标绝对路径，工具与已有状态比较并返回 `UNCHANGED | CHANGED | MISSING | UNTRACKED`、基线哈希、当前哈希和目标验证版本；它不解释内容，也不把 CHANGED 判成语义漂移。
 
-持久化标识保持可共享且不泄露本机路径：仓库内知识文件记录为项目相对路径（例如 `./docs/architecture.md`）；仓库外知识记录为 `external:<sha256(actual-path)>` 的不可逆本机标识。换机器后外部标识无法匹配时，上层应重新核对外部知识，而不是猜测路径。`sources[]` 不允许绝对路径，使用仓库相对范围或明确的非路径标识。
+`update` 必须带 `expectedRevision`、本次 `projectVersion`、`maintainedAt` 和完整知识文件列表。每个知识文件传入当前宿主可访问的绝对路径、`user-managed | managed-by-nimo` 所有权、`verifiedRevision`、`expectedContentHash` 与唯一 `sources[]`，但绝对路径只用于本次读取，不写入状态。`verifiedRevision` 必须与本次 `projectVersion` 完全一致，否则返回 `STALE_TARGET_VERIFICATION`，防止全局 `lastMaintainedRevision` 领先于任一目标实际验证版本。
+
+`expectedContentHash` 是 Agent 对**刚刚实际验证过的精确内容**计算的 SHA-256，只作为乐观并发前置条件。工具在持有状态锁期间重新解析目标并重算真实 SHA-256；两者不一致时返回 `CONTENT_CHANGED`，不写新基线。因此工具不信任调用者把哈希当事实值，同时能阻止“验证后、状态写入前”被其他进程修改的内容被误标为已验证。工具读取后到状态落盘之间再发生的修改，会在下一次 `check` 中表现为 CHANGED；跨文件原子事务不由本工具声称保证。
+
+持久化标识避免保存**明文**本机绝对路径：仓库内知识文件记录为项目相对路径（例如 `./docs/architecture.md`）；仓库外知识记录为 `external-path-sha256:<sha256(actual-path)>`。这个值由绝对路径直接派生，只是路径伪名，**不提供保密性或不可猜测性**；低熵路径可能被枚举。若外部路径本身敏感，不应把该 Target 写入共享状态，应由宿主/团队采用仅本地的状态或其他受控标识。换机器后外部标识无法匹配时，上层应重新核对外部知识，而不是猜测路径。`sources[]` 不允许绝对路径，使用仓库相对范围或明确的非路径标识。
 
 ```text
 formatVersion / revision
 lastMaintainedRevision / lastMaintainedAt
 targets{
-  ./project-relative-file | external:<opaque-hash>:
+  ./project-relative-file | external-path-sha256:<digest>:
     ownership / contentHash / verifiedRevision / sources[]
 }
 ```
 
-状态工具只做确定性记账：不解析知识语义、不扫描仓库判断事实、不决定 Overview/Index/Page 结构，也不把 source 变化判成漂移。知识文件必须解析为当前可读普通文件；状态更新使用短锁、revision 比较和原子替换。状态缺失或损坏时上层 audit/maintain 扩大核对范围，而不是把已有知识判失效。
+一次成功 `update` 表示同一项目版本的完整知识维护快照，只有全部目标均通过版本和内容并发校验后才推进 `lastMaintainedRevision`。状态工具只做确定性记账：不解析知识语义、不扫描仓库判断事实、不决定 Overview/Index/Page 结构，也不把 source/target 变化判成漂移。知识文件必须解析为当前可读普通文件；状态更新使用短锁、revision 比较和原子替换。状态缺失或损坏时上层 audit/maintain 扩大核对范围，而不是把已有知识判失效。
 
 #### PR 状态与依赖链
 
