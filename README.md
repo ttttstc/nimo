@@ -315,7 +315,7 @@ Knowledge Pages（具体事实与证据）
 
 `nimo-knowledge-audit` 严格只读，检查事实、覆盖、Overview、Index 和页面关系是否漂移。第一版不会在普通开发任务中自动运行，只由用户显式调用或定时/外部例程触发；发现漂移后提示用户确认是否调用 `nimo-knowledge-maintain`。
 
-普通工程任务只在交付前判断一次 `Knowledge Impact`。重大模块、接口、Schema、配置契约、运行链路等变化会标记 `REVIEW_RECOMMENDED`，供后续人工或定时审计优先消费；这个判断不扫描知识库，也不阻断任务交付。
+普通工程任务只在交付前判断一次 `Knowledge Impact`。重大模块、接口、Schema、配置契约、运行链路等变化会标记 `REVIEW_RECOMMENDED`，供后续人工或定时审计优先消费；这个判断不扫描知识库，也不自动触发审计。`NONE` / `REVIEW_RECOMMENDED` 结论本身不阻断交付；长期 program 已有确认变更时，进入 `delivered` 必须同步记录一个新的合法影响结论，不能以缺失或旧结论结束。
 
 这个闭环把工程变化持续沉淀为下一次 Agent 可复用的上下文：**工程事实 → 变化信号 → 知识审计 → 知识编译 → 低成本查询 → 下一轮工程活动。**
 
