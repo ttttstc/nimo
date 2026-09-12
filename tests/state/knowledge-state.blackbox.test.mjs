@@ -105,6 +105,49 @@ test('check includes knowledge-target content changes even when source revisions
   }
 });
 
+test('maintain can accept a verified manual edit by refreshing state without rewriting knowledge', async () => {
+  const current = await fixture('manual-edit');
+  try {
+    await run({ operation: 'init', projectRoot: current.projectRoot });
+    const baseline = await run({
+      operation: 'update',
+      projectRoot: current.projectRoot,
+      expectedRevision: 0,
+      projectVersion: 'head-2',
+      maintainedAt: '2026-09-12T00:00:00Z',
+      targets: [await target(current)],
+    });
+    assert.equal(baseline.status, 'OK');
+
+    const manualContent = '# Architecture\n\nScheduler calls Dispatcher through the queue.\n';
+    await writeFile(current.knowledge, manualContent, 'utf8');
+    const before = await readFile(current.knowledge);
+
+    const changed = await run({ operation: 'check', projectRoot: current.projectRoot, targets: [{ path: current.knowledge }] });
+    assert.equal(changed.status, 'OK');
+    assert.equal(changed.data.targets[0].status, 'CHANGED');
+
+    const refreshed = await run({
+      operation: 'update',
+      projectRoot: current.projectRoot,
+      expectedRevision: 1,
+      projectVersion: 'head-3',
+      maintainedAt: '2026-09-12T01:00:00Z',
+      targets: [await target(current, { verifiedRevision: 'head-3' })],
+    });
+    assert.equal(refreshed.status, 'OK');
+    assert.equal(refreshed.data.lastMaintainedRevision, 'head-3');
+    assert.deepEqual(await readFile(current.knowledge), before, 'state refresh must not rewrite already-correct knowledge');
+    assert.equal(refreshed.data.targets['./docs/architecture.md'].contentHash, sha256(before));
+
+    const clean = await run({ operation: 'check', projectRoot: current.projectRoot, targets: [{ path: current.knowledge }] });
+    assert.equal(clean.status, 'OK');
+    assert.equal(clean.data.targets[0].status, 'UNCHANGED');
+  } finally {
+    await rm(current.root, { recursive: true, force: true });
+  }
+});
+
 test('external knowledge uses a path-derived pseudonym without persisting plaintext path', async () => {
   const current = await fixture('external');
   try {
