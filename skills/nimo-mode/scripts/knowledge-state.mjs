@@ -3,7 +3,7 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { absolute, atomicWrite, fail, guarded, main, readOptional, response, withLock } from './lib/common.mjs';
 
-const ownerships = new Set(['user-managed', 'nimo-managed']);
+const ownerships = new Set(['user-managed', 'managed-by-nimo']);
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const text = value => typeof value === 'string' && value.length > 0;
 const sha256 = content => createHash('sha256').update(content).digest('hex');
@@ -152,7 +152,7 @@ export async function run(request) {
 
     if (operation === 'status') {
       const state = await readState(file);
-      const ownership = { 'user-managed': 0, 'nimo-managed': 0 };
+      const ownership = { 'user-managed': 0, 'managed-by-nimo': 0 };
       for (const record of Object.values(state.targets)) ownership[record.ownership] += 1;
       return response({
         revision: state.revision,
