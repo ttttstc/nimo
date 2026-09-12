@@ -91,3 +91,63 @@ test('invalid knowledge impact is blocked without advancing revision', async () 
     await rm(current.root, { recursive: true, force: true });
   }
 });
+
+test('changed programs cannot enter delivered without a fresh knowledge impact in the same update', async () => {
+  const current = await fixture('delivery');
+  try {
+    await init(current);
+    const accepted = await run({
+      operation: 'update',
+      store: current.store,
+      expectedRevision: 0,
+      patch: {
+        units: [{
+          id: 'implementation',
+          state: 'accepted',
+          dependencies: [],
+          report: 'implemented and verified',
+          head: 'head-2',
+        }],
+        verifications: [{
+          unitId: 'implementation',
+          head: 'head-2',
+          evidence: 'tests passed against head-2',
+          verifier: 'independent-reviewer',
+          verdict: 'PASS',
+        }],
+      },
+    });
+    assert.equal(accepted.status, 'OK');
+    assert.equal(accepted.data.revision, 1);
+
+    const missing = await run({
+      operation: 'update',
+      store: current.store,
+      expectedRevision: 1,
+      patch: { executionState: 'delivered' },
+    });
+    assert.equal(missing.status, 'BLOCK');
+    assert.match(JSON.stringify(missing.diagnostics), /MISSING_KNOWLEDGE_IMPACT/);
+    assert.equal(JSON.parse(await readFile(join(current.store, 'program.json'), 'utf8')).revision, 1);
+
+    const delivered = await run({
+      operation: 'update',
+      store: current.store,
+      expectedRevision: 1,
+      patch: {
+        executionState: 'delivered',
+        knowledgeImpact: {
+          verdict: 'NONE',
+          reason: 'The implementation changed local behavior but no stable project knowledge contract',
+          areas: [],
+          sourceVersion: 'head-2',
+        },
+      },
+    });
+    assert.equal(delivered.status, 'OK');
+    assert.equal(delivered.data.executionState, 'delivered');
+    assert.equal(delivered.data.knowledgeImpact.verdict, 'NONE');
+  } finally {
+    await rm(current.root, { recursive: true, force: true });
+  }
+});
