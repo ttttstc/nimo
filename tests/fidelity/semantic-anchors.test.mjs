@@ -134,6 +134,8 @@ const SEMANTIC_ANCHORS = [
       { id: 'throughput-checkpoint', pattern: /吞吐量检查点/ },
       { id: 'arena-mandatory-for-multiple-shapes', pattern: /nimo-arena/ },
       { id: 'wrong-surface-not-pass', pattern: /不算通过|不能算通过|不是通过/ },
+      { id: 'two-verification-roles', pattern: /实现阶段验证[\s\S]*?不是最终交付证据/ },
+      { id: 'verification-map-sync', pattern: /\.nimo\/verification\// },
     ],
   },
   {
@@ -142,6 +144,8 @@ const SEMANTIC_ANCHORS = [
       { id: 'evidence-first-repro', pattern: /复现/ },
       { id: 'hypothesis-elimination', pattern: /二分|排除/ },
       { id: 'failing-repro-before-fix', pattern: /失败的复现|failing/ },
+      { id: 'final-verify-after-late-changes', pattern: /重做 Final Verify/ },
+      { id: 'verification-map-sync', pattern: /\.nimo\/verification\// },
     ],
   },
   {
@@ -190,6 +194,40 @@ const SEMANTIC_ANCHORS = [
     artifact: 'skills/nimo-mode/SKILL.md',
     anchors: [
       { id: 'user-wording-wins', pattern: /给方案只允许方案产物/ },
+    ],
+  },
+  {
+    artifact: 'skills/nimo-mode/playbooks/opening-a-pr.md',
+    anchors: [
+      { id: 'final-verify-freeze-point', pattern: /代码冻结点/ },
+      { id: 'cleanup-before-final-verify', pattern: /只能发生在 Final Verify 之前/ },
+      { id: 'blocking-review-stops-pr', pattern: /停止创建 PR/ },
+      { id: 'no-post-verify-cleanup', pattern: /不再执行可能修改代码的 cleanup/ },
+      { id: 'conclusion-version-bound', pattern: /只证明其绑定的当前产物版本/ },
+    ],
+  },
+  {
+    artifact: 'skills/nimo-architect/SKILL.md',
+    anchors: [
+      { id: 'design-only', pattern: /只设计，不实现/ },
+      { id: 'no-production-code-by-default', pattern: /默认不修改生产实现代码/ },
+      { id: 'caller-composes-implement', pattern: /architect → implement/ },
+    ],
+  },
+  {
+    artifact: 'skills/nimo-interrogate/SKILL.md',
+    anchors: [
+      { id: 'blocking-output-contract', pattern: /不得继续 PR／交付/ },
+      { id: 'reviewer-stays-read-only', pattern: /只评审，不自动修改代码/ },
+    ],
+  },
+  {
+    artifact: 'skills/nimo-verify/SKILL.md',
+    anchors: [
+      { id: 'map-drift-guard', pattern: /地图已漂移/ },
+      { id: 'stale-map-not-pass', pattern: /旧地图不能继续作为 PASS 依据/ },
+      { id: 'old-path-running-not-proof', pattern: /不等于新行为已被验证/ },
+      { id: 'version-bound-conclusion', pattern: /只证明其绑定的当前产物版本/ },
     ],
   },
 ];
