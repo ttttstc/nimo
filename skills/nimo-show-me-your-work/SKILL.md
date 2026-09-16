@@ -25,20 +25,9 @@ Task Audit 不是 Runtime Trace，也不是内部思维记录。底层事实仍�
 
 ## 一份记录，不再维护第二套日志
 
-Task Audit 固定包含：
+Task Audit 固定包含 Contract、Harness、Trace、Decisions、Artifacts、Verification、Outcome、Learning。
 
-- Contract
-- Harness
-- Trace
-- Decisions
-- Artifacts
-- Verification
-- Outcome
-- Learning
-
-不再为新任务单独维护 `decisions.tsv`、Task Episode 或 Handoff 主文件。Decision 是 Task Audit 中的过程事实；Outcome 同时提供最终 Handoff 所需的当前状态和未完成项。
-
-旧的 TSV / `log.mjs` 仅用于兼容已有调用，不作为新的任务审计事实源。
+不再为新任务单独维护 `decisions.tsv`、Task Episode 或 Handoff 主文件。Decision 是 Task Audit 中的过程事实；Outcome 同时提供最终 Handoff 所需的当前状态和未完成项。旧 TSV / `log.mjs` 只用于兼容已有调用，不作为新的任务审计事实源。
 
 ## 什么必须记录成 Decision
 
@@ -46,13 +35,11 @@ Task Audit 固定包含：
 
 - **Artifact**：产物形状、核心实现结构、公共接口或持久化方式。
 - **Scope**：任务范围、跨模块责任或是否扩大修改边界。
-- **Risk**：接受／规避一个会影响安全、兼容、迁移或交付风险的取舍。
+- **Risk**：影响安全、兼容、迁移或交付风险的取舍。
 - **Acceptance**：验收边界或用户可见预期发生实质变化。
 - **Verification**：验证操作面、关键不变量、影响范围或必要检查的非显然选择。
 
-机械动作不记录：读文件、执行普通命令、安装依赖、格式化、搜索符号本身都不是 Decision。
-
-一个简单确定性 Feature 可以没有 Decision；Audit 默认开启不等于制造流水账。
+机械动作不记录：读文件、执行普通命令、安装依赖、格式化、搜索符号本身都不是 Decision。一个简单确定性 Feature 可以没有 Decision；Audit 默认开启不等于制造流水账。
 
 ## 固定检查点
 
@@ -76,20 +63,18 @@ Task Audit 固定包含：
 - **Phase**：`contract | design | implementation | verification | review | handoff`。
 - **Decision**：做出的关键选择，一句话说清。
 - **Reason**：可公开审查的工程理由，回答“为什么这个选择成立”。
-- **Evidence**：可直接检查的路径、版本、Trace、Acceptance、Verification 或其他证据引用。
+- **Evidence**：能够直接检查的证据位置，例如路径、版本、Trace、Acceptance、Verification 或其他证据引用。
 - **Result**：如 `accepted`、`reverted`、`supersedes D1`、`UNVERIFIED`、`BLOCKED`。
 
-Reason 不是内部推理全文。不要写“我首先想到……然后考虑……”；只写能让评审者复核该选择的工程理由。
-
-Evidence 不能只是一段自我解释。没有可检查证据支撑的“已验证”选择必须保持未验证或不确定。
+Reason 不是内部推理全文。不要写“我首先想到……然后考虑……”；只写能让评审者复核该选择的工程理由。Evidence 不能只是一段自我解释；没有可检查证据支撑的“已验证”选择必须保持未验证或不确定。
 
 ## 只追加，不美化历史
 
-Decision 被推翻时新增一条记录，不修改或删除旧 Decision。例如：
+采用只追加方式。决定后来被推翻时，Decision 被推翻时新增一条记录，不修改或删除旧 Decision。例如：
 
 ```text
-D1 design         选择状态机方案           accepted
-D4 implementation 运行证据推翻 D1，改为独立状态模型  supersedes D1
+D1 design         选择状态机方案                         accepted
+D4 implementation 运行证据推翻 D1，改为独立状态模型      supersedes D1
 ```
 
 旧选择和后续转向共同构成可审计历史。不得为了让过程看起来顺畅而改写已发生事实。
@@ -108,7 +93,7 @@ Verification 范围存在实质判断时，把“为什么这些 Acceptance／�
 
 ## 结束前 Decision Audit
 
-最终交付前，对照当前事实检查 Task Audit：
+最终交付前，对照本次运行实际发生的事情检查日志是否真实；这里的日志就是当前 Task Audit。至少检查：
 
 - Contract 与当前用户目标／验收是否一致。
 - 关键方案收口、Scope 变化、证据导致的转向有没有漏记。
@@ -118,9 +103,7 @@ Verification 范围存在实质判断时，把“为什么这些 Acceptance／�
 - Audit 与当前 Artifact、`nimo-verify` 结果和可用 Host Trace 是否一致。
 - 未观察到的过程是否被如实标成不可观察。
 
-如果结束审计才发现遗漏，可以补录可观察到的 Decision 事实，并在 Result 或 Evidence 中表明来自 final audit；不得补造内部推理或假装它是当时实时记录。
-
-事实与 Audit 冲突时修正／追加 Audit，不修改事实叙述去迎合旧记录。
+如果结束审计才发现遗漏，可以补录可观察到的 Decision 事实，并在 Result 或 Evidence 中表明来自 final audit；不得补造内部推理或假装它是当时实时记录。事实与 Audit 冲突时修正／追加 Audit，不修改事实叙述去迎合旧记录。
 
 ## 确定性工具与最终门禁
 
@@ -134,22 +117,13 @@ Verification 范围存在实质判断时，把“为什么这些 Acceptance／�
 
 ## 独立复核按风险触发
 
-普通 Feature 不再因为出现两条 Decision 就强制启动独立 Agent 审 TSV；结束前 Decision Audit + 确定性 `audit validate` 是默认要求。
+普通 Feature 不再因为出现两条 Decision 就强制启动独立 Agent 审记录；结束前 Decision Audit + 确定性 `audit validate` 是默认要求。
 
-以下情况需要独立复核 Task Audit 与关键证据：
-
-- 长时间无人值守或多 Agent 并发。
-- 跨模块大型迁移、发布、安全或其他高风险变更。
-- 关键 Decision 缺少确定性证据，只能依赖判断性分析。
-- Task Contract 或调用 Playbook 明确要求独立审计。
-
-宿主无法提供独立上下文时按 [委派纪律](../nimo-mode/references/delegation.md) 记录降级，不声称已经独立复核。
+以下情况需要独立复核 Task Audit 与关键证据：长时间无人值守、多 Agent 并发、跨模块大型迁移、发布／安全等高风险变更、关键 Decision 缺少确定性证据，或 Task Contract 明确要求独立审计。宿主无法提供独立上下文时按 [委派纪律](../nimo-mode/references/delegation.md) 记录降级，不声称已经独立复核。
 
 ## Learning 只产生候选
 
-一次 Task Audit 只能记录 `candidate`。单次纠正、一次失败或一次成功都不能直接修改 Harness。
-
-多个可比 Task Audit 出现同类 Decision／Verification／Outcome 问题后，后续 Harness Review 才判断应落到 Principle、Playbook、Skill、Verification、Gate、Knowledge 或 Capability；Harness 改造完成后仍需后续可比任务证明效果。
+一次 Task Audit 只能记录 `candidate`。单次纠正、一次失败或一次成功都不能直接修改 Harness。多个可比 Task Audit 出现同类 Decision／Verification／Outcome 问题后，后续 Harness Review 才判断应落到 Principle、Playbook、Skill、Verification、Gate、Knowledge 或 Capability；Harness 改造完成后仍需后续可比任务证明效果。
 
 ## 边界与交付
 
