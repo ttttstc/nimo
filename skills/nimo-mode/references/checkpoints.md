@@ -1,4 +1,4 @@
-### 3.10 状态、版本与完成判断
+### 3.10 状态、版本、审计与完成判断
 
 任务执行状态和质量结论分开保存：
 
@@ -28,8 +28,30 @@ stateDiagram-v2
 
 验证记录至少包括目标、验收场景、环境、命令或实际操作、结果、时间、产物版本、执行者及是否独立。Git 产物记录 head 与未提交差异标识；文件产物记录内容哈希。配置和工程包版本也是长任务恢复的输入。
 
+## Task Audit 与 checkpoint / program 的边界
+
+需要实际交付的工程任务使用 `<projectRoot>/.nimo/tasks/<task-id>/audit.md` 保存 Task Audit。它是**任务级语义审计**，记录：
+
+```text
+Contract / Harness / Trace / Decisions / Artifacts / Verification / Outcome / Learning
+```
+
+Task Audit 与 checkpoint / program 不互相替代：
+
+- **Task Audit** 回答“本任务承诺什么、实际用了什么 Harness、做了哪些关键选择、产出什么、如何证明、最终结论是什么”。
+- **checkpoint** 回答“当前执行到哪里、恢复时先做什么、有哪些尚未完成的现场状态”。
+- **program state** 服务跨会话／多单元长期协调，记录 Owner、Unit、Frontier、Gate 和长期 Verification 等恢复事实。
+
+普通短 Feature 可以需要 Task Audit 而不需要 program；长任务使用同一个 `taskId` 同时维护 program/checkpoint 和 Audit。不要为了减少文件把执行恢复状态塞进 Audit，也不要用 checkpoint 摘要替代最终审计。
+
+Task Audit 只引用宿主 Session / Run / Trace；宿主不提供 Trace 时写 `UNAVAILABLE` 与明确 Observed Boundary。不可观察部分不能靠 checkpoint 或最终结果反推成已观察。
+
+Task Audit 位于已忽略的 `.nimo/tasks/` 本地任务空间，不属于待交付产品差异。Final Verify 之后更新 Audit 的 Artifact／Verification／Outcome 不会改变被验证产品版本；但 Audit 中绑定的 Artifact Version 必须与 Final Verify 完全一致。
+
+需要 Task Audit 的任务在进入 `delivered` 前必须通过 `audit.mjs validate` 的 final 校验。Audit 缺失、Acceptance 缺必要 Verification、PASS 无 Evidence、最终 Artifact Version 或 Verdict 不一致时，不允许以 Nimo VERIFIED／delivered 结束。
+
 项目有实际变更时，进入 `delivered` 前根据当前差异、设计决定和验证事实做轻量知识影响判断。高信号包括核心模块增删、职责/主链路改变、公共接口/协议/Schema/配置契约改变、构建/部署/测试/运行方式改变、安全权限模型改变、关键领域模型改变、大规模迁移或能力正式废弃/落地。判断不扫描知识库、不主动调用 `nimo-knowledge-audit`、不因 `REVIEW_RECOMMENDED` 阻断交付。长期 program 将结果写入 `knowledgeImpact`；短任务在最终 checkpoint/交付摘要记录需要审计的领域。
 
-修改 head、依赖、基线或运行环境时，识别受影响证据并重新检查。没有变化且能证明适用范围未变的证据可复用，不机械重跑所有检查。patch-id 相同仅支持判断补丁内容等价，不能覆盖基线改变引入的集成风险。
+修改 head、依赖、基线或运行环境时，识别受影响证据并重新检查。没有变化且能证明适用范围未变的证据可复用，不机械重跑所有检查。patch-id 相同仅支持判断补丁内容等价，不能覆盖基线改变引入的集成风险。对应 Task Audit 中旧 Verification 记录保留历史，但最终 Outcome 只能绑定仍适用于当前 Artifact Version 的证据。
 
-普通任务在会话内保留必要信息即可。长任务每个可验证单元后保存 checkpoint 和决策记录；不要让每条工具调用都变成一段流水账。恢复时先读摘要和相关证据，原始日志按问题查阅。
+普通任务在会话内只保留恢复所需信息；Task Audit 负责跨会话可审查的语义事实，不把每条工具调用变成流水账。长任务每个可验证单元后保存 checkpoint，关键选择追加进同一 Task Audit；恢复时先读 checkpoint／program 的当前状态和 Audit 中的 Contract／Outcome，再按问题查原始日志或 Trace。
