@@ -209,3 +209,19 @@ test('audit init blocks silent reuse when the task contract boundary changes', a
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('audit validate blocks direct contract tampering after initialization', async () => {
+  const root = await fixture('tamper');
+  try {
+    await init(root);
+    const file = join(root, '.nimo/tasks/feature-refund/audit.md');
+    const content = await readFile(file, 'utf8');
+    const { writeFile } = await import('node:fs/promises');
+    await writeFile(file, content.replace('已退款订单不能再次退款', '已退款订单允许再次退款'));
+    const result = await audit(base(root, { operation: 'validate' }));
+    assert.equal(result.status, 'BLOCK');
+    assert.ok(result.diagnostics.some(item => item.code === 'CONTRACT_HASH_MISMATCH'));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
