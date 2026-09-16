@@ -12,9 +12,10 @@
 | inspect-pr.mjs | 仓库与 PR → JSON 状态 | 只读 GitHub 事实，有限请求后返回，不无限轮询 |
 | audit-worktrees.mjs | 仓库 → 目录审计 JSON | 只读枚举和分类，不删除路径 |
 | check-plan.mjs | Markdown 计划 → 问题与行号 | 检查单元依赖、证据、作用域和停止点，不强制模型／宿主句式 |
-| log.mjs | 一条 JSON 决策 → TSV 记录 | 追加事实、理由、证据与结果，不记录内部推理全文 |
+| audit.mjs | JSON 请求 → Task Audit 创建、追加或校验结果 | 确定性维护 `.nimo/tasks/<task-id>/audit.md`；不执行验证、不判断设计质量、不生成 Agent |
+| log.mjs | 一条 JSON 决策 → TSV 记录 | 兼容旧调用；追加事实、理由、证据与结果。新任务统一写 Task Audit，不再以 TSV 为主审计记录 |
 
-`config.mjs`、`state.mjs` 与 `knowledge-state.mjs` 支持 `--input <request.json>`；请求通过文件传递，不把用户路径拼到 shell 代码。其他脚本使用参数数组，调用外部程序一律关闭 shell。stdout 只输出结果，stderr 输出简短诊断，不回显凭据或完整配置内容。
+`config.mjs`、`state.mjs`、`knowledge-state.mjs` 与 `audit.mjs` 支持 `--input <request.json>`；请求通过文件传递，不把用户路径拼到 shell 代码。其他脚本使用参数数组，调用外部程序一律关闭 shell。stdout 只输出结果，stderr 输出简短诊断，不回显凭据或完整配置内容。
 
 公共返回结构：
 
@@ -30,6 +31,66 @@
 `status` 为 `OK | WARN | BLOCK`。退出码 0 对应 OK／WARN，2 对应输入或配置无效，3 对应文件冲突／I/O 故障，4 对应当前运行前提不足。调用者同时读取 JSON，不把退出码 0 当成任务质量通过。
 
 每条诊断包含 `code`、`message`、适用时的 `source`、`configPath`、条目位置和目标引用。避免只有“加载失败”而无定位信息。
+
+#### audit.mjs 与 Task Audit
+
+Task Audit 固定写在 `<projectRoot>/.nimo/tasks/<taskId>/audit.md`。`projectRoot` 必须是绝对路径；`taskId` 只允许小写字母、数字、`.`、`_`、`-`，长度最多 64，防止调用者把任务标识当路径片段注入。
+
+操作为 `init | append | validate`。
+
+**init** 需要本次任务的 `title / goal / scope[] / acceptance[] / playbook / nimoRevision / trace`。`trace` 至少包含 `host` 与 `observedBoundary`，无法获得 Session／Run 引用时 `ref` 写 `UNAVAILABLE`，不能编造。初始化创建固定八区块：Contract、Harness、Trace、Decisions、Artifacts、Verification、Outcome、Learning；初始 Outcome 为 `running / PENDING`。同一合法 Task Audit 重复 init 幂等；已有文件格式或 Task ID 不匹配时拒绝接管。
+
+示例：
+
+```json
+{
+  "operation": "init",
+  "projectRoot": "/repo/demo",
+  "taskId": "feature-refund",
+  "title": "订单退款",
+  "goal": "支持用户申请订单退款",
+  "scope": ["order-service", "order-web"],
+  "acceptance": [
+    {"id": "AC-01", "text": "用户可以申请退款"},
+    {"id": "AC-02", "text": "已退款订单不能再次退款"}
+  ],
+  "playbook": "feature",
+  "nimoRevision": "git:abc123",
+  "trace": {
+    "host": "codex",
+    "ref": "UNAVAILABLE",
+    "observedBoundary": "当前任务的工作区差异与本地验证可观察；此前实现过程不可观察"
+  }
+}
+```
+
+**append** 的 `kind` 为：
+
+- `decision`：追加 `Time / ID / Phase / Decision / Reason / Evidence / Result`，ID 自动生成 `D1...`；Phase 只允许 `contract | design | implementation | verification | review | handoff`。
+- `harness`：记录本次实际应用的 Harness 及 Evidence of use；同名条目幂等，不把静态配置存在当使用。
+- `artifact`：记录可审查产物与版本／路径引用，ID 默认 `A1...`。
+- `verification`：记录 `Check / Source / Required / Verification / Evidence or Reason / Result`。结果只允许 `PASS | FAIL | NOT_RUN | NOT_APPLICABLE`；同一 Check 可追加重试历史。
+- `outcome`：追加任务执行状态、`PENDING | VERIFIED | UNVERIFIED | BLOCKED`、Artifact Version、Open 与 Next。
+- `learning`：只允许 `candidate`，第一版工具不能把单次观察直接提升为 Harness 变更。
+
+所有 Markdown 单元格转义 `& | < >` 与换行，写入使用短锁和原子替换；拒绝符号链接 Audit，避免通过 Audit 路径改写其他文件。
+
+**validate** 只检查确定性关系，不重新执行测试。普通校验允许 Acceptance 暂无 Verification，但给 WARN；`final=true` 时采用 fail-closed，至少检查：
+
+- 固定格式、唯一 marker、Task ID 与 Nimo Revision。
+- Trace Host 与 Observed Boundary；Trace ref 不可用是 WARN，不伪造为已观察。
+- Acceptance 唯一且非空。
+- 每个 Harness 条目有 Evidence of use。
+- Decision ID 唯一、Phase 合法、Evidence 非空。
+- Artifact 有引用。
+- `PASS` 必须有 Evidence。
+- 同一 Verification Check 在重试中不能改变 Source 或 Requiredness，防止把失败检查改名／降级来获得通过。
+- 每个 Acceptance 在 final validate 时都有 Required Verification。
+- Final Outcome 不能是 PENDING，必须有 Artifact Version 和至少一个 Artifact。
+- Verdict 为 VERIFIED 时，每个 Acceptance 与其他 Required Check 的最新结果都必须 PASS。
+- 调用方传 `expectedArtifactVersion` / `expectedVerdict` 时必须与 Final Verify 结论一致。
+
+`audit.mjs` 不决定某个 Decision 是否聪明，也不决定某个 Verification 业务上是否足够；这些属于 Playbook、`nimo-show-me-your-work` 和 `nimo-verify`。工具只防止记录缺失、自相矛盾和明显降级绕过。
 
 #### config.mjs 请求与内部数据
 
@@ -114,8 +175,10 @@ PR 事实结论分为 `COMPLETE | READY | WAITING | BLOCKED | UNKNOWN`，另列 
 
 PR 链从明确目标列表和平台实际 base/head 关系核对，禁止用分支名排序推断。拓扑修改前后更新 generation；旧 generation 的跟进结果不可用于新链。执行 merge、rebase、push 的是获授权 Agent 使用的工具，记账脚本只记录和核对结果。
 
-#### 计划检查与决策记录
+#### 计划检查、Task Audit 与旧决策日志
 
 计划检查要求每个工作单元有目标、文件范围、依赖、可观察结果、适用验证和停止点。缺少验证不能用固定句式填充通过。性能或界面检查不适用时必须给出具体原因。
 
-决策 TSV 包含 `time, phase, decision, reason, evidence, result`，转义制表符和换行，并处理表格公式前缀。它记录可公开解释的简短理由，不保存私密推理过程。证据使用路径和版本引用；提交或上传前去除个人路径和敏感内容。
+新的工程任务使用 Task Audit 作为唯一任务级审计主记录。Decision 直接写入 Audit 的 Decisions 区，不再产生第二份 `decisions.tsv`。Task Audit 记录可公开解释的简短理由，不保存私密推理过程；Evidence 使用路径、版本、Trace、Acceptance 或 Verification 引用，提交或导出前去除个人路径和敏感内容。
+
+`log.mjs` 和旧 TSV 格式 `time, phase, decision, reason, evidence, result` 暂时保留兼容，不作为新任务的完成门禁或 Harness Learning 数据源。新的 fail-closed 规则只以 Task Audit 的 final validate 为准。
