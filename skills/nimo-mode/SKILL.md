@@ -1,6 +1,6 @@
 ---
 name: nimo-mode
-description: "nimo 工程任务总入口。用户明确调用 nimo，或任务涉及工程开发、修复、设计、调查、验证、PR 跟进或任务恢复时使用。根据用户意图选择流程，并遵守授权边界、工程原则和真实验证要求。"
+description: "nimo 工程任务总入口。用户明确调用 nimo，或任务涉及工程开发、修复、设计、调查、验证、PR 跟进或任务恢复时使用。根据用户意图选择流程，并遵守授权边界、工程原则、Task Audit 和真实验证要求。"
 ---
 
 # nimo
@@ -11,10 +11,12 @@ description: "nimo 工程任务总入口。用户明确调用 nimo，或任务�
 2. 多步骤任务第一项完整读取下方原则索引。进入匹配流程后，按其“执行前读取”打开相关原则的完整叶文件；索引摘要不能代替正文。明确会改变的决定，再开始具体操作。只读过索引时不得声称已应用原则。
 3. 按 [配置规则](references/configuration.md) 读取团队和个人引用，按需检索知识，不一次读取全部目录；错误不能静默忽略。项目知识的维护、审计和交付前影响判断遵守 [知识维护契约](references/knowledge.md)。
 4. 读取匹配 Playbook，把其编号步骤原样保留到任务清单，具体步骤可细化。跳过写原因和影响，必要证据缺失不能通过。
-5. 非简单变更先 nimo-how。跨边界或实质设计取舍使用 nimo-architect。实现委派与审查分离；主 Agent 保留设计、Bug 原始复现、实际差异审阅和最终验收。
-6. 写有状态代码前明确数据结构。编写或修改测试时验证真实行为，不把内部调用关系当成结果。真实操作面验证不能被编译、类型检查或子任务自报替代。
-7. 提交前 nimo-deslop，审查前 nimo-no-comments，技术说明使用 nimo-technical-writing 和 nimo-unslop。只清理本任务制造的问题。
-8. 模型、工具、独立上下文、权限和后台能力按 [宿主合同](references/host-contract.md) 使用，不假造不存在的接口。
+5. **Task Audit 默认开启。** 任务只要会修改项目资产、需要形成 `VERIFIED | UNVERIFIED | BLOCKED` 交付结论，或进入长程／多 Agent 工程流程，就在实质设计或实现前通过 `scripts/audit.mjs` 初始化 `<projectRoot>/.nimo/tasks/<task-id>/audit.md`，并遵守 [nimo-show-me-your-work](../nimo-show-me-your-work/SKILL.md) 的关键决策记录协议。纯只读、纯方案且无实现交付时可不创建；一旦从只读切换为实际变更，先初始化再继续。重要审计纪律不依赖模型自行判断是否激活。
+6. Task Audit 是任务级语义审计入口，不替代 Git、Artifact、Host Trace、Verification Evidence 或 CI。Host Trace 不可用时显式记录 `UNAVAILABLE` 与 Observed Boundary；配置存在不能冒充 Harness 已实际使用。直接接手已有差异且没有历史 Audit 时，创建收口 Audit，并把此前实现过程标为不可观察，不补造历史。
+7. 非简单变更先 nimo-how。跨边界或实质设计取舍使用 nimo-architect。实现委派与审查分离；主 Agent 保留设计、Bug 原始复现、实际差异审阅和最终验收。会实质改变 Artifact、Scope、Risk、Acceptance 或 Verification 的关键选择按 Task Audit 协议及时记录。
+8. 写有状态代码前明确数据结构。编写或修改测试时验证真实行为，不把内部调用关系当成结果。真实操作面验证不能被编译、类型检查或子任务自报替代。需要 Task Audit 的任务，把 `nimo-verify` 的逐场景结果与 Evidence 写入同一 Audit。
+9. 提交前 nimo-deslop，审查前 nimo-no-comments，技术说明使用 nimo-technical-writing 和 nimo-unslop。只清理本任务制造的问题。
+10. 模型、工具、独立上下文、权限和后台能力按 [宿主合同](references/host-contract.md) 使用，不假造不存在的接口。
 
 ## 原则索引
 
@@ -83,7 +85,7 @@ description: "nimo 工程任务总入口。用户明确调用 nimo，或任务�
 
 ## 委派与恢复
 
-按 [委派纪律](references/delegation.md) 传完整合同，按 [检查点](references/checkpoints.md) 保留长任务现场。本地 [工具](references/tools.md) 只记账，不运行工作流。
+按 [委派纪律](references/delegation.md) 传完整合同，按 [检查点](references/checkpoints.md) 保留长任务现场。本地 [工具](references/tools.md) 只记账，不运行工作流。Task Audit 与 checkpoint/program 使用同一个任务标识时仍各守职责：前者审计目标、选择、产物与证明，后者恢复执行现场。
 
 继续只承接最近明确提议。暂停停止派发；停止所有写入时不再写检查点。退出 nimo 后不再应用路由，新会话通过明确调用进入。
 
@@ -92,6 +94,7 @@ description: "nimo 工程任务总入口。用户明确调用 nimo，或任务�
 - [nimo-how](../nimo-how/SKILL.md)
 - [nimo-architect](../nimo-architect/SKILL.md)
 - [nimo-verify](../nimo-verify/SKILL.md)
+- [nimo-show-me-your-work](../nimo-show-me-your-work/SKILL.md)
 - [nimo-deslop](../nimo-deslop/SKILL.md)
 - [nimo-no-comments](../nimo-no-comments/SKILL.md)
 - [nimo-technical-writing](../nimo-technical-writing/SKILL.md)
@@ -99,7 +102,9 @@ description: "nimo 工程任务总入口。用户明确调用 nimo，或任务�
 
 ## 完成
 
-项目发生实际变更的任务，在进入 `delivered` 前做一次轻量知识影响判断，遵守 [知识维护契约](references/knowledge.md)：
+需要 Task Audit 的任务，在进入 `delivered` 或对外声明 Nimo `VERIFIED` 前必须完成结束 Decision Audit，把当前 Artifact、逐场景 Verification、Evidence、Outcome 写入 Audit，并执行 `scripts/audit.mjs` 的 `validate`（`final=true`）。最终校验必须绑定当前 Final Verify 的 Artifact Version 与 Verdict。Audit 缺失、结构无效、Acceptance 缺必要 Verification、PASS 无 Evidence、Artifact Version／Verdict 不一致时，不能进入 VERIFIED／delivered；修复 Audit 或补齐真实验证后重新校验。Task Audit 位于 `.nimo/tasks/`，其记账更新不改变待交付产品 Artifact。
+
+项目发生实际变更的任务，在进入 `delivered` 前还要做一次轻量知识影响判断，遵守 [知识维护契约](references/knowledge.md)：
 
 - `NOT_APPLICABLE`：只读任务或没有项目资产变化。
 - `NONE`：有项目变化，但没有改变稳定项目事实。
@@ -107,4 +112,4 @@ description: "nimo 工程任务总入口。用户明确调用 nimo，或任务�
 
 这一步只使用当前任务已经掌握的 diff、设计决定和验证结果，不扫描知识库，不调用 `nimo-knowledge-audit`。`NONE` 或 `REVIEW_RECOMMENDED` 的结论本身不阻断交付；但长期 program 已有 `accepted` / `integrated` 变更时，切换到 `delivered` 的同一次状态更新必须记录一个新的合法 `knowledgeImpact`，不能以缺失或旧结论进入终态。短任务至少在最终交付中保留 `REVIEW_RECOMMENDED` 信号，供后续人工或定时审计优先处理。
 
-交付具体产物、版本证据、必要限制及实际使用来源。只列影响结果的原则和资料；查询状态时才显示全部登记项。未验证不能写通过，检查通过不增加动作授权。
+交付具体产物、版本证据、Task Audit 位置、必要限制及实际使用来源。只列影响结果的原则和资料；查询状态时才显示全部登记项。未验证不能写通过，检查通过不增加动作授权。
