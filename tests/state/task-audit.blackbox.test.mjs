@@ -13,7 +13,11 @@ async function fixture(label) {
 }
 
 function base(root, overrides = {}) {
-  return { projectRoot: root, taskId: 'feature-refund', ...overrides };
+  return {
+    projectRoot: root,
+    taskId: 'feature-refund',
+    ...overrides,
+  };
 }
 
 async function init(root, overrides = {}) {
@@ -61,23 +65,32 @@ test('audit append records sparse decisions and verification history safely', as
   try {
     await init(root);
     const decision = await append(root, 'decision', {
-      time: '2026-09-17T00:10:00+08:00', phase: 'design',
-      decision: '退款进入订单状态机 | 保持单一生命周期', reason: '现有生命周期已集中管理',
-      evidence: 'src/order/state.ts', result: 'accepted',
+      time: '2026-09-17T00:10:00+08:00',
+      phase: 'design',
+      decision: '退款进入订单状态机 | 保持单一生命周期',
+      reason: '现有生命周期已集中管理',
+      evidence: 'src/order/state.ts',
+      result: 'accepted',
     });
     assert.equal(decision.status, 'OK');
     assert.equal(decision.data.id, 'D1');
     const second = await append(root, 'decision', {
-      time: '2026-09-17T00:11:00+08:00', phase: 'verification', decision: 'API 与 UI 共同覆盖验收',
-      reason: 'AC-02 是接口负例，页面结果需要真实 UI', evidence: 'AC-01,AC-02', result: 'accepted',
+      time: '2026-09-17T00:11:00+08:00',
+      phase: 'verification',
+      decision: 'API 与 UI 共同覆盖验收',
+      reason: 'AC-02 是接口负例，页面结果需要真实 UI',
+      evidence: 'AC-01,AC-02',
+      result: 'accepted',
     });
     assert.equal(second.data.id, 'D2');
     await append(root, 'verification', {
-      time: '2026-09-17T00:20:00+08:00', check: 'AC-01', source: 'AC-01', required: true,
+      time: '2026-09-17T00:20:00+08:00',
+      check: 'AC-01', source: 'AC-01', required: true,
       verification: '真实退款 API', evidence: 'evidence/refund.txt', result: 'FAIL',
     });
     await append(root, 'verification', {
-      time: '2026-09-17T00:30:00+08:00', check: 'AC-01', source: 'AC-01', required: true,
+      time: '2026-09-17T00:30:00+08:00',
+      check: 'AC-01', source: 'AC-01', required: true,
       verification: '真实退款 API', evidence: 'evidence/refund-fixed.txt', result: 'PASS',
     });
     const content = await readFile(join(root, '.nimo/tasks/feature-refund/audit.md'), 'utf8');
@@ -109,23 +122,26 @@ test('audit validate fails closed when acceptance evidence is missing', async ()
   }
 });
 
-test('audit full chain validates a verified task and preserves required checks', async () => {
+test('audit full chain validates a verified task and preserves retry history', async () => {
   const root = await fixture('full');
   try {
     await init(root);
     await append(root, 'harness', { name: 'nimo-architect', evidence: 'D1' });
     await append(root, 'decision', {
-      phase: 'design', decision: '退款状态进入现有状态机', reason: '避免非法状态组合', evidence: 'src/order/state.ts', result: 'accepted',
+      phase: 'design', decision: '退款状态进入现有订单状态机', reason: '避免非法状态组合', evidence: 'src/order/state.ts', result: 'accepted',
     });
     await append(root, 'artifact', { id: 'A1', artifact: '退款 API 与页面', reference: 'commit:abc123' });
     await append(root, 'verification', {
-      check: 'AC-01', source: 'AC-01', required: true, verification: '真实退款 API', evidence: 'evidence/ac01.txt', result: 'PASS',
+      check: 'AC-01', source: 'AC-01', required: true,
+      verification: '真实退款 API', evidence: 'evidence/ac01.txt', result: 'PASS',
     });
     await append(root, 'verification', {
-      check: 'AC-02', source: 'AC-02', required: true, verification: '重复退款负例', evidence: 'evidence/ac02.txt', result: 'PASS',
+      check: 'AC-02', source: 'AC-02', required: true,
+      verification: '重复退款负例', evidence: 'evidence/ac02.txt', result: 'PASS',
     });
     await append(root, 'verification', {
-      check: 'INV-01', source: '订单状态不变量', required: true, verification: '退款后状态读回', evidence: 'evidence/inv01.txt', result: 'PASS',
+      check: 'INV-01', source: '订单状态不变量', required: true,
+      verification: '退款后状态读回', evidence: 'evidence/inv01.txt', result: 'PASS',
     });
     await append(root, 'learning', {
       observation: '退款状态路径此前没有验证资产', candidate: '后续同类状态变更复用退款状态驱动', status: 'candidate',
@@ -171,6 +187,24 @@ test('audit validation blocks verification shape downgrade across retries', asyn
     const result = await audit(base(root, { operation: 'validate' }));
     assert.equal(result.status, 'BLOCK');
     assert.ok(result.diagnostics.some(item => item.code === 'CHECK_SHAPE_CHANGED'));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('audit init blocks silent reuse when the task contract boundary changes', async () => {
+  const root = await fixture('contract');
+  try {
+    await init(root);
+    const result = await init(root, {
+      acceptance: [
+        { id: 'AC-01', text: '用户可以申请退款' },
+        { id: 'AC-02', text: '已退款订单不能再次退款' },
+        { id: 'AC-03', text: '页面显示退款状态' },
+      ],
+    });
+    assert.equal(result.status, 'BLOCK');
+    assert.ok(result.diagnostics.some(item => item.code === 'AUDIT_CONTRACT_MISMATCH'));
   } finally {
     await rm(root, { recursive: true, force: true });
   }
