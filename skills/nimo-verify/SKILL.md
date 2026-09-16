@@ -27,7 +27,7 @@ Task Audit 也不执行验证。对于 Mode 判定需要 Audit 的任务，本 S
 ## 步骤
 
 1. **固定当前产物与验收场景。** 记录当前产物版本、工作区差异标识、Task Contract／Task Audit／用户要求中的全部验收场景和相关操作面。需要 Task Audit 时先核对 Audit Contract 与当前目标一致；不一致不能一边按旧 Audit 验证一边宣称新需求已覆盖。没有形式化 Contract 时，从用户请求、规格和已确认行为中提炼可检查场景；无法确定且会改变 PASS／FAIL 的产品取舍才视为输入缺口，不自行发明预期。
-2. **建立场景到验证资产的映射。** 优先读 `.nimo/verification/SKILL.md` 与相关功能条目，为每个验收场景找到具体驱动路径。若某个必要场景没有可执行验证资产，转 [nimo-verification-create](../nimo-verification-create/SKILL.md) 仅补齐本次需要的资产，完成后回到本 Skill；若已有资产与当前入口、命令、路由、选择器、操作步骤、副作用或预期行为明显不符，转 [nimo-verification-maintain](../nimo-verification-maintain/SKILL.md) 做定向维护，修复后再回到本 Skill。旧路径恰好还能跑，不等于新行为已被验证。
+2. **建立场景到验证资产的映射。** 优先读 `.nimo/verification/SKILL.md` 与相关功能条目，为每个验收场景找到具体驱动路径。若某个必要场景没有可执行验证资产，转 [nimo-verification-create](../nimo-verification-create/SKILL.md) 仅补齐本次需要的资产，完成后回到本 Skill。若已有资产与当前入口、命令、路由、选择器、操作步骤、副作用或预期行为明显不符，说明地图已漂移：旧地图不能继续作为 PASS 依据，转 [nimo-verification-maintain](../nimo-verification-maintain/SKILL.md) 做定向维护，修复后再回到本 Skill。旧路径恰好还能跑，不等于新行为已被验证。
 3. **选择最小相关检查。** 在全部验收场景之外，补上必要不变量与合理影响范围。按变更类型选择真实检查：CLI 变更运行真实命令；API／服务变更调用真实公开接口；UI 变更在运行中的应用里走改动流程；解析器或迁移重放保存输入；性能变更比较前后 profile；存储变更从独立只读视图读回写入值。静态检查、编译和单元测试可作为前置或辅助证据，但不能替代要求真实操作面的场景。该范围存在非显然取舍时，由调用方按 [nimo-show-me-your-work](../nimo-show-me-your-work/SKILL.md) 记录 verification Decision；不要把检查范围选择藏在最终一句“测试通过”里。
 4. **确认实例健康与所有权。** 记录本次实例、端口、数据、鉴权和资源所有权。任何时候目标状态可疑，先按项目验证 Skill 的体检方法确认进程、版本、端口和鉴权，再决定是否驱动。工具或运行条件缺失不伪造；记录所缺前提，对应场景保持未验证／不可判定。
 5. **走真实用户路径并观察副作用。** 不走内部 setter 或测试专用端点；优先稳定句柄（ARIA 标签、data 属性、提示字符串、路由路径、公开 API 契约）而非坐标。捕获用户动作和结果状态，不只最终画面；写入文件、数据库变更、消息发送等副作用与可见结果一同验证。mock 只用在产品边界已经明确隔离外部系统的地方。
