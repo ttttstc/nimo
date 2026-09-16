@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { absolute, atomicWrite, fail, guarded, main, readOptional, response, withLock } from './lib/common.mjs';
+import { absolute, atomicWrite, fail, guarded, hash, main, readOptional, response, withLock } from './lib/common.mjs';
 
 const FORMAT = 'nimo-task-audit:v1';
 const TASK_ID = /^[a-z0-9][a-z0-9._-]{0,63}$/;
@@ -62,10 +62,6 @@ function insertBeforeMarker(content, marker, line) {
   return `${content.slice(0, index)}${line}\n${content.slice(index)}`;
 }
 
-function parseRow(line) {
-  return line.slice(1, -1).split('|').map(item => item.trim());
-}
-
 function linesBeforeMarker(content, marker) {
   const index = requireSingleMarker(content, marker);
   const before = content.slice(0, index).trimEnd().split('\n');
@@ -77,6 +73,10 @@ function linesBeforeMarker(content, marker) {
   }
   if (rows.length < 2) fail('INVALID_AUDIT', `Table before ${marker} is malformed`);
   return rows.slice(2).map(parseRow);
+}
+
+function parseRow(line) {
+  return line.slice(1, -1).split('|').map(item => item.trim());
 }
 
 function latestBy(rows, index) {
@@ -101,8 +101,7 @@ async function readAudit(file) {
   return await fs.readFile(file, 'utf8');
 }
 
-function auditTemplate(request, context) {
-  const title = text(request.title, 'title');
+function initContract(request) {
   const goal = text(request.goal, 'goal');
   const scope = stringArray(request.scope, 'scope');
   if (!Array.isArray(request.acceptance) || request.acceptance.length === 0) fail('INVALID_INPUT', 'acceptance must be non-empty');
@@ -114,6 +113,12 @@ function auditTemplate(request, context) {
     seenAcceptance.add(id);
     return { id, requirement };
   });
+  return { goal, scope, acceptance, contractHash: hash(JSON.stringify({ goal, scope, acceptance })) };
+}
+
+function auditTemplate(request, context) {
+  const title = text(request.title, 'title');
+  const { goal, scope, acceptance, contractHash } = initContract(request);
   const playbook = text(request.playbook, 'playbook');
   const nimoRevision = text(request.nimoRevision, 'nimoRevision');
   const host = text(request.trace?.host, 'trace.host');
@@ -122,7 +127,7 @@ function auditTemplate(request, context) {
   const createdAt = typeof request.time === 'string' && request.time.trim() ? request.time.trim() : new Date().toISOString();
   const acceptanceRows = acceptance.map(item => row([item.id, item.requirement])).join('\n');
   const scopeRows = scope.map(item => `- ${cell(item)}`).join('\n');
-  return `<!-- ${FORMAT} -->\n# Task Audit: ${cell(title)}\n\n- Task ID: ${context.taskId}\n- Created At: ${cell(createdAt)}\n- Nimo Revision: ${cell(nimoRevision)}\n\n## Contract\n\n### Goal\n${cell(goal)}\n\n### Scope\n${scopeRows}\n\n### Acceptance\n| ID | Requirement |\n|---|---|\n${acceptanceRows}\n${MARKERS.acceptance}\n\n## Harness\n| Applied | Evidence of use |\n|---|---|\n${row([playbook, `route:${playbook}`])}\n${MARKERS.harness}\n\n## Trace\n- Host: ${cell(host)}\n- Reference: ${cell(traceRef)}\n- Observed Boundary: ${cell(observedBoundary)}\n\n## Decisions\n| Time | ID | Phase | Decision | Reason | Evidence | Result |\n|---|---|---|---|---|---|---|\n${MARKERS.decisions}\n\n## Artifacts\n| Time | ID | Artifact | Reference |\n|---|---|---|---|\n${MARKERS.artifacts}\n\n## Verification\n| Time | Check | Source | Required | Verification | Evidence / Reason | Result |\n|---|---|---|---|---|---|---|\n${MARKERS.verification}\n\n## Outcome\n| Time | Execution | Verdict | Artifact Version | Open | Next |\n|---|---|---|---|---|---|\n${row([createdAt, 'running', 'PENDING', 'PENDING', 'none', 'continue task'])}\n${MARKERS.outcome}\n\n## Learning\n| Time | ID | Observation | Candidate | Status |\n|---|---|---|---|---|\n${MARKERS.learning}\n`;
+  return `<!-- ${FORMAT} -->\n# Task Audit: ${cell(title)}\n\n- Task ID: ${context.taskId}\n- Created At: ${cell(createdAt)}\n- Nimo Revision: ${cell(nimoRevision)}\n- Contract Hash: ${contractHash}\n\n## Contract\n\n### Goal\n${cell(goal)}\n\n### Scope\n${scopeRows}\n\n### Acceptance\n| ID | Requirement |\n|---|---|\n${acceptanceRows}\n${MARKERS.acceptance}\n\n## Harness\n| Applied | Evidence of use |\n|---|---|\n${row([playbook, `route:${playbook}`])}\n${MARKERS.harness}\n\n## Trace\n- Host: ${cell(host)}\n- Reference: ${cell(traceRef)}\n- Observed Boundary: ${cell(observedBoundary)}\n\n## Decisions\n| Time | ID | Phase | Decision | Reason | Evidence | Result |\n|---|---|---|---|---|---|---|\n${MARKERS.decisions}\n\n## Artifacts\n| Time | ID | Artifact | Reference |\n|---|---|---|---|\n${MARKERS.artifacts}\n\n## Verification\n| Time | Check | Source | Required | Verification | Evidence / Reason | Result |\n|---|---|---|---|---|---|---|\n${MARKERS.verification}\n\n## Outcome\n| Time | Execution | Verdict | Artifact Version | Open | Next |\n|---|---|---|---|---|---|\n${row([createdAt, 'running', 'PENDING', 'PENDING', 'none', 'continue task'])}\n${MARKERS.outcome}\n\n## Learning\n| Time | ID | Observation | Candidate | Status |\n|---|---|---|---|---|\n${MARKERS.learning}\n`;
 }
 
 async function initAudit(request) {
@@ -131,6 +136,11 @@ async function initAudit(request) {
   if (existing !== null) {
     if (!existing.includes(`<!-- ${FORMAT} -->`) || !existing.includes(`- Task ID: ${context.taskId}`)) {
       fail('AUDIT_EXISTS_INVALID', `Existing audit cannot be adopted: ${context.file}`);
+    }
+    const expectedContractHash = initContract(request).contractHash;
+    const existingContractHash = metadata(existing, 'Contract Hash');
+    if (existingContractHash !== expectedContractHash) {
+      fail('AUDIT_CONTRACT_MISMATCH', 'Existing Task Audit has a different goal, scope, or acceptance boundary; use a new taskId');
     }
     return response({ file: context.file, taskId: context.taskId }, [], false);
   }
@@ -185,14 +195,14 @@ function appendOutcome(content, request) {
   if (!VERDICTS.has(verdict)) fail('INVALID_VERDICT', `Unsupported verdict ${verdict}`);
   const artifactVersion = text(request.artifactVersion, 'artifactVersion');
   const time = typeof request.time === 'string' && request.time.trim() ? request.time.trim() : new Date().toISOString();
-  const line = row([time, execution, verdict, artifactVersion, request.open, request.next]);
+  const line = row([time, execution, verdict, artifactVersion, request.open ?? 'none', request.next ?? 'none']);
   return { content: insertBeforeMarker(content, MARKERS.outcome, line), id: verdict };
 }
 
 function appendLearning(content, request) {
   const rows = linesBeforeMarker(content, MARKERS.learning);
-  const status = text(request.status, 'status');
-  if (!LEARNING_STATUS.has(status)) fail('INVALID_LEARNING_STATUS', `Unsupported learning status ${status}`);
+  const status = text(request.status ?? 'candidate', 'status');
+  if (!LEARNING_STATUS.has(status)) fail('INVALID_LEARNING_STATUS', 'V1 learning status must be candidate');
   const id = nextId(rows, 'L');
   const time = typeof request.time === 'string' && request.time.trim() ? request.time.trim() : new Date().toISOString();
   const line = row([time, id, request.observation, request.candidate, status]);
@@ -201,10 +211,10 @@ function appendLearning(content, request) {
 
 async function appendAudit(request) {
   const context = taskContext(request);
-  const kind = text(request.kind, 'kind');
   return await withLock(context.file, async () => {
     const content = await readAudit(context.file);
     let update;
+    const kind = text(request.kind, 'kind');
     if (kind === 'decision') update = appendDecision(content, request);
     else if (kind === 'harness') update = appendHarness(content, request);
     else if (kind === 'artifact') update = appendArtifact(content, request);
@@ -254,7 +264,9 @@ async function validateAudit(request) {
 
   const taskId = metadata(content, 'Task ID');
   const nimoRevision = metadata(content, 'Nimo Revision');
+  const contractHash = metadata(content, 'Contract Hash');
   if (taskId !== context.taskId) diagnostics.push({ code: 'TASK_ID_MISMATCH', message: `Audit task id ${taskId ?? '<missing>'} does not match ${context.taskId}`, severity: 'BLOCK' });
+  if (!contractHash) diagnostics.push({ code: 'CONTRACT_HASH_MISSING', message: 'Contract Hash is missing', severity: 'BLOCK' });
   if (!nimoRevision) diagnostics.push({ code: 'NIMO_REVISION_MISSING', message: 'Nimo Revision is missing', severity: 'BLOCK' });
   else if (nimoRevision === 'UNAVAILABLE') diagnostics.push({ code: 'NIMO_REVISION_UNAVAILABLE', message: 'Nimo revision could not be observed', severity: 'WARN' });
 
