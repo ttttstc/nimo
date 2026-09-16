@@ -101,6 +101,12 @@ async function readAudit(file) {
   return await fs.readFile(file, 'utf8');
 }
 
+function contractBlock(goal, scope, acceptance) {
+  const acceptanceRows = acceptance.map(item => row([item.id, item.requirement])).join('\n');
+  const scopeRows = scope.map(item => `- ${cell(item)}`).join('\n');
+  return `### Goal\n${cell(goal)}\n\n### Scope\n${scopeRows}\n\n### Acceptance\n| ID | Requirement |\n|---|---|\n${acceptanceRows}\n${MARKERS.acceptance}`;
+}
+
 function initContract(request) {
   const goal = text(request.goal, 'goal');
   const scope = stringArray(request.scope, 'scope');
@@ -113,21 +119,27 @@ function initContract(request) {
     seenAcceptance.add(id);
     return { id, requirement };
   });
-  return { goal, scope, acceptance, contractHash: hash(JSON.stringify({ goal, scope, acceptance })) };
+  const block = contractBlock(goal, scope, acceptance);
+  return { goal, scope, acceptance, block, contractHash: hash(block) };
+}
+
+function currentContractBlock(content) {
+  const start = content.indexOf('## Contract\n\n');
+  const end = content.indexOf('\n\n## Harness');
+  if (start < 0 || end < 0 || end <= start) fail('INVALID_AUDIT', 'Contract block is malformed');
+  return content.slice(start + '## Contract\n\n'.length, end);
 }
 
 function auditTemplate(request, context) {
   const title = text(request.title, 'title');
-  const { goal, scope, acceptance, contractHash } = initContract(request);
+  const { block, contractHash } = initContract(request);
   const playbook = text(request.playbook, 'playbook');
   const nimoRevision = text(request.nimoRevision, 'nimoRevision');
   const host = text(request.trace?.host, 'trace.host');
   const traceRef = typeof request.trace?.ref === 'string' && request.trace.ref.trim() ? request.trace.ref.trim() : 'UNAVAILABLE';
   const observedBoundary = text(request.trace?.observedBoundary, 'trace.observedBoundary');
   const createdAt = typeof request.time === 'string' && request.time.trim() ? request.time.trim() : new Date().toISOString();
-  const acceptanceRows = acceptance.map(item => row([item.id, item.requirement])).join('\n');
-  const scopeRows = scope.map(item => `- ${cell(item)}`).join('\n');
-  return `<!-- ${FORMAT} -->\n# Task Audit: ${cell(title)}\n\n- Task ID: ${context.taskId}\n- Created At: ${cell(createdAt)}\n- Nimo Revision: ${cell(nimoRevision)}\n- Contract Hash: ${contractHash}\n\n## Contract\n\n### Goal\n${cell(goal)}\n\n### Scope\n${scopeRows}\n\n### Acceptance\n| ID | Requirement |\n|---|---|\n${acceptanceRows}\n${MARKERS.acceptance}\n\n## Harness\n| Applied | Evidence of use |\n|---|---|\n${row([playbook, `route:${playbook}`])}\n${MARKERS.harness}\n\n## Trace\n- Host: ${cell(host)}\n- Reference: ${cell(traceRef)}\n- Observed Boundary: ${cell(observedBoundary)}\n\n## Decisions\n| Time | ID | Phase | Decision | Reason | Evidence | Result |\n|---|---|---|---|---|---|---|\n${MARKERS.decisions}\n\n## Artifacts\n| Time | ID | Artifact | Reference |\n|---|---|---|---|\n${MARKERS.artifacts}\n\n## Verification\n| Time | Check | Source | Required | Verification | Evidence / Reason | Result |\n|---|---|---|---|---|---|---|\n${MARKERS.verification}\n\n## Outcome\n| Time | Execution | Verdict | Artifact Version | Open | Next |\n|---|---|---|---|---|---|\n${row([createdAt, 'running', 'PENDING', 'PENDING', 'none', 'continue task'])}\n${MARKERS.outcome}\n\n## Learning\n| Time | ID | Observation | Candidate | Status |\n|---|---|---|---|---|\n${MARKERS.learning}\n`;
+  return `<!-- ${FORMAT} -->\n# Task Audit: ${cell(title)}\n\n- Task ID: ${context.taskId}\n- Created At: ${cell(createdAt)}\n- Nimo Revision: ${cell(nimoRevision)}\n- Contract Hash: ${contractHash}\n\n## Contract\n\n${block}\n\n## Harness\n| Applied | Evidence of use |\n|---|---|\n${row([playbook, `route:${playbook}`])}\n${MARKERS.harness}\n\n## Trace\n- Host: ${cell(host)}\n- Reference: ${cell(traceRef)}\n- Observed Boundary: ${cell(observedBoundary)}\n\n## Decisions\n| Time | ID | Phase | Decision | Reason | Evidence | Result |\n|---|---|---|---|---|---|---|\n${MARKERS.decisions}\n\n## Artifacts\n| Time | ID | Artifact | Reference |\n|---|---|---|---|\n${MARKERS.artifacts}\n\n## Verification\n| Time | Check | Source | Required | Verification | Evidence / Reason | Result |\n|---|---|---|---|---|---|---|\n${MARKERS.verification}\n\n## Outcome\n| Time | Execution | Verdict | Artifact Version | Open | Next |\n|---|---|---|---|---|---|\n${row([createdAt, 'running', 'PENDING', 'PENDING', 'none', 'continue task'])}\n${MARKERS.outcome}\n\n## Learning\n| Time | ID | Observation | Candidate | Status |\n|---|---|---|---|---|\n${MARKERS.learning}\n`;
 }
 
 async function initAudit(request) {
@@ -267,6 +279,7 @@ async function validateAudit(request) {
   const contractHash = metadata(content, 'Contract Hash');
   if (taskId !== context.taskId) diagnostics.push({ code: 'TASK_ID_MISMATCH', message: `Audit task id ${taskId ?? '<missing>'} does not match ${context.taskId}`, severity: 'BLOCK' });
   if (!contractHash) diagnostics.push({ code: 'CONTRACT_HASH_MISSING', message: 'Contract Hash is missing', severity: 'BLOCK' });
+  else if (hash(currentContractBlock(content)) !== contractHash) diagnostics.push({ code: 'CONTRACT_HASH_MISMATCH', message: 'Contract content no longer matches its initialized boundary', severity: 'BLOCK' });
   if (!nimoRevision) diagnostics.push({ code: 'NIMO_REVISION_MISSING', message: 'Nimo Revision is missing', severity: 'BLOCK' });
   else if (nimoRevision === 'UNAVAILABLE') diagnostics.push({ code: 'NIMO_REVISION_UNAVAILABLE', message: 'Nimo revision could not be observed', severity: 'WARN' });
 
