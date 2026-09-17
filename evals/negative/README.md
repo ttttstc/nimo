@@ -22,4 +22,4 @@
 | [N10-blocking-review-crossed.md](N10-blocking-review-crossed.md) | 静默跨过"处理"级阻塞评审继续开 PR | nimo-interrogate |
 | [N11-stale-verification-map.md](N11-stale-verification-map.md) | 用过期 Verification Map 给新行为判 PASS | nimo-verify |
 | [N12-missing-task-audit.md](N12-missing-task-audit.md) | 完成 Feature 后把 Task Audit 当可选文档直接交付 | nimo-mode |
-| [N13-invalid-task-audit.md](N13-invalid-task-audit.md) | Audit 存在但验收／证据不完整仍宣称 VERIFIED | opening-a-pr |
+| [N13-invalid-task-audit.md](N13-invalid-task-audit.md) | Audit 存在但验收／证据不完整仍宣称 Feature VERIFIED | nimo-mode |
