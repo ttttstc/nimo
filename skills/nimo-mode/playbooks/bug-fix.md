@@ -23,7 +23,7 @@
 4. **建立修复验证范围并验证。** 原始复现是必测场景，同时列出本次修复必须保持的关键不变量和最小相关回归。若稳定、可复用的复现或回归场景没有对应 `.nimo/verification/` 资产，调用 [nimo-verification-create](../../nimo-verification-create/SKILL.md) 增量补齐；已有资产因修复而漂移时，调用 [nimo-verification-maintain](../../nimo-verification-maintain/SKILL.md) 做定向维护。随后统一调用 [nimo-verify](../../nimo-verify/SKILL.md) 在同一真实操作面验证：原始复现现在通过，关键不变量和合理影响范围没有未处理失败。这是修复成立性验证，还不一定是最终交付证据；"无法判定"、缺少必要场景或操作面错误不算通过。单元测试显示的是局部分支行为，不能替代缺陷消失的真实证明。
 5. 安排提交顺序，让失败的复现先于修复落在 git 历史里；diff 讲述这个故事。缺陷存在便宜的本地测试路径时，按 [nimo-tdd](../../nimo-tdd/SKILL.md) 的失败测试先行节奏做；测试会昂贵、重集成或结果不清楚时，跳过它改用实际复现证据。这是 [nimo-principle-sequence-verifiable-units](../../nimo-principle-sequence-verifiable-units/SKILL.md) 的规范用法：失败测试在前，修复叠在其上。
 6. 修复成立性验证之后，deslop、no-comments、评审修复或 rebase 冲突处理又修改了代码时，对第 4 步的验证范围重新做 Final Verify 后才允许交付；若这些修改使 Verification Map、辅助脚本、入口、命令、路由、选择器、副作用或预期行为漂移，先走 `nimo-verification-maintain` 定向修复资产；如果新出现稳定且必要的修复场景没有资产，走 `nimo-verification-create` 补齐。最终执行仍统一由 `nimo-verify` 完成。
-7. 按授权运行 [整理并创建 PR](opening-a-pr.md)。Final Verify 由 opening-a-pr 承担；没有推送／PR 授权时，完成本地 Final Verify 再停在本地交付结果。
+7. **最终交付与 Audit 收口。** 有推送／PR 授权时调用 [整理并创建 PR](opening-a-pr.md)。`opening-a-pr` 独立完成 PR cleanup／review／当前 Artifact 的 Final Verify 和 PR 包装，不创建、不修改、不校验 Task Audit；Bug Fix 读取其返回的 Artifact Version、原始复现／关键不变量／相关回归结果与 Evidence，再完成自己的 Audit finalize / validate，之后才能把缺陷修复任务宣称为 Nimo `VERIFIED／delivered`。没有推送／PR 授权时，在本地完成最终代码的 Final Verify 和同样的 Audit finalize / validate 后停在本地交付结果。
 
 调查阶段把 nimo-how 和 nimo-why 作为并行子 Agent 扇出；宿主不支持并行时按委派纪律串行独立执行并记录降级。
 
@@ -31,7 +31,7 @@
 
 ## 必要条件与停止
 
-先复现再修复；无法复现时可继续只读调查，但结果不得写成"缺陷已修复并验证"。每行上线代码可追溯到运行时证据；假设被证据推翻时，撤销它所促动的改动，"也许有帮助"的改动不上线。便宜明确的回归测试采用失败先于修复的顺序。不依靠修改预期结果掩盖缺陷。修复成立性验证之后代码又发生变化时，最终代码必须仍由原始复现、关键不变量和合理影响范围共同证明，否则标记 UNVERIFIED／BLOCKED，不交付。项目整体 Coverage 不完整不要求本次补齐，但与当前修复直接相关的必要场景不能缺失。推送、PR、评论、合并等外部动作受用户当前授权约束。
+先复现再修复；无法复现时可继续只读调查，但结果不得写成"缺陷已修复并验证"。每行上线代码可追溯到运行时证据；假设被证据推翻时，撤销它所促动的改动，"也许有帮助"的改动不上线。便宜明确的回归测试采用失败先于修复的顺序。不依靠修改预期结果掩盖缺陷。修复成立性验证之后代码又发生变化时，最终代码必须仍由原始复现、关键不变量和合理影响范围共同证明，否则标记 UNVERIFIED／BLOCKED，不交付。项目整体 Coverage 不完整不要求本次补齐，但与当前修复直接相关的必要场景不能缺失。Task Audit 约束 Bug Fix 的任务状态，不是 `opening-a-pr` 的 PR 创建门禁。推送、PR、评论、合并等外部动作受用户当前授权约束。
 
 公共规则见 [宿主合同](../references/host-contract.md)、[工具用法](../references/tools.md) 和 [检查点](../references/checkpoints.md)。
 
