@@ -10,6 +10,12 @@
 
 **换什么都不换标准。** 换模型、换宿主、换研发 skill，任务目标、工程要求和交付标准不变。换 skill 只换能力层，换宿主只换运行时。
 
+## 架构与能力
+
+![nimo 技术架构](docs/image/nimo-architecture.svg)
+
+![nimo 能力大盘](docs/image/nimo-capabilities.svg)
+
 ## 七大设计原则
 
 1. **约束结果，不约束路径** —— 明确工程不变量，保留 Agent 自主规划空间。
