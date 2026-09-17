@@ -31,7 +31,7 @@
 6. rebase 成小而有序的提交；后续事项堆叠其上。运用 [nimo-principle-sequence-verifiable-units](../../nimo-principle-sequence-verifiable-units/SKILL.md)：构建、验证并提交每个小单元，再做下一个。
 7. 交付前用 [nimo-interrogate](../../nimo-interrogate/SKILL.md) 独立质疑（设计有争议时必须）。结论存在"处理"项：停止交付，回到修复；修复后重新执行受影响 cleanup／review，并重新运行受影响验证，处理项清零并通过前不继续。评审触发实质转向时追加 review Decision。
 8. **收口 Verification 资产与最终场景。** review、deslop、冲突处理或提交整理导致用户入口、命令、路由、选择器、副作用、预期行为或验收场景变化时，重新执行第 5 步的资产路由：缺资产走 `nimo-verification-create`，已有资产漂移走 `nimo-verification-maintain`，然后由 `nimo-verify` 对最终代码重新覆盖受影响的验收场景和合理影响范围。不要直接在 Feature 流程里复制 Verification Map 的执行规则。最终结果继续写入同一 Task Audit，不另建验收摘要事实源。
-9. 按授权运行 [整理并创建 PR](opening-a-pr.md)。Final Verify 与 Final Task Audit Validate 由 opening-a-pr 承担；没有推送／PR 授权时，仍在所有 cleanup／review／验证资产收口完成后完成本地 Final Verify，追加最终 Artifact、Verification、Outcome，执行 `audit validate final` 后再停在本地交付结果——PR 授权与验证、审计职责不绑死。
+9. **最终交付与 Audit 收口。** 有推送／PR 授权时，调用 [整理并创建 PR](opening-a-pr.md)。`opening-a-pr` 是独立 PR 动作，不创建、不修改、不校验 Task Audit；它返回当前 Artifact Version、PR Final Verify 的逐项结果与 Evidence，以及本流程内发生的实质转向。Feature 读取这些返回事实，把最终 Artifact、Verification、Evidence、Outcome 写入自己的 Task Audit，并执行 `audit validate final`，通过后才把 Feature 任务宣称为 Nimo `VERIFIED／delivered`。没有推送／PR 授权时，Feature 自己在所有 cleanup／review／验证资产收口完成后执行本地 Final Verify，完成同样的 Audit finalize / validate，再停在本地交付结果。PR 是否存在和 Task Audit 是否通过是两条独立状态：Audit 失败不伪装 Feature 已交付，也不要求 `opening-a-pr` 反向承担 Audit 生命周期。
 
 代码耦合的工作（一个功能、一次迁移）交给单一持有者，检查点内联；该持有者在阻塞阶段之后内部扇出。父级扇出只用于产出独立产物的切片（审计、跨子系统调查、竞争性实验）。在阶段边界重写检查点；派一个新的持有者，不要链式中断。
 
@@ -41,7 +41,7 @@
 
 必须先明确领域数据形状及其组织结构，再让委派者写逻辑。`nimo-architect` 跳过时保留原因；跨边界或存在实质设计取舍时不能用"任务小"自动跳过；architect 只交付设计，实现由委派者承担。吞吐量检查点四项必须保留，不适用的标 `n/a` 和原因，不许静默折叠成实现细节；实现存在多种有效形状时必须走 nimo-arena，没有 skip-with-reason 逃逸，nimo-principle-laziness-protocol 不覆盖它。主 Agent 亲自审每个委派者的 diff。
 
-本次任务的每个必要验收场景必须能追溯到 Verification 资产、实际 `nimo-verify` 结果和证据；项目整体 Coverage 不完整可以保留为验证债务，但不能用历史缺口解释当前验收场景未验证。实现阶段验证不是最终交付证据，最终交付证据是全部 cleanup／review 修复／提交组织之后的 Final Verify；interrogate 的"处理"项阻塞交付，修复后重新验证。Task Audit 缺失或最终校验 BLOCK 时不得以 Nimo VERIFIED／delivered 交付。频繁提交限于本地；推送、PR、评论、合并等外部动作受用户当前授权约束。
+本次任务的每个必要验收场景必须能追溯到 Verification 资产、实际 `nimo-verify` 结果和证据；项目整体 Coverage 不完整可以保留为验证债务，但不能用历史缺口解释当前验收场景未验证。实现阶段验证不是最终交付证据，最终交付证据是全部 cleanup／review 修复／提交组织之后绑定最终 Artifact 的 Final Verify；interrogate 的"处理"项阻塞交付，修复后重新验证。Task Audit 缺失或最终校验 BLOCK 时不得以 Nimo VERIFIED／delivered 交付；这一约束属于 Feature，不是 `opening-a-pr` 的 PR 创建门禁。频繁提交限于本地；推送、PR、评论、合并等外部动作受用户当前授权约束。
 
 公共规则见 [宿主合同](../references/host-contract.md)、[工具用法](../references/tools.md) 和 [检查点](../references/checkpoints.md)。
 
