@@ -1,96 +1,190 @@
 ---
 name: nimo-show-me-your-work
-description: "为长时间运行或无人值守的工作保留可审查的决策记录：使用一份 TSV 日志，每个关键决定记录做了什么、为什么、证据和结果。默认保存在本地；只有评审者需要依赖这份记录判断结果是否可信时才提交。"
+description: "为需要可信回溯的任务提供可插拔审计层：在不侵入目标 Skill 的前提下，把 Contract、实际 Harness、关键 Decision、Artifact、Verification、Evidence、Trace 边界与 Outcome 收敛到一份 Task Audit。普通任务不会因此自动启用审计。"
 ---
 
-# 保留可审查的决策记录
+# 保留可审查的任务证据
 
-当用户会在任务执行一段时间后再回来审查时，必须让人能够重建“做了什么决定、为什么这样决定、依据什么证据、结果怎样”，而不是要求他重跑整个任务或翻完整会话。
+本 Skill 是 Nimo 的**可插拔审计层**。它用于长时间运行、无人值守、高风险、多人／多 Agent 协作，或用户明确要求可追溯审计的任务。
 
-本 Skill 维护一份统一 TSV 决策日志，让不同任务和后续 Agent 都能用相同方式找到和审查记录。
+它不改变 `feature`、`bug-fix`、`nimo-verify`、`opening-a-pr` 等目标 Skill 的协议，也不要求这些 Skill 知道 Task Audit 的存在。目标 Skill 只负责产生自己的真实结果；本 Skill 从外部组织这些事实。
 
-## 日志格式
+```text
+普通执行： Target Skill → Result
 
-使用单个 TSV 文件，每个关键决定或检查点一行。复制 [references/decision-log-template.tsv](references/decision-log-template.tsv) 的表头开始。
+审计执行： nimo-show-me-your-work
+               ↓
+           audit init
+               ↓
+           Target Skill
+               ↓
+       收集事实 / 关键 Decision
+               ↓
+         audit validate
+               ↓
+           Task Audit
+```
 
-字段：
+## 何时启用
 
-- **time**：ISO8601 时间戳。
-- **phase**：所属阶段或工作流。
-- **decision**：做出的选择或完成的动作，一行说清。
-- **reason**：用平实中文说明为什么。
-- **evidence**：能够直接检查的证据位置，例如 commit SHA、PR 编号、`file:line`、trace 或截图路径；不要写成一段解释。
-- **result**：实际结果或验证状态，例如 `tests green`、`reverted`、`INCONCLUSIVE`、`open`。
+只有以下情况之一成立时启用：
 
-## 怎样记录
+- 用户明确要求记录、审计、可追溯或事后复盘。
+- 上层 Harness／宿主策略明确选择 `audited run`。
+- 长时间无人值守、多 Agent 并发、跨模块迁移、安全／发布等高风险任务需要独立审计记录。
 
-每行只记录真正影响任务走向的决定或检查点：选择方案、一个单元完成并验证、一次撤销或转向、发现阻塞、修正验证条件。不要记录每一个机械动作。
+普通 `feature`、`bug-fix`、`refactoring`、`nimo-verify`、`opening-a-pr` 不因为本 Skill 存在而自动进入审计流程。审计策略属于调用层，不下沉到叶子 Skill。
 
-文本应该像向队友复述工作一样直接具体，不使用抽象口号。日志文本同样遵守 [nimo-unslop](../nimo-unslop/SKILL.md)。
+## 单一审计制品
 
-优先使用 [nimo-mode/scripts/log.mjs](../nimo-mode/scripts/log.mjs) 写入，避免格式错误。通过 `--input <request.json>` 传入 `file`、`phase`、`decision`、`reason`、`evidence`、`result`，`time` 可以省略并自动取当前时间。
+一次 Audited Run 只维护一份主记录：
 
-该工具会：
+```text
+<projectRoot>/.nimo/tasks/<task-id>/audit.md
+```
 
-- 首次写入时补表头并生成时间戳。
-- 去除混入单元格的制表符和换行。
-- 对以 `=`、`+`、`-`、`@` 开头的单元格增加单引号前缀，避免不可控文本在电子表格中触发公式执行。
-- 拒绝符号链接目标，并在写入期间加锁。
+固定结构：
 
-如果不使用工具直接写入，仍必须满足相同的格式和安全要求。
+```text
+Contract
+Harness
+Trace
+Decisions
+Artifacts
+Verification
+Outcome
+Learning
+```
 
-## 默认放在哪里
+Task Audit 是**任务级语义事实入口**，不是底层事实源。Git、真实 Artifact、目标 Skill 输出、Verification Evidence、Host Trace、CI／Runtime Result 仍然是原始事实。
 
-默认把日志当作本次任务的工作记录，不提交：
+## 生命周期
 
-- 单任务可放在工作目录的 `decisions.tsv`。
-- 多任务并行时可放在 `.audit/<task-slug>.tsv`。
+进入 Audited Run 时，先运行本 Skill 自带的 [scripts/audit.mjs](scripts/audit.mjs) `init`。Audit 初始化成功后再执行目标 Skill。
 
-只有工作规模或风险高到评审者需要依赖这份记录建立信心时才提交，例如大型迁移、长时间无人值守工作或复杂跨模块改造。提交前删除个人路径、凭据和无关数据；决策记录不是内部推理全文。
+任务过程中只在出现审计价值时追加：
 
-## 记录规则
+- 实际生效的 Harness 及使用证据。
+- 会实质改变 Artifact、Scope、Risk、Acceptance 或 Verification 的关键 Decision。
+- 目标 Skill 已经产生的 Artifact 引用。
+- 目标 Skill 已经产生的 Verification Result 与 Evidence。
+- 最终 Outcome 与 Artifact Version。
+- 仅作为候选的 Learning。
 
-- 一行只记录一个决定或检查点。
-- 采用只追加方式。决定后来被推翻时，新加一行记录新的决定和原因，不编辑或删除历史。
-- 证据优先指向可复跑的脚本或已提交产物，让评审者能直接复查。
-- 没有证据支撑的“已验证”记录必须改成未验证或不确定。
+目标 Skill 不负责调用 `audit.mjs`。记录动作由当前 Audited Run 的审计持有者完成。
 
-## 结束前审计记录
+## Decision 记录协议
 
-交回任务前，对照本次运行实际发生的事情检查日志是否真实。
+Decision 只记录可公开审查的工程理由，不保存内部推理全文。
 
-宿主提供本次会话记录时，只读取当前任务范围内的记录；不要跨项目读取无关私人会话。宿主不提供会话记录时，对照任务产物、提交、验证结果和当前工作记录审计，并明确说明这个限制。
+推荐字段：
 
-检查：
+```text
+Decision + Reason + Evidence + Result
+```
 
-- 每一行都对应真实发生的决定或动作。
-- 每个证据引用都能解析，并确实证明该行声称的内容。
-- 重要的转向、被放弃方案、阻塞和验证结果没有遗漏。
-- 删除没有审查价值的流水账记录。
+以下节点检查是否发生实质选择：
 
-工作事实与日志不一致时，修正日志，不改写事实叙述来迎合旧记录。
+- 方案收口。
+- Scope 扩大、缩小或责任边界变化。
+- 新证据推翻原方向并导致转向。
+- Verification 范围、关键不变量或影响范围的非显然选择。
+- Capability 缺失导致执行或验证降级。
+- 风险接受、停止、BLOCKED／UNVERIFIED 判断。
 
-## 独立审查决策记录
+机械动作不记录：读文件、grep、安装依赖、每条命令、每次 Tool Call 都不属于 Decision。
 
-任何产生决策记录的运行，在交回前都必须尝试一次独立复核。宿主提供独立子 Agent／独立上下文时，用它审查决策记录和本次运行证据；能使用多模型时，优先选择与主要执行模型不同的模型家族。
+Decision 采用只追加方式。旧选择被推翻时新增一条 Decision，说明替代关系；不改写历史来让过程显得更顺畅。
 
-宿主不支持独立上下文时，按 [委派纪律](../nimo-mode/references/delegation.md) 明确记录降级，不声称完成了独立审查；这个缺口必须写进最终“注意”部分。
+## 事实收集
 
-审查者重点寻找：
+### Harness
 
-- 关键决定证据不足。
-- 验证步骤被跳过或没有真实证据。
-- 范围扩张、过早决策或只修症状的风险选择。
-- 普通代码审查很容易忽略的未完成项。
+只记录本次实际使用的 Harness。配置存在、Skill 可读、Principle 被索引都不能单独证明“已应用”。Evidence of use 应指向真实产物、Decision、Verification 或路由事实。
 
-产生决策记录的运行，最终回复都增加“注意”部分。完成独立复核时，说明使用的模型和需要人工重点查看的记录；没有问题也可以明确写“无额外标记”。未能完成独立复核时，明确说明原因和缺口。
+### Trace
+
+宿主能提供当前 Session／Run／Trace 时只记录引用，不复制完整 Transcript。宿主没有可用 Trace 时写 `UNAVAILABLE`，并明确 Observed Boundary；不可观察过程不得从结果反推。
+
+### Verification
+
+`nimo-verify` 等验证能力仍保持自己的执行语义。本 Skill只消费其已经产生的：
+
+```text
+Check / Source / Required / Verification / Evidence / Result / Artifact Version
+```
+
+不得为了填 Audit 把未执行的验证写成 PASS。
+
+### Artifact
+
+记录可解析的 Artifact 引用，例如 commit、文件、PR、构建产物或发布包。最终 Outcome 必须绑定精确 Artifact Version 才能支持 `VERIFIED`。
+
+## 结束前审计
+
+交回 Audited Run 前，对照实际产物、目标 Skill 输出、Verification、可用 Host Trace 和 Decision 记录做一次一致性检查：
+
+- 每个记录对应真实发生的事实。
+- Evidence 能解析，并确实支持对应主张。
+- 关键转向、能力降级、Verification 范围决定没有遗漏。
+- `PASS` 不得缺 Evidence。
+- `VERIFIED` 必须绑定当前 Artifact Version。
+- 不可观察过程继续保持不可观察，不事后补造原因。
+
+随后运行 `audit.mjs validate`。需要把这次 Audited Run 作为完成的审计样本时使用 `final=true`。
+
+Task Audit 无效只影响**本次 Audited Run 的审计结论**；它不会反向禁止目标 Skill 独立使用，也不会成为 `opening-a-pr`、`nimo-verify` 等能力的隐藏前置条件。
+
+## 独立复核
+
+独立复核按风险触发，不要求每一份 Audit 都额外派 Agent：
+
+- 长时间无人值守。
+- 多 Agent 并发或跨模块大改。
+- 安全、发布、迁移等高风险任务。
+- 关键 Decision 缺少确定性证据。
+- Task Contract 明确要求独立审计。
+
+普通 Audited Run 完成一致性检查和确定性 `validate` 即可。
+
+## Learning
+
+单次 Task Audit 只能记录 `candidate`。一个 correction、retry 或单次成功不能直接提升为稳定 Harness 规则。只有多个可比 Task Audit 支持同一重复问题后，才进入后续 Harness Review；Harness 修改落地也不能单独证明改进有效，还要由后续可比任务验证结果是否改善。
+
+## 工具
+
+本 Skill 自带 `scripts/audit.mjs`，通过 JSON 请求提供：
+
+```text
+init      创建或幂等打开一份 Task Audit
+append    追加 decision / harness / artifact / verification / outcome / learning
+validate  校验 Contract、Evidence、Verification、Artifact Version 与 Verdict 的一致性
+```
+
+工具只做确定性记账和校验，不判断设计是否合理、不执行测试、不创建 PR、不控制其他 Skill。
+
+旧的 `decisions.tsv` / `nimo-mode/scripts/log.mjs` 暂时保留给既有调用兼容；新的 Audited Run 以单一 Task Audit 为主记录，不再额外创建第二份 Decision 主文件。
 
 ## 与其他 Skill 组合
 
-其他 Skill 需要审计轨迹时直接调用本 Skill，不再自行定义另一套日志格式。
+组合方向始终是：
+
+```text
+nimo-show-me-your-work(Target Skill)
+```
+
+而不是：
+
+```text
+Target Skill → 强依赖 Task Audit
+```
+
+任何目标 Skill 都应能在完全不知道 Task Audit 的情况下独立工作。
 
 ## 边界与交付
 
-遵守 [宿主合同](../nimo-mode/references/host-contract.md) 和 [委派纪律](../nimo-mode/references/delegation.md)。只读、方案或停止要求优先，步骤不扩大授权。交付具体日志位置、关键证据、未验证项及原因。
+遵守 [宿主合同](../nimo-mode/references/host-contract.md) 和 [委派纪律](../nimo-mode/references/delegation.md)。只读、方案、停止或外部动作授权仍以用户当前要求为准；启用 Audit 不扩大任何动作权限。
 
-来源：[pstack show-me-your-work](https://github.com/cursor/plugins/blob/f5bdd6826fd0a0d9cbc4347134c3a74a200b9d9d/pstack/skills/show-me-your-work/SKILL.md)。
+交付 Task Audit 位置、关键 Evidence、不可观察边界、最终 Verdict 与未验证项。不要交付内部推理全文。
+
+来源：[pstack show-me-your-work](https://github.com/cursor/plugins/blob/f5bdd6826fd0a0d9cbc4347134c3a74a200b9d9d/pstack/skills/show-me-your-work/SKILL.md)，Task Audit Overlay 为 Nimo 扩展设计。
