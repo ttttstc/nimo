@@ -29,13 +29,13 @@
 5. 以保持行为的小步移动，每步保持 pin 绿。API 重塑时，同一波内迁移所有调用者并删除旧 API（[nimo-principle-migrate-callers-then-delete-legacy-apis](../../nimo-principle-migrate-callers-then-delete-legacy-apis/SKILL.md)）。不搞兼容 shim，不留新旧并行双轨。每个重命名都对着实际文件逐处核对；重命名会静默漏掉字符串、文档和反向引用中的使用。机械编辑委派给子 Agent（用户配置的重构模型），给出明确范围（文件路径、被移动的名称、要保持的行为）；亲自审阅它的 diff。宿主没有独立子 Agent 时，主 Agent 顺序扮演并记录降级，降级下的自审不称独立审查。
 6. 在真实产物上证明行为不变，不是"能编译"（[nimo-principle-prove-it-works](../../nimo-principle-prove-it-works/SKILL.md)）。较大的重塑做等价性检查：diff 新旧输出的脚本、录制基线对新代码的回放，或在匹配操作面上按 [nimo-verify](../../nimo-verify/SKILL.md) 冒烟运行。验证自己来；不信任委派者"看起来不错"的总结。
 7. 确认改动配得上它的位置。成功度量是理解成本（reader load）下降（[nimo-principle-minimize-reader-load](../../nimo-principle-minimize-reader-load/SKILL.md)）：问题与答案之间更少的层、更少的隐藏状态、没有第二个消费者时更少的间接层。diff 没有在任何地方降低理解成本，撤销它。
-8. rebase 成讲述故事的小而有序的提交：先减法提交，再重塑，再后续清理，让单次 revert 撤销一片。按 [nimo-principle-sequence-verifiable-units](../../nimo-principle-sequence-verifiable-units/SKILL.md) 塑形，每个保持行为的切片在下一个之前保持绿。按授权运行 [整理并创建 PR](opening-a-pr.md)。
+8. rebase 成讲述故事的小而有序的提交：先减法提交，再重塑，再后续清理，让单次 revert 撤销一片。按 [nimo-principle-sequence-verifiable-units](../../nimo-principle-sequence-verifiable-units/SKILL.md) 塑形，每个保持行为的切片在下一个之前保持绿。按授权运行 [整理并创建 PR](opening-a-pr.md)；`opening-a-pr` 独立完成 PR 包装和当前 Artifact 的 Final Verify，不接管 Task Audit。需要 Task Audit 的重构任务在其返回后，用最终 Artifact Version、等价性证明与 Evidence 完成自己的 Audit finalize / validate，再声明 Nimo `VERIFIED／delivered`；没有 PR 授权时在本地完成同样的最终验证与 Audit 收口。
 
 交付时说明：改变了什么结构、固定它的 pin、等价性证明、理解成本变化、上线了什么、撤销了什么。没有新行为。
 
 ## 必要条件与停止
 
-类型检查不等于行为等价证明；pin（特征测试、快照或等价性 harness）先于任何结构移动。发现新功能或 Bug 时记录为独立事项，不借重构改变行为；要重新设计就点名并改走 feature。无兼容 shim、无新旧双轨；重命名对字符串、文档和反向引用做全量清扫。diff 未在任何位置降低理解成本则撤销。本次 nimo 重建属于 feature / multi-phase-plan，不能假装是纯行为等价重构。推送、PR、评论、合并等外部动作受用户当前授权约束。
+类型检查不等于行为等价证明；pin（特征测试、快照或等价性 harness）先于任何结构移动。发现新功能或 Bug 时记录为独立事项，不借重构改变行为；要重新设计就点名并改走 feature。无兼容 shim、无新旧双轨；重命名对字符串、文档和反向引用做全量清扫。diff 未在任何位置降低理解成本则撤销。本次 nimo 重建属于 feature / multi-phase-plan，不能假装是纯行为等价重构。Task Audit 约束重构任务自身的 `VERIFIED／delivered` 状态，不是 `opening-a-pr` 的创建门禁。推送、PR、评论、合并等外部动作受用户当前授权约束。
 
 公共规则见 [宿主合同](../references/host-contract.md)、[工具用法](../references/tools.md) 和 [检查点](../references/checkpoints.md)。
 
