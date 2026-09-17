@@ -11,8 +11,8 @@ description: "nimo 工程任务总入口。用户明确调用 nimo，或任务�
 2. 多步骤任务第一项完整读取下方原则索引。进入匹配流程后，按其“执行前读取”打开相关原则的完整叶文件；索引摘要不能代替正文。明确会改变的决定，再开始具体操作。只读过索引时不得声称已应用原则。
 3. 按 [配置规则](references/configuration.md) 读取团队和个人引用，按需检索知识，不一次读取全部目录；错误不能静默忽略。项目知识的维护、审计和交付前影响判断遵守 [知识维护契约](references/knowledge.md)。
 4. 读取匹配 Playbook，把其编号步骤原样保留到任务清单，具体步骤可细化。跳过写原因和影响，必要证据缺失不能通过。
-5. **Task Audit 默认开启。** 任务只要会修改项目资产、需要形成 `VERIFIED | UNVERIFIED | BLOCKED` 交付结论，或进入长程／多 Agent 工程流程，就在实质设计或实现前通过 `scripts/audit.mjs` 初始化 `<projectRoot>/.nimo/tasks/<task-id>/audit.md`，并遵守 [nimo-show-me-your-work](../nimo-show-me-your-work/SKILL.md) 的关键决策记录协议。纯只读、纯方案且无实现交付时可不创建；一旦从只读切换为实际变更，先初始化再继续。重要审计纪律不依赖模型自行判断是否激活。
-6. Task Audit 是任务级语义审计入口，不替代 Git、Artifact、Host Trace、Verification Evidence 或 CI。Host Trace 不可用时显式记录 `UNAVAILABLE` 与 Observed Boundary；配置存在不能冒充 Harness 已实际使用。直接接手已有差异且没有历史 Audit 时，创建收口 Audit，并把此前实现过程标为不可观察，不补造历史。
+5. **Task Audit 对任务生命周期默认开启。** 当 Playbook 拥有一个工程任务的 Goal／Scope／Acceptance 和执行生命周期，且会修改项目资产、需要形成 `VERIFIED | UNVERIFIED | BLOCKED` 任务结论，或进入长程／多 Agent 工程流程时，在实质设计或实现前通过 `scripts/audit.mjs` 初始化 `<projectRoot>/.nimo/tasks/<task-id>/audit.md`，并遵守 [nimo-show-me-your-work](../nimo-show-me-your-work/SKILL.md) 的关键决策记录协议。纯只读、纯方案且无实现交付时可不创建；一旦从只读切换为实际变更，先初始化再继续。重要审计纪律不依赖模型自行判断是否激活。**独立的交付／仓库动作不因自身被调用而自动创建 Task Audit**：`opening-a-pr`、`babysit`、`shipping`、`worktree-cleanup` 只完成各自的 Git／PR 职责；若由已有 Audit 的上游任务调用，返回事实给调用方，由调用方继续维护 Audit。
+6. Task Audit 是任务级语义审计入口，不替代 Git、Artifact、Host Trace、Verification Evidence 或 CI。Host Trace 不可用时显式记录 `UNAVAILABLE` 与 Observed Boundary；配置存在不能冒充 Harness 已实际使用。需要 Audit 的任务直接接手已有差异且没有历史 Audit 时，可以创建收口 Audit，并把此前实现过程标为不可观察，不补造历史；单独调用 `opening-a-pr` 不为了 PR 反向补造 Task Audit。
 7. 非简单变更先 nimo-how。跨边界或实质设计取舍使用 nimo-architect。实现委派与审查分离；主 Agent 保留设计、Bug 原始复现、实际差异审阅和最终验收。会实质改变 Artifact、Scope、Risk、Acceptance 或 Verification 的关键选择按 Task Audit 协议及时记录。
 8. 写有状态代码前明确数据结构。编写或修改测试时验证真实行为，不把内部调用关系当成结果。真实操作面验证不能被编译、类型检查或子任务自报替代。需要 Task Audit 的任务，把 `nimo-verify` 的逐场景结果与 Evidence 写入同一 Audit。
 9. 提交前 nimo-deslop，审查前 nimo-no-comments，技术说明使用 nimo-technical-writing 和 nimo-unslop。只清理本任务制造的问题。
@@ -81,7 +81,7 @@ description: "nimo 工程任务总入口。用户明确调用 nimo，或任务�
 
 没有匹配固定流程或一次大型任务需要特殊组合时使用 [nimo-figure-it-out](../nimo-figure-it-out/SKILL.md)，不是第 24 个固定 Playbook。单会话可完成工作不升级项目编排。
 
-只看方案不实现。检查 PR 用 babysit check；跟到可合并才用 drive；合并进入 shipping。用户自己合并用 autopilot-stack。明确授权逐项实现并合入的独立事项才用 autopilot-full。
+只看方案不实现。检查 PR 用 babysit check；跟到可合并才用 drive；合并进入 shipping。用户自己合并用 autopilot-stack。明确授权逐项实现并合入的独立事项才用 autopilot-full。`opening-a-pr` 是独立 PR 包装动作：直接调用时不进入 Task Audit 生命周期；由 Feature／Bug Fix／Refactoring 等有 Task Audit 的任务调用时，只返回最终 Artifact 与验证事实，不接管上游 Audit。
 
 ## 委派与恢复
 
@@ -103,6 +103,8 @@ description: "nimo 工程任务总入口。用户明确调用 nimo，或任务�
 ## 完成
 
 需要 Task Audit 的任务，在进入 `delivered` 或对外声明 Nimo `VERIFIED` 前必须完成结束 Decision Audit，把当前 Artifact、逐场景 Verification、Evidence、Outcome 写入 Audit，并执行 `scripts/audit.mjs` 的 `validate`（`final=true`）。最终校验必须绑定当前 Final Verify 的 Artifact Version 与 Verdict。Audit 缺失、结构无效、Acceptance 缺必要 Verification、PASS 无 Evidence、Artifact Version／Verdict 不一致时，不能进入 VERIFIED／delivered；修复 Audit 或补齐真实验证后重新校验。Task Audit 位于 `.nimo/tasks/`，其记账更新不改变待交付产品 Artifact。
+
+这条完成规则约束**任务状态**，不作为独立 `opening-a-pr` 的 PR 创建前置条件。拥有 Task Audit 的上游任务若调用 `opening-a-pr`，应在其返回后读取最终 Artifact Version、Final Verify 结果与 Evidence，再完成自己的 Audit finalize / validate；即使 PR 已经创建，Audit 未通过时仍不得把上游任务宣称为 Nimo `VERIFIED／delivered`。
 
 项目发生实际变更的任务，在进入 `delivered` 前还要做一次轻量知识影响判断，遵守 [知识维护契约](references/knowledge.md)：
 
