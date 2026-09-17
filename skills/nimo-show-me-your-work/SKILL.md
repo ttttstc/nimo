@@ -94,7 +94,9 @@ Decision + Reason + Evidence + Result
 
 机械动作不记录：读文件、grep、安装依赖、每条命令、每次 Tool Call 都不属于 Decision。
 
-Decision 采用只追加方式。旧选择被推翻时新增一条 Decision，说明替代关系；不改写历史来让过程显得更顺畅。
+采用只追加方式。决定后来被推翻时，新加一条 Decision 记录新的选择、原因和结果；不编辑或删除历史来让过程显得更顺畅。旧 `decisions.tsv` 若仍被既有调用使用，也继续遵守同一只追加纪律。
+
+每条 Evidence 都应指向能够直接检查的证据位置，例如 commit SHA、PR 编号、`file:line`、trace、截图、测试输出或目标 Skill 的结构化结果；不要写成无法复查的一段解释。
 
 ## 事实收集
 
@@ -122,7 +124,7 @@ Check / Source / Required / Verification / Evidence / Result / Artifact Version
 
 ## 结束前审计
 
-交回 Audited Run 前，对照实际产物、目标 Skill 输出、Verification、可用 Host Trace 和 Decision 记录做一次一致性检查：
+交回 Audited Run 前，对照本次运行实际发生的事情检查日志是否真实；再对照实际产物、目标 Skill 输出、Verification、可用 Host Trace 和 Decision 记录做一致性检查：
 
 - 每个记录对应真实发生的事实。
 - Evidence 能解析，并确实支持对应主张。
@@ -130,6 +132,8 @@ Check / Source / Required / Verification / Evidence / Result / Artifact Version
 - `PASS` 不得缺 Evidence。
 - `VERIFIED` 必须绑定当前 Artifact Version。
 - 不可观察过程继续保持不可观察，不事后补造原因。
+
+工作事实与 Audit 不一致时，修正 Audit，不改写事实叙述来迎合旧记录。
 
 随后运行 `audit.mjs validate`。需要把这次 Audited Run 作为完成的审计样本时使用 `final=true`。
 
