@@ -76,7 +76,7 @@
 
 ### PB13 opening-a-pr
 
-必须看到授权、分支和工作区范围先核对，只整理任务内差异，再完成适用 cleanup、评审和绑定最终 Artifact Version 的 Final Verify。Final Verify 后、第一次 push／PR 写操作前，必须把最终 Artifact、Verification、Outcome 写入 Task Audit 并执行 final validate；Audit BLOCK 时不得 push 或创建 PR。用户直接交给本流程的既有差异如果没有历史 Audit，应创建收口 Audit并把此前实现过程标为不可观察，而不是伪造过程记录。没有推送／PR授权时停在完成 Final Verify + Final Audit Validate 的本地结果。创建 PR 不得隐含跟进或合并。
+必须看到授权、分支和工作区范围先核对，只整理任务内差异，再完成适用 cleanup、评审、提交组织和绑定当前 Artifact Version 的 PR Final Verify。Final Verify 后不得再执行可能改变代码语义的 cleanup、rebase 或 amend；发生变化必须回到完整收口重新验证。`opening-a-pr` 是独立 Git 交付动作：**不要求 Task Audit、不创建／修改／校验 Task Audit，也不以 Audit 是否存在作为 push／创建 PR 的门禁**。用户直接交给本流程的既有差异不为了开 PR 反向补造历史 Audit。若由 Feature／Bug Fix／Refactoring 等已有 Task Audit 的上游任务调用，本流程返回最终 Artifact Version、Final Verify 逐项结果与 Evidence，调用方自行完成 Audit finalize / validate。没有推送／PR 授权时停在完成 PR Final Verify 的本地 PR-ready 结果。创建 PR 不得隐含跟进或合并。
 
 ### PB14 babysit
 
