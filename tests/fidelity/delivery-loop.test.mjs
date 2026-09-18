@@ -21,9 +21,10 @@ import assert from 'node:assert/strict';
  * C. An interrogate "处理" verdict blocks delivery in the pre-delivery
  *    callers that run interrogate, forcing the fix -> re-cleanup ->
  *    re-review -> re-verify loop.
- * D. A drifted verification map cannot back a PASS; the map/harness update
- *    duty belongs to the caller (feature/bug-fix map sync), never to
- *    nimo-verify itself during Final Verify.
+ * D. Missing or drifted verification assets cannot back a PASS. Asset
+ *    creation/maintenance is routed to nimo-verification-create /
+ *    nimo-verification-maintain, while nimo-verify remains the single
+ *    execution and verdict authority.
  *
  * These are static rule/fidelity checks. The behavioral negative evals
  * (N08-N11) pin the same rules as prompts; their host runs remain
@@ -121,28 +122,33 @@ test('C: a blocking interrogate verdict stops delivery in the pre-delivery calle
   assert.match(openingApr, /停止创建 PR[\s\S]*?处理项清零并通过前不创建 PR/);
 });
 
-test('D: drifted verification maps cannot back a PASS and callers sync affected entries', () => {
+test('D: missing or drifted verification assets cannot back a PASS and are routed through the asset lifecycle', () => {
   const verify = read('skills/nimo-verify/SKILL.md');
-  assert.match(verify, /旧地图不能继续作为 PASS 依据/);
-  assert.match(verify, /地图已漂移/);
+  assert.match(verify, /没有可执行验证资产[\s\S]*?nimo-verification-create/);
+  assert.match(verify, /明显不符[\s\S]*?nimo-verification-maintain/);
   assert.match(verify, /不等于新行为已被验证/);
   assert.match(verify, /只证明其绑定的当前产物版本/);
 
   for (const playbook of ['feature.md', 'bug-fix.md']) {
     const text = read(`skills/nimo-mode/playbooks/${playbook}`);
-    assert.ok(text.includes('.nimo/verification/'), `${playbook} must gate delivery on affected map entries`);
-    assert.match(text, /更新后的路径执行验证|更新后的路径验证/, `${playbook} must verify through the updated paths`);
+    assert.ok(text.includes('.nimo/verification/'), `${playbook} must map current acceptance scenarios to verification assets`);
+    assert.match(text, /nimo-verification-create/, `${playbook} must route missing assets to nimo-verification-create`);
+    assert.match(text, /nimo-verification-maintain/, `${playbook} must route drifted assets to nimo-verification-maintain`);
+    assert.match(text, /nimo-verify/, `${playbook} must execute final verification through nimo-verify`);
   }
 });
 
-test('D (boundary): nimo-verify detects drift but never owns map/harness writes', () => {
+test('D (boundary): nimo-verify executes and judges but never owns verification-asset writes', () => {
   const verify = read('skills/nimo-verify/SKILL.md');
-  // the verifier reports drift and stays blocked; it must not self-update the assets it verifies against
-  assert.match(verify, /不自行修改 map 或 harness/);
-  assert.ok(!verify.includes('能更新就先更新受影响条目'), 'nimo-verify must not carry its own map-update path');
-  // the update duty belongs to the callers, who run it before Final Verify
+  assert.match(verify, /本 Skill 不修改 Verification Map、harness 或辅助脚本/);
+  assert.match(verify, /缺资产转 `nimo-verification-create`/);
+  assert.match(verify, /资产漂移转 `nimo-verification-maintain`/);
+
   const feature = read('skills/nimo-mode/playbooks/feature.md');
-  assert.match(feature, /更新受影响 Verification Map 条目或辅助脚本/);
+  assert.match(feature, /缺资产走 `nimo-verification-create`/);
+  assert.match(feature, /已有资产漂移走 `nimo-verification-maintain`/);
+
   const bugFix = read('skills/nimo-mode/playbooks/bug-fix.md');
-  assert.match(bugFix, /更新受影响 Verification Map 条目或辅助脚本/);
+  assert.match(bugFix, /走 `nimo-verification-maintain` 定向修复资产/);
+  assert.match(bugFix, /走 `nimo-verification-create` 补齐/);
 });
