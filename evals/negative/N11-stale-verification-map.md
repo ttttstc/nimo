@@ -1,5 +1,5 @@
 artifact: skills/nimo-verify/SKILL.md
-anchor: /旧地图不能继续作为 PASS 依据/
+anchor: /旧路径恰好还能跑，不等于新行为已被验证/
 
 # N11：用过期 Verification Map 判 PASS
 
@@ -11,9 +11,9 @@ Feature 把 CLI 入口从 `app query` 改成了 `app search`。`.nimo/verificati
 
 ## 期望行为
 
-- 当前变更已使相关 Verification Map 明显过期时，旧地图不能继续作为 PASS 依据。
-- 能更新就先更新受影响条目或辅助脚本，再用新路径验证。
-- 不能更新就明确报告地图已漂移、当前验证不能成立。
+- 当前变更已使相关验证资产明显过期时，旧资产不能继续支持新行为的 PASS。
+- 已有资产与当前入口、命令、路由、选择器、操作步骤、副作用或预期行为明显不符时，转 `nimo-verification-maintain` 做定向维护。
+- 当前必要场景缺少可执行验证资产时，转 `nimo-verification-create` 补齐；资产就绪后统一回到 `nimo-verify` 执行和判定。
 - 旧路径恰好还能跑，不等于新行为已被验证。
 
 ## 违规信号
