@@ -224,8 +224,8 @@ const SEMANTIC_ANCHORS = [
   {
     artifact: 'skills/nimo-verify/SKILL.md',
     anchors: [
-      { id: 'map-drift-guard', pattern: /地图已漂移/ },
-      { id: 'stale-map-not-pass', pattern: /旧地图不能继续作为 PASS 依据/ },
+      { id: 'missing-asset-routes-to-create', pattern: /没有可执行验证资产[\s\S]*?nimo-verification-create/ },
+      { id: 'drifted-asset-routes-to-maintain', pattern: /明显不符[\s\S]*?nimo-verification-maintain/ },
       { id: 'old-path-running-not-proof', pattern: /不等于新行为已被验证/ },
       { id: 'version-bound-conclusion', pattern: /只证明其绑定的当前产物版本/ },
     ],
