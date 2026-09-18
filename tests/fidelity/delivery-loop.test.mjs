@@ -129,13 +129,21 @@ test('D: missing or drifted verification assets cannot back a PASS and are route
   assert.match(verify, /不等于新行为已被验证/);
   assert.match(verify, /只证明其绑定的当前产物版本/);
 
-  for (const playbook of ['feature.md', 'bug-fix.md']) {
-    const text = read(`skills/nimo-mode/playbooks/${playbook}`);
-    assert.ok(text.includes('.nimo/verification/'), `${playbook} must map current acceptance scenarios to verification assets`);
-    assert.match(text, /nimo-verification-create/, `${playbook} must route missing assets to nimo-verification-create`);
-    assert.match(text, /nimo-verification-maintain/, `${playbook} must route drifted assets to nimo-verification-maintain`);
-    assert.match(text, /nimo-verify/, `${playbook} must execute final verification through nimo-verify`);
-  }
+  const feature = read('skills/nimo-mode/playbooks/feature.md');
+  assert.ok(feature.includes('.nimo/verification/'), 'feature.md must map current acceptance scenarios to verification assets');
+  assert.match(
+    feature,
+    /缺资产走 `nimo-verification-create`，已有资产漂移走 `nimo-verification-maintain`，然后由 `nimo-verify`/,
+    'feature.md must hand off to nimo-verify after create/maintain completes',
+  );
+
+  const bugFix = read('skills/nimo-mode/playbooks/bug-fix.md');
+  assert.ok(bugFix.includes('.nimo/verification/'), 'bug-fix.md must map current acceptance scenarios to verification assets');
+  assert.match(
+    bugFix,
+    /先走 `nimo-verification-maintain` 定向修复资产；如果新出现稳定且必要的修复场景没有资产，走 `nimo-verification-create` 补齐。最终执行仍统一由 `nimo-verify` 完成/,
+    'bug-fix.md must hand off to nimo-verify after create/maintain completes',
+  );
 });
 
 test('D (boundary): nimo-verify executes and judges but never owns verification-asset writes', () => {
