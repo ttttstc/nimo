@@ -25,7 +25,7 @@
    - **共享可变状态。** 默认拆分目标（[nimo-principle-separate-before-serializing-shared-state](../../nimo-principle-separate-before-serializing-shared-state/SKILL.md)）；只为真实不变量串行。
    - **最小安全拆分。** 单个执行者最优时，说明为什么。
 4. 把写代码委派给子 Agent（用户配置的功能实现模型），范围必须具体：文件路径；按 [nimo-principle-model-the-domain](../../nimo-principle-model-the-domain/SKILL.md) 点名的数据形状及其组织结构——散落布尔量之上的状态机、分散分支之上的表或注册表、重复形状假设之上的类型化模型，在委派者写逻辑之前选定——以及成功标准。亲自审阅它的 diff。当实现存在多种有效形状（错误处理、抽象层、测试结构）时，改经 [nimo-arena](../../nimo-arena/SKILL.md) 委派，让 runner 呈现备选、交叉评审守护挑选。强制：没有 skip-with-reason 逃逸；[nimo-principle-laziness-protocol](../../nimo-principle-laziness-protocol/SKILL.md) 不能覆盖它（收益是审查分离，不是省行数）。你是一个 Agent 也能派子 Agent；"应用很小"和"子 Agent 不能再派子 Agent"都是错的借口。被禁止再派子的子 Agent，通过亲自持有 diff、保持同样的审查分离来满足本条；不许回复"待命中"去等一个嵌套 Agent。宿主没有独立子 Agent 时，主 Agent 顺序扮演实现者并记录降级，实现与审查分离的语义保留，但降级下的自审不称独立审查。注释按 [nimo-no-comments](../../nimo-no-comments/SKILL.md)。手术式编辑；对上游派生文件对照源头重新对齐。共享原语的改进移植到所有使用方并逐一验证。频繁提交。
-5. **覆盖当前任务的全部验收场景并验证。** 先把 Task Contract、用户明确要求和已固定规格中的验收场景逐条列出，并映射到项目 `.nimo/verification/` 中的可执行验证资产。缺少对应资产时，调用 [nimo-verification-create](../../nimo-verification-create/SKILL.md) 只补齐本次场景；已有资产因本次修改而漂移时，调用 [nimo-verification-maintain](../../nimo-verification-maintain/SKILL.md) 做定向维护。资产就绪后统一调用 [nimo-verify](../../nimo-verify/SKILL.md)，覆盖全部验收场景、关键不变量和合理影响范围。项目整体覆盖不完整不要求本次补齐，但“无法判定”、缺少必要场景或操作面错误均不算通过。这是实现阶段验证，用于快速确认实现方向正确；最终交付证据仍来自所有 cleanup／review 修复／提交组织完成后的 Final Verify。
+5. **覆盖当前任务的全部验收场景并验证。** 实现完成后统一由 [nimo-verify](../../nimo-verify/SKILL.md) 对照要求、方案与实际差异审视本次新增／涉及的主要场景，不设置编码前创建测试或地图的通用门禁。由它按下述资产路由补齐后执行，不另建测试流程。先把 Task Contract、用户明确要求和已固定规格中的验收场景逐条列出，并映射到项目 `.nimo/verification/` 中的可执行验证资产。缺少对应资产时，调用 [nimo-verification-create](../../nimo-verification-create/SKILL.md) 只补齐本次场景；已有资产因本次修改而漂移时，调用 [nimo-verification-maintain](../../nimo-verification-maintain/SKILL.md) 做定向维护。资产就绪后统一调用 [nimo-verify](../../nimo-verify/SKILL.md)，覆盖全部验收场景、关键不变量和合理影响范围。项目整体覆盖不完整不要求本次补齐，但“无法判定”、缺少必要场景或操作面错误均不算通过。这是实现阶段验证，用于快速确认实现方向正确；最终交付证据仍来自所有 cleanup／review 修复／提交组织完成后的 Final Verify。
 6. rebase 成小而有序的提交；后续事项堆叠其上。运用 [nimo-principle-sequence-verifiable-units](../../nimo-principle-sequence-verifiable-units/SKILL.md)：构建、验证并提交每个小单元，再做下一个。
 7. 交付前用 [nimo-interrogate](../../nimo-interrogate/SKILL.md) 独立质疑（设计有争议时必须）。结论存在"处理"项：停止交付，回到修复；修复后重新执行受影响 cleanup／review，并重新运行受影响验证，处理项清零并通过前不继续。
 8. **收口 Verification 资产与最终场景。** review、deslop、冲突处理或提交整理导致用户入口、命令、路由、选择器、副作用、预期行为或验收场景变化时，重新执行第 5 步的资产路由：缺资产走 `nimo-verification-create`，已有资产漂移走 `nimo-verification-maintain`，然后由 `nimo-verify` 对最终代码重新覆盖受影响的验收场景和合理影响范围。不要直接在 Feature 流程里复制 Verification Map 的执行规则。
@@ -39,7 +39,7 @@
 
 必须先明确领域数据形状及其组织结构，再让委派者写逻辑。`nimo-architect` 跳过时保留原因；跨边界或存在实质设计取舍时不能用"任务小"自动跳过；architect 只交付设计，实现由委派者承担。吞吐量检查点四项必须保留，不适用的标 `n/a` 和原因，不许静默折叠成实现细节；实现存在多种有效形状时必须走 nimo-arena，没有 skip-with-reason 逃逸，nimo-principle-laziness-protocol 不覆盖它。主 Agent 亲自审每个委派者的 diff。
 
-本次任务的每个必要验收场景必须能追溯到 Verification 资产、实际 `nimo-verify` 结果和证据；项目整体 Coverage 不完整可以保留为验证债务，但不能用历史缺口解释当前验收场景未验证。实现阶段验证不是最终交付证据，最终交付证据是全部 cleanup／review 修复／提交组织之后的 Final Verify；interrogate 的"处理"项阻塞交付，修复后重新验证。频繁提交限于本地；推送、PR、评论、合并等外部动作受用户当前授权约束。
+本次任务的每个必要验收场景必须能追溯到 Verification 资产、实际 `nimo-verify` 结果和证据；用户声明跳过的执行项按该 Skill 保留未验证事实和声明，最终 `PASS_WITH_SKIPS` 放行，不得因这些未运行项再次拦截；场景本身不冒充实测通过；项目整体 Coverage 不完整可以保留为验证债务，但不能用历史缺口解释当前验收场景未验证。实现阶段验证不是最终交付证据，最终交付证据是全部 cleanup／review 修复／提交组织之后的 Final Verify；interrogate 的"处理"项阻塞交付，修复后重新验证。频繁提交限于本地；推送、PR、评论、合并等外部动作受用户当前授权约束。
 
 公共规则见 [宿主合同](../references/host-contract.md)、[工具用法](../references/tools.md) 和 [检查点](../references/checkpoints.md)。
 
