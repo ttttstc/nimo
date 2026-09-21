@@ -9,14 +9,18 @@
 - [nimo-principle-prove-it-works](../../nimo-principle-prove-it-works/SKILL.md)
 - [nimo-principle-make-operations-idempotent](../../nimo-principle-make-operations-idempotent/SKILL.md)
 
+## 验证结论
+
+消费 [公共判定契约](../references/checkpoints.md#验证判定契约唯一真源)：`PASS_WITH_SKIPS` 原样传递，携带用户声明与逐检查结果，和 PASS／PASS+NOTES 一样可放行，不能仅因已声明跳过项否决。它不表示全部已实测，不替代独立验证、CI 和外部操作授权。
+
 ## 步骤
 
 本流程拥有落了什么：逐个 PR 独立验证，只从根部落连续已验证区间，然后把手从队列上拿开。适用于"落这条栈""发布它""启用就绪即合"，或 [babysit](babysit.md) 已弄绿的栈的后半程。
 
 这是 babysit 之后的半程。babysit 让栈可合并；shipping 决定实际安全可合并什么，并自底向上一次落一个 PR。绿不等于安全，这两个词之间的差距就是本流程的生存空间。
 
-1. **先解析 forge，再逐个 PR 独立验证。** 默认 GitHub（`gh`）；用户配置的当前 forge CLI 能解析该仓库时，用它的等价命令做 PR 查看、观察、编辑和合并，否则留在 `gh` 并记录回退。不要求任何栈管理工具。每个 PR 一个独立执行者（宿主独立子 Agent 或独立上下文），不批量；多个执行者按 [nimo-swarm](../../nimo-swarm/SKILL.md) 组织。每个执行者都在真实操作面上按变更所需驱动（按 [nimo-verify](../../nimo-verify/SKILL.md) 选择实际工具），对照父版本与 head 版本执行。每个返回 `PASS`、`PASS+NOTES` 或 `FAIL`，并在评论授权允许时把 verdict 发布到它自己的 PR 上，让记录活得比会话长；无评论授权时在交付中给出完整 verdict 记录并说明缺口。安全的含义是 verdict 来自没写过这段代码的执行者。CI 绿不是 verdict，机器人的同意审查也不是。宿主无独立执行者时按 [宿主合同](../references/host-contract.md) 降级；shipping 必要的独立验证无法完成时，停在未验证状态。
-2. **只落以底部为根的连续已验证区间。** 从最底部未合并 PR 往上走，停在第一个没有通过 verdict 的 PR；`PASS` 和 `PASS+NOTES` 都算通过。坐在未验证项上面的已验证 PR 不可落地：合并它会把缺口拉进它下面。把上限报告为 PR 编号，并说明是什么断了链。
+1. **先解析 forge，再逐个 PR 独立验证。** 默认 GitHub（`gh`）；用户配置的当前 forge CLI 能解析该仓库时，用它的等价命令做 PR 查看、观察、编辑和合并，否则留在 `gh` 并记录回退。不要求任何栈管理工具。每个 PR 一个独立执行者（宿主独立子 Agent 或独立上下文），不批量；多个执行者按 [nimo-swarm](../../nimo-swarm/SKILL.md) 组织。每个执行者都在真实操作面上按变更所需驱动（按 [nimo-verify](../../nimo-verify/SKILL.md) 选择实际工具），对照父版本与 head 版本执行。每个返回 `PASS`、`PASS+NOTES`、`PASS_WITH_SKIPS` 或 `FAIL`，并在评论授权允许时把 verdict 发布到它自己的 PR 上，让记录活得比会话长；无评论授权时在交付中给出完整 verdict 记录并说明缺口。安全的含义是 verdict 来自没写过这段代码的执行者。CI 绿不是 verdict，机器人的同意审查也不是。宿主无独立执行者时按 [宿主合同](../references/host-contract.md) 降级；shipping 必要的独立验证无法完成时，停在未验证状态。
+2. **只落以底部为根的连续已验证区间。** 从最底部未合并 PR 往上走，停在第一个没有通过 verdict 的 PR；`PASS`、`PASS+NOTES` 和 `PASS_WITH_SKIPS` 都算门禁通过；含跳过项时报告连续可放行区间及未实测项。坐在未验证项上面的已验证 PR 不可落地：合并它会把缺口拉进它下面。把上限报告为 PR 编号，并说明是什么断了链。
 3. **复查每个 verdict 仍描述当前补丁。** 记录 verdict 的 head SHA、base SHA 和该 PR base 到 head 差异的稳定 `git patch-id`。rebase 或改 base 会重写 SHA，可能不碰任何检查就悄悄让 verdict 失效。落一个 PR 前，把记录的 patch-id 与当前 base 到 head 的 patch-id 比较：补丁变了就重新验证；没变则保留代码 verdict，但在当前 head 重查 mergeability 和 CI。绝不用相同的提交消息或旧 SHA 的绿色检查当替代。patch-id 相同只支持补丁内容等价的静态结论，不能覆盖基线改变带来的集成风险，必要的运行验证仍针对当前整合结果。
 4. **只准备最底部 PR。** 拉取当前 trunk。必要时把最底部已验证分支 rebase 到确切的 trunk tip，推送，只把该 PR 的 base 改到 trunk（`gh pr edit <pr> --base <trunk>` 或当前 forge 的等价命令）。推送后重跑第 3 步。还不要给任何后代改 base、布防或合并。rebase、推送、改 base 在用户对本流程的授权范围内执行；未授权时停止并报告。
 5. **一次落一个 PR。** 底部 PR 现在可合并就 squash 合并（`gh pr merge <pr> --squash` 或当前 forge 的等价命令）。必需项还在跑且用户要求了就绪即合时，只给该 PR 布防自动合并（`--squash --auto` 或当前 forge 的 merge-when-ready 等价项，不同 forge 的开关语义以当前 forge 为准）。等这个 PR 真正合并后，再准备下一个。请求自动合并不等于已经合并。

@@ -16,6 +16,10 @@ description: "nimo 工程任务总入口。用户明确调用 nimo，或任务�
 7. 提交前 nimo-deslop，审查前 nimo-no-comments，技术说明使用 nimo-technical-writing 和 nimo-unslop。只清理本任务制造的问题。
 8. 模型、工具、独立上下文、权限和后台能力按 [宿主合同](references/host-contract.md) 使用，不假造不存在的接口。
 
+## 开发后的测试收口
+
+所有开发流程在实现完成后、交付前统一调用 [nimo-verify](../nimo-verify/SKILL.md)：对照要求、方案与实际差异审视本次主要场景，由它路由 Create／Maintain 补齐测试与 Feature Map，再执行验证。开发前只需明确预期，不强制先创建测试资产；Bug 复现、重构／性能基线和明确要求的 TDD 保留前置证据。各 Playbook 不复制测试收口规则，用户声明跳过按 `nimo-verify` 单独记录交付边界，不能冒充通过。
+
 ## 原则索引
 
 - [先质疑共同前提](../nimo-principle-attack-the-premise/SKILL.md)：多个共享同一前提的修复连续在同一验证门槛失败。

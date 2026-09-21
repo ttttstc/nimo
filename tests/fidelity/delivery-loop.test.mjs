@@ -160,3 +160,18 @@ test('D (boundary): nimo-verify executes and judges but never owns verification-
   assert.match(bugFix, /走 `nimo-verification-maintain` 定向修复资产/);
   assert.match(bugFix, /走 `nimo-verification-create` 补齐/);
 });
+
+test('skip verdict survives shared checkpoints, PR and shipping consumers', () => {
+  const contract = read('skills/nimo-mode/references/checkpoints.md');
+  assert.match(contract, /VERIFIED \| PASS_WITH_SKIPS \| UNVERIFIED \| BLOCKED/);
+  assert.ok(!contract.includes('只能交付 UNVERIFIED'));
+  for (const name of ['shipping', 'autopilot-full', 'autopilot-stack', 'opening-a-pr']) {
+    assert.match(read(`skills/nimo-mode/playbooks/${name}.md`), /PASS_WITH_SKIPS/);
+  }
+  assert.match(read('skills/nimo-verify/SKILL.md'), /唯一真源/);
+});
+
+test('Final Verify does not write versioned maps after commit organization', () => {
+  assert.match(read('skills/nimo-verify/SKILL.md'), /Final Verify 只读版本化资产/);
+  assert.match(read('skills/nimo-mode/playbooks/opening-a-pr.md'), /不在冻结后回填地图或提交/);
+});
