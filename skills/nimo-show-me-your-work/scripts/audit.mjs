@@ -8,7 +8,7 @@ const TASK_ID = /^[a-z0-9][a-z0-9._-]{0,63}$/;
 const PHASES = new Set(['contract', 'design', 'implementation', 'verification', 'review', 'handoff']);
 const CHECK_RESULTS = new Set(['PASS', 'FAIL', 'NOT_RUN', 'NOT_APPLICABLE']);
 const EXECUTION_STATES = new Set(['running', 'waiting-input', 'blocked', 'paused', 'delivered', 'cancelled']);
-const VERDICTS = new Set(['PENDING', 'VERIFIED', 'UNVERIFIED', 'BLOCKED']);
+const VERDICTS = new Set(['PENDING', 'VERIFIED', 'PASS_WITH_SKIPS', 'UNVERIFIED', 'BLOCKED']);
 const MARKERS = {
   acceptance: '<!-- nimo:audit:acceptance:end -->',
   harness: '<!-- nimo:audit:harness:end -->',
@@ -261,12 +261,21 @@ function appendOutcome(content, request) {
   const verdict = requiredText(request.verdict, 'verdict');
   if (!EXECUTION_STATES.has(execution)) fail('INVALID_EXECUTION', `Unsupported execution state ${execution}`);
   if (!VERDICTS.has(verdict)) fail('INVALID_VERDICT', `Unsupported verdict ${verdict}`);
+  const skips = request.skips ?? [];
+  if (!Array.isArray(skips)) fail('INVALID_INPUT', 'skips must be an array');
+  for (const skip of skips) {
+    for (const field of ['check', 'source', 'reason', 'taskId', 'artifactVersion', 'environment']) {
+      requiredText(skip?.[field], `skips.${field}`);
+    }
+  }
+  content = content.replace('| Time | Execution | Verdict | Artifact Version | Open | Next |\n|---|---|---|---|---|---|',
+    '| Time | Execution | Verdict | Artifact Version | Open | Next | User Skips |\n|---|---|---|---|---|---|---|');
   return {
     id: verdict,
     content: insertRow(content, MARKERS.outcome, [
       now(request), execution, verdict,
       requiredText(request.artifactVersion, 'artifactVersion'),
-      optionalText(request.open), optionalText(request.next),
+      optionalText(request.open), optionalText(request.next), JSON.stringify(skips),
     ]),
   };
 }
@@ -410,14 +419,49 @@ async function validateAudit(request) {
     else {
       const verdict = latestOutcome[2];
       const artifactVersion = latestOutcome[3];
+      if (!VERDICTS.has(verdict)) errors.push(`Unsupported verdict ${verdict}`);
       if (verdict === 'PENDING') errors.push('Final Audit cannot keep PENDING verdict');
       if (!artifactVersion || artifactVersion === 'PENDING') errors.push('Final Audit must bind an Artifact Version');
       if (artifactVersion && artifactVersion !== 'PENDING' && !artifacts.some(item => item[4] === artifactVersion)) {
         errors.push(`Outcome Artifact Version ${artifactVersion} is not present in Artifacts`);
       }
-      if (verdict === 'VERIFIED') {
+      if (verdict === 'VERIFIED' || verdict === 'PASS_WITH_SKIPS') {
+        let skips = [];
+        try {
+          const encoded = latestOutcome[6] ?? '[]';
+          skips = JSON.parse(encoded.replaceAll('&#124;', '|').replaceAll('&lt;', '<').replaceAll('&gt;', '>').replaceAll('&amp;', '&'));
+          if (!Array.isArray(skips)) throw new Error('not an array');
+        } catch {
+          errors.push('Invalid User Skips');
+          skips = [];
+        }
+        const waived = new Set();
+        for (const skip of skips) {
+          if (!skip || !['check', 'source', 'reason', 'taskId', 'artifactVersion', 'environment'].every(field => typeof skip[field] === 'string' && skip[field].trim())) {
+            errors.push('Incomplete user skip declaration');
+            continue;
+          }
+          const check = escapeCell(skip.check);
+          if (skip.taskId !== context.taskId || escapeCell(skip.artifactVersion) !== artifactVersion || skip.environment !== request.expectedEnvironment) {
+            errors.push(`Skip scope mismatch for ${check}`);
+            continue;
+          }
+          if (latestChecks.get(check)?.[6] !== 'NOT_RUN') errors.push(`Skipped check ${check} must remain NOT_RUN`);
+          if (waived.has(check)) errors.push(`Duplicate skip for ${check}`);
+          waived.add(check);
+        }
+        if (verdict === 'PASS_WITH_SKIPS' && ![...waived].some(check => latestChecks.get(check)?.[3] === 'yes')) {
+          errors.push('PASS_WITH_SKIPS requires an explicit user skip for a required check');
+        }
+        const unresolvedFailures = new Set();
+        for (const item of verification) {
+          if (item[6] === 'FAIL') unresolvedFailures.add(item[1]);
+          if (item[6] === 'PASS') unresolvedFailures.delete(item[1]);
+        }
+        for (const check of unresolvedFailures) errors.push(`Unresolved FAIL for ${check}`);
         for (const [check, item] of latestChecks.entries()) {
-          if (item[3] === 'yes' && item[6] !== 'PASS') errors.push(`Required check ${check} is ${item[6]}, not PASS`);
+          const skipped = verdict === 'PASS_WITH_SKIPS' && item[6] === 'NOT_RUN' && waived.has(check);
+          if (item[3] === 'yes' && item[6] !== 'PASS' && !skipped) errors.push(`Required check ${check} is ${item[6]}, not PASS or user-declared skip`);
         }
       }
       if (typeof request.expectedVerdict === 'string' && request.expectedVerdict !== verdict) {

@@ -99,3 +99,5 @@ description: "为项目建立或补齐本地验证资产。当项目缺少脚本
 - 遵守 [宿主合同](../nimo-mode/references/host-contract.md) 和 [委派纪律](../nimo-mode/references/delegation.md)。只读、方案或停止要求优先，步骤不扩大授权。
 
 来源：[pstack create-verification-skill](https://github.com/cursor/plugins/blob/93b00b89ef425a9c1bac0d0b317dfc49c930ac99/pstack/skills/create-verification-skill/SKILL.md)。
+
+结果回填只用于提交组织前的普通验证。Final Verify 结果保存在版本控制之外并由交付摘要引用，不回写版本化 Feature Map；需要修订资产时先返回完整收口，再做最终验证。

@@ -202,3 +202,83 @@ test('learning stays candidate in v1', async () => {
     await rm(root, { recursive: true, force: true });
   }
 });
+
+async function skippedOutcome(root, skips, result = 'NOT_RUN') {
+  await init(root);
+  await append(root, 'artifact', { artifact: 'refund', reference: 'commit:abc123', version: 'abc123' });
+  for (const [check, status] of [['AC-01', 'PASS'], ['AC-02', result]]) {
+    await append(root, 'verification', {
+      check, source: check, required: true, verification: 'refund API', evidence: 'run evidence or missing environment', result: status,
+    });
+  }
+  const saved = await append(root, 'outcome', {
+    execution: 'delivered', verdict: 'PASS_WITH_SKIPS', artifactVersion: 'abc123', skips,
+  });
+  assert.equal(saved.status, 'OK');
+}
+
+function userSkip(overrides = {}) {
+  return { check: 'AC-02', source: 'user-message:42', reason: 'production unavailable',
+    taskId: 'feature-refund', artifactVersion: 'abc123', environment: 'production', ...overrides };
+}
+
+async function validateSkipped(root, overrides = {}) {
+  return audit(base(root, { operation: 'validate', final: true, expectedVerdict: 'PASS_WITH_SKIPS',
+    expectedArtifactVersion: 'abc123', expectedEnvironment: 'production', ...overrides }));
+}
+
+test('user-declared skip and remaining required PASS persist and validate without downgrading', async () => {
+  const root = await fixture('skipped');
+  try {
+    await skippedOutcome(root, [userSkip()]);
+    const result = await validateSkipped(root);
+    assert.equal(result.status, 'OK', result.errors?.join('\n'));
+    assert.equal(result.data.verdict, 'PASS_WITH_SKIPS');
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test('missing environment without user declaration cannot pass the final gate', async () => {
+  const root = await fixture('no-declaration');
+  try {
+    await skippedOutcome(root, []);
+    const result = await validateSkipped(root);
+    assert.equal(result.status, 'BLOCK');
+    assert.ok(result.errors.some(error => error.includes('AC-02')));
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test('a later NOT_RUN and skip cannot hide an unresolved FAIL', async () => {
+  const root = await fixture('failed-then-skipped');
+  try {
+    await skippedOutcome(root, [userSkip()], 'FAIL');
+    await append(root, 'verification', { check: 'AC-02', source: 'AC-02', required: true,
+      verification: 'refund API', evidence: 'user skip', result: 'NOT_RUN' });
+    const result = await validateSkipped(root);
+    assert.equal(result.status, 'BLOCK');
+    assert.ok(result.errors.some(error => error.includes('Unresolved FAIL')));
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test('skip declarations cannot cross tasks, versions or target environments', async () => {
+  for (const override of [{ taskId: 'other-task' }, { artifactVersion: 'old' }, { environment: 'staging' }]) {
+    const root = await fixture('scope');
+    try {
+      await skippedOutcome(root, [userSkip(override)]);
+      const result = await validateSkipped(root);
+      assert.equal(result.status, 'BLOCK');
+      assert.ok(result.errors.some(error => error.includes('scope mismatch')));
+    } finally { await rm(root, { recursive: true, force: true }); }
+  }
+});
+
+test('unwaived required checks must still PASS', async () => {
+  const root = await fixture('other-required');
+  try {
+    await skippedOutcome(root, [userSkip()]);
+    await append(root, 'verification', { check: 'AC-01', source: 'AC-01', required: true,
+      verification: 'refund API', evidence: 'not run', result: 'NOT_RUN' });
+    const result = await validateSkipped(root);
+    assert.equal(result.status, 'BLOCK');
+    assert.ok(result.errors.some(error => error.includes('AC-01')));
+  } finally { await rm(root, { recursive: true, force: true }); }
+});

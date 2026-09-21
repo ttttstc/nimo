@@ -9,6 +9,10 @@
 - [nimo-principle-separate-before-serializing-shared-state](../../nimo-principle-separate-before-serializing-shared-state/SKILL.md)
 - [nimo-principle-prove-it-works](../../nimo-principle-prove-it-works/SKILL.md)
 
+## 验证结论
+
+消费 [公共判定契约](../references/checkpoints.md#验证判定契约唯一真源)：`PASS_WITH_SKIPS` 原样传递，携带用户声明与逐检查结果，和 PASS／PASS+NOTES 一样可放行，不能仅因已声明跳过项否决。它不表示全部已实测，不替代独立验证、CI 和外部操作授权。
+
 ## 步骤
 
 你拥有的是链，从来不是落地。以完全自主构建并验证整个队列，然后交给 operator（发出请求的用户）一条由她审查、由她自己落地的线性 base-branch 链。适用于"autopilot-stack""堆起来但别发布""把链建好，我自己落"。它是 [autopilot-full](autopilot-full.md) 的姊妹流程：owner（所有者）循环与验证门禁完全相同，只有终点不同——那边干净 verdict 授权 owner 合并；这边它只是把一个环节追加进唯一受审的链，任何东西都不自动发布。

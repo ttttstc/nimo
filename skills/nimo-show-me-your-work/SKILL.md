@@ -130,7 +130,9 @@ Check / Source / Required / Verification / Evidence / Result / Artifact Version
 - Evidence 能解析，并确实支持对应主张。
 - 关键转向、能力降级、Verification 范围决定没有遗漏。
 - `PASS` 不得缺 Evidence。
-- `VERIFIED` 必须绑定当前 Artifact Version。
+- `VERIFIED` 与 `PASS_WITH_SKIPS` 必须绑定当前 Artifact Version，并遵守 [公共判定契约](../nimo-mode/references/checkpoints.md#验证判定契约唯一真源)。
+- `PASS_WITH_SKIPS` 的 outcome 请求携带 `skips` 数组，每项包含 `check`、`source`（用户声明引用）、`reason`、`taskId`、`artifactVersion`、`environment`；对应检查保持 NOT_RUN。final validate 必须传 `expectedEnvironment`，工具核对任务、版本、环境以及其他必要检查均 PASS。旧 v1 Outcome 没有 User Skips 列时按空数组读取；追加时补该列。
+- source 是供审查的用户声明引用，工具检查结构与适用范围，不能自行证明用户确实授权；调用方必须核对真实用户消息。FAIL 未被后续有效 PASS 解决时，跳过不能使审计放行。
 - 不可观察过程继续保持不可观察，不事后补造原因。
 
 工作事实与 Audit 不一致时，修正 Audit，不改写事实叙述来迎合旧记录。
