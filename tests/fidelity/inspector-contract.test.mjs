@@ -15,7 +15,7 @@ test('Inspector route, package entry, and runtime boundaries are explicit', () =
   assert.match(mode, /查看执行链路、验证依据或任务证据.*nimo-inspect/);
   assert.match(inspect, /不重跑验证，不自动关联会话/);
   assert.match(inspect, /basis=declared/);
-  assert.match(verify, /required.*Task Anchor/s);
+  assert.match(verify, /required.*任务记录/s);
   assert.match(verify, /unresolvedFailures/);
   assert.match(packageContract, /'nimo-inspect'/);
   assert.match(read('.gitignore'), /\.nimo\/inspector\//);

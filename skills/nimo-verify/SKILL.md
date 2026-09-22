@@ -11,7 +11,7 @@ description: "实现后、回归、合入或交付前时使用。围绕当前任
 
 验证结论只证明其绑定的当前产物版本。验证完成后，只要待交付代码发生语义变化，原结论不再证明新版本；交付前确认最后一次语义代码变化早于最后一次有效 Final Verify，顺序相反就必须重新验证。
 
-Final Verify 的结构化记录写入 `.nimo/tasks/<task-id>/verification.json`，由 [record.mjs](scripts/record.mjs) 生成和校验。记录完整保存 `taskId`、`contractRevision`、`artifactVersion`、`environment`、执行者、独立性、`recordedVerdict`、逐项 `checks`、`skipDeclarations` 和 `unresolvedFailures`。验收的 `required` 只从 Task Anchor 读取；Verify JSON 中的同名输入不能把必要项降级。
+最终验证的结构化记录写入 `.nimo/tasks/<task-id>/verification.json`，由 [record.mjs](scripts/record.mjs) 生成和校验。记录完整保存 `taskId`、`contractRevision`、`artifactVersion`、`environment`、执行者、独立性、`recordedVerdict`、逐项 `checks`、`skipDeclarations` 和 `unresolvedFailures`。验收的 `required` 只从任务记录读取；验证记录中的同名输入不能把必要项降级。
 
 ## 开发后统一审视
 

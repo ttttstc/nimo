@@ -25,7 +25,7 @@ export function fail(code, message) {
 }
 
 export function requiredText(value, label) {
-  if (typeof value !== 'string' || !value.trim()) fail('INVALID_INPUT', `${label} is required`);
+  if (typeof value !== 'string' || !value.trim()) fail('INVALID_INPUT', `缺少必填字段 ${label}`);
   return value.trim();
 }
 

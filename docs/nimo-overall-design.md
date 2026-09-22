@@ -4,4 +4,4 @@
 
 历史 evidence 仅说明当时版本，不代表新版已经验证。宿主能力和验证范围按实际运行结果报告。
 
-Issue #34 V1 的任务观察入口见 [nimo Inspector](nimo-inspector-v1.md)。Inspector 读取 Task Anchor、Final Verification Record 和可选 Audit，生成离线 HTML；它不重跑验证，不自动关联 Session，也不改变验证或外部操作权限。
+Issue #34 V1 的任务检查入口见 [Nimo 任务检查器](nimo-inspector-v1.md)。任务检查器读取任务记录、最终验证记录和可选审计记录，生成离线 HTML；它不重跑验证，不自动关联会话，也不改变验证或外部操作权限。
