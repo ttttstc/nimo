@@ -27,7 +27,7 @@ test('Anchor without verification still renders a readable report', async t => {
   const result = await inspect(request);
   assert.notEqual(result.status, 'ERROR');
   assert.equal(result.data.currentVerdict, 'UNVERIFIED');
-  assert.match(await fs.readFile(result.data.htmlPath, 'utf8'), /Final Verification Record is missing/);
+  assert.match(await fs.readFile(result.data.htmlPath, 'utf8'), /缺少最终验证记录/);
 });
 
 test('missing target environment cannot be MATCH', async t => {
@@ -46,7 +46,7 @@ test('deleted evidence invalidates current conclusion but retains historical ver
   const result = await inspect(request);
   assert.equal(result.data.verification.recordedVerdict, 'VERIFIED');
   assert.equal(result.data.currentVerdict, 'UNVERIFIED');
-  assert.match(await fs.readFile(result.data.htmlPath, 'utf8'), /no currently accessible content-bound evidence/);
+  assert.match(await fs.readFile(result.data.htmlPath, 'utf8'), /缺少当前可访问且内容已绑定的证据/);
 });
 
 test('forged record verdict is visibly rejected in HTML', async t => {
@@ -59,8 +59,8 @@ test('forged record verdict is visibly rejected in HTML', async t => {
   const result = await inspect(request);
   assert.equal(result.data.currentVerdict, 'UNVERIFIED');
   const html = await fs.readFile(result.data.htmlPath, 'utf8');
-  assert.match(html, /has no check coverage/);
-  assert.match(html, /Contract revision 1/);
+  assert.match(html, /没有对应检查/);
+  assert.match(html, /合同修订 1/);
 });
 
 test('real Codex envelope projects no raw payload and rejects wrong workspace', async t => {

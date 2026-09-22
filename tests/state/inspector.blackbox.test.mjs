@@ -83,7 +83,10 @@ test('AC-01: Anchor, Final Verify, and offline HTML form one traceable report', 
     assert.equal(report.data.currentVerdict, 'VERIFIED');
     assert.equal(report.data.evidence[0].status, 'CLAIM_DECLARED');
     const html = await readFile(report.data.htmlPath, 'utf8');
-    assert.match(html, /Nimo Inspector/);
+    assert.match(html, /Nimo 任务检查报告/);
+    assert.match(html, /lang="zh-CN"/);
+    assert.match(html, /已验证（VERIFIED）/);
+    assert.doesNotMatch(html, /Recorded conclusion|Current conclusion|Verification checks|No Audit was found|<th>Required<\/th>/);
     assert.match(html, /&lt;em&gt;escaped&lt;\/em&gt;/);
     assert.doesNotMatch(html, /<em>escaped<\/em>/);
     assert.match(html, /MATCH/);
@@ -131,7 +134,7 @@ test('AC-02 and AC-12: revisions preserve history, reject stale writes, and init
     assert.equal(report.data.verification.contractRevision, 1);
     assert.equal(report.data.verification.recordedVerdict, 'VERIFIED');
     assert.equal(report.data.applicability.status, 'STALE');
-    assert.match(report.data.applicability.reasons.join(' '), /contract revision/);
+    assert.match(report.data.applicability.reasons.join(' '), /合同修订/);
     const conflict = await anchor({ operation: 'revise', projectRoot: root, taskId: 'task-a', expectedRevision: 1, goal: '冲突', scope: ['src'], acceptance: [{ id: 'AC-01', text: '冲突', required: true }], confirmedBy: 'user-message:conflict' });
     assert.equal(conflict.status, 'ERROR');
     assert.equal(conflict.errorCode, 'REVISION_CONFLICT');
@@ -164,7 +167,7 @@ test('AC-03: requiredness comes from Anchor and malformed coverage cannot forge 
     await writeFile(verificationPath, `${JSON.stringify(tampered)}\n`, 'utf8');
     const tamperedResult = await verify({ operation: 'validate', projectRoot: root, taskId: 'task-a' });
     assert.equal(tamperedResult.status, 'BLOCK');
-    assert.ok(tamperedResult.diagnostics.some(item => /requiredness/.test(item.message)));
+    assert.ok(tamperedResult.diagnostics.some(item => /必需属性/.test(item.message)));
   } finally {
     await remove(root);
   }
@@ -191,7 +194,7 @@ test('AC-04 and AC-05: declared skips allow PASS_WITH_SKIPS but cannot hide an u
     assert.equal(laterSkip.data.unresolvedFailures.length, 1);
     const blocked = await verify({ operation: 'validate', projectRoot: root, taskId: 'task-a' });
     assert.equal(blocked.status, 'BLOCK');
-    assert.ok(blocked.diagnostics.some(item => /Unresolved FAIL/.test(item.message)));
+    assert.ok(blocked.diagnostics.some(item => /未解决的失败/.test(item.message)));
   } finally {
     await remove(root);
   }
@@ -206,7 +209,7 @@ test('AC-06 and AC-07: artifact changes stale a historical result while preservi
     const stale = await inspect({ projectRoot: root, taskId: 'task-a', currentSnapshot: snapshot({ dirtyHash: 'dirty-b' }), generatedAt: '2026-09-22T00:05:00.000Z' });
     assert.equal(stale.data.verification.recordedVerdict, 'VERIFIED');
     assert.equal(stale.data.applicability.status, 'STALE');
-    assert.match(stale.data.applicability.reasons.join(' '), /fingerprint/);
+    assert.match(stale.data.applicability.reasons.join(' '), /指纹/);
     const rootB = await workspace('selection');
     try {
       await initTask(rootB, { taskId: 'a-task', createdAt: '2026-09-22T01:00:00.000Z', goal: 'A' });
@@ -214,7 +217,7 @@ test('AC-06 and AC-07: artifact changes stale a historical result while preservi
       await initTask(rootB, { taskId: 'b-task', createdAt: '2026-09-22T01:00:00.000Z', goal: 'B' });
       const selected = await inspect({ projectRoot: rootB, currentSnapshot: snapshot(), generatedAt: '2026-09-22T01:01:00.000Z' });
       assert.equal(selected.data.taskId, 'a-task');
-      assert.match(selected.data.selection.reason, /ties use taskId/);
+      assert.match(selected.data.selection.reason, /同一时间按任务标识排序/);
     } finally {
       await remove(rootB);
     }
@@ -282,7 +285,7 @@ test('AC-09 and AC-10: only declared bounded Session events project, and old Aud
     assert.equal(report.data.sessions.refs[1].status, 'DECLARED_UNBOUNDED');
     assert.equal(report.data.audit.present, true);
     assert.equal(report.data.audit.status, 'CONFLICT');
-    assert.match(report.data.audit.conflicts.join(' '), /Audit result/);
+    assert.match(report.data.audit.conflicts.join(' '), /审计结果/);
   } finally {
     await remove(root);
   }
@@ -320,7 +323,7 @@ test('AC-11 and AC-12: malicious paths and HTML stay inert, and missing Anchor i
       const missing = await inspect({ projectRoot: empty, generatedAt: '2026-09-22T00:06:00.000Z' });
       assert.equal(missing.status, 'WARN');
       assert.equal(missing.data.status, 'MISSING_ANCHOR');
-      assert.match(await readFile(missing.data.htmlPath, 'utf8'), /Task Anchor is missing/);
+      assert.match(await readFile(missing.data.htmlPath, 'utf8'), /缺少任务记录/);
     } finally {
       await remove(empty);
     }

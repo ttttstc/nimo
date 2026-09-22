@@ -55,7 +55,7 @@ test('reading forged evidence and skip declarations never grants a passing verdi
   await fs.writeFile(file, JSON.stringify(record));
   const result = await verify({ ...base, operation: 'validate' });
   assert.equal(result.status, 'BLOCK');
-  assert.match(JSON.stringify(result.diagnostics), /source is required/);
+  assert.match(JSON.stringify(result.diagnostics), /缺少必填字段 source/);
 });
 
 test('malformed acceptance mapping is diagnosed rather than thrown', async t => {

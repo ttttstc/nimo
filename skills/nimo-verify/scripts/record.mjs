@@ -22,13 +22,13 @@ function time(request) {
 }
 
 function integer(value, label, minimum = 0) {
-  if (!Number.isSafeInteger(value) || value < minimum) fail('INVALID_INPUT', `${label} must be an integer >= ${minimum}`);
+  if (!Number.isSafeInteger(value) || value < minimum) fail('INVALID_INPUT', `${label} 必须是大于或等于 ${minimum} 的整数`);
   return value;
 }
 
 function stringArray(value, label, allowEmpty = false) {
   if (!Array.isArray(value) || (!allowEmpty && value.length === 0) || value.some(item => typeof item !== 'string' || !item.trim())) {
-    fail('INVALID_INPUT', `${label} must be a ${allowEmpty ? '' : 'non-empty '}string array`);
+    fail('INVALID_INPUT', `${label} 必须是${allowEmpty ? '' : '非空'}字符串数组`);
   }
   return [...new Set(value.map(item => item.trim()))];
 }
@@ -36,7 +36,7 @@ function stringArray(value, label, allowEmpty = false) {
 function currentContract(anchor, revision) {
   validateAnchor(anchor, anchor?.taskId);
   const contract = anchor.contractRevisions.find(item => item.revision === revision);
-  if (!contract) fail('UNKNOWN_CONTRACT_REVISION', `Unknown contract revision ${revision}`);
+  if (!contract) fail('UNKNOWN_CONTRACT_REVISION', `未知的合同修订 ${revision}`);
   return contract;
 }
 
@@ -50,7 +50,7 @@ function normalizeEvidence(value, checkId, index) {
   if (typeof value === 'string') {
     return { source: 'provided', location: requiredText(value, `checks.${checkId}.evidence[${index}]`) };
   }
-  if (!isObject(value)) fail('INVALID_EVIDENCE', `checks.${checkId}.evidence[${index}] must be an object`);
+  if (!isObject(value)) fail('INVALID_EVIDENCE', `checks.${checkId}.evidence[${index}] 必须是对象`);
   const evidence = {
     source: requiredText(value.source, `checks.${checkId}.evidence[${index}].source`),
     location: requiredText(value.location, `checks.${checkId}.evidence[${index}].location`),
@@ -58,7 +58,7 @@ function normalizeEvidence(value, checkId, index) {
   for (const key of ['version', 'sha256', 'summary', 'claim', 'supportsClaim']) {
     if (value[key] !== undefined) {
       if (key === 'supportsClaim') {
-        if (typeof value[key] !== 'boolean') fail('INVALID_EVIDENCE', `checks.${checkId}.evidence[${index}].supportsClaim must be boolean`);
+        if (typeof value[key] !== 'boolean') fail('INVALID_EVIDENCE', `checks.${checkId}.evidence[${index}].supportsClaim 必须是布尔值`);
         evidence[key] = value[key];
       } else {
         evidence[key] = requiredText(value[key], `checks.${checkId}.evidence[${index}].${key}`);
@@ -69,29 +69,29 @@ function normalizeEvidence(value, checkId, index) {
 }
 
 function normalizeStoredEvidence(value, checkId, index) {
-  if (!isObject(value)) fail('INVALID_EVIDENCE', `checks.${checkId}.evidence[${index}] must be an object`);
+  if (!isObject(value)) fail('INVALID_EVIDENCE', `checks.${checkId}.evidence[${index}] 必须是对象`);
   return normalizeEvidence(value, checkId, index);
 }
 
 function normalizeChecks(value, contract) {
-  if (!Array.isArray(value) || value.length === 0) fail('INVALID_CHECKS', 'checks must be a non-empty array');
+  if (!Array.isArray(value) || value.length === 0) fail('INVALID_CHECKS', 'checks 必须是非空数组');
   const accepted = acceptanceIndex(contract);
   const ids = new Set();
   return value.map(item => {
-    if (!isObject(item)) fail('INVALID_CHECK', 'checks entries must be objects');
+    if (!isObject(item)) fail('INVALID_CHECK', 'checks 的条目必须是对象');
     const checkId = requiredText(item.checkId ?? item.check, 'checkId');
-    if (ids.has(checkId)) fail('DUPLICATE_CHECK', `Duplicate checkId ${checkId}`);
+    if (ids.has(checkId)) fail('DUPLICATE_CHECK', `检查标识重复：${checkId}`);
     ids.add(checkId);
     const acceptanceIds = stringArray(item.acceptanceIds ?? [], `checks.${checkId}.acceptanceIds`, true);
     for (const acceptanceId of acceptanceIds) {
-      if (!accepted.has(acceptanceId)) fail('UNKNOWN_ACCEPTANCE', `Check ${checkId} references unknown acceptance ${acceptanceId}`);
+      if (!accepted.has(acceptanceId)) fail('UNKNOWN_ACCEPTANCE', `检查 ${checkId} 引用了未知验收项 ${acceptanceId}`);
     }
     const evidence = Array.isArray(item.evidence)
       ? item.evidence.map((entry, index) => normalizeEvidence(entry, checkId, index))
       : [];
     const result = requiredText(item.result, `checks.${checkId}.result`);
-    if (!CHECK_RESULTS.has(result)) fail('INVALID_RESULT', `Unsupported result for ${checkId}: ${result}`);
-    if (result === 'PASS' && evidence.length === 0) fail('PASS_WITHOUT_EVIDENCE', `PASS check ${checkId} requires evidence`);
+    if (!CHECK_RESULTS.has(result)) fail('INVALID_RESULT', `检查 ${checkId} 的结果不受支持：${result}`);
+    if (result === 'PASS' && evidence.length === 0) fail('PASS_WITHOUT_EVIDENCE', `通过检查 ${checkId} 必须有证据`);
     const required = acceptanceIds.some(id => accepted.get(id).required)
       ? true
       : acceptanceIds.length === 0 && item.required === true;
@@ -110,12 +110,12 @@ function normalizeChecks(value, contract) {
 
 function normalizeSkips(value, context) {
   if (value === undefined) return [];
-  if (!Array.isArray(value)) fail('INVALID_SKIPS', 'skipDeclarations must be an array');
+  if (!Array.isArray(value)) fail('INVALID_SKIPS', 'skipDeclarations 必须是数组');
   const ids = new Set();
   return value.map(item => {
-    if (!isObject(item)) fail('INVALID_SKIP', 'skipDeclarations entries must be objects');
+    if (!isObject(item)) fail('INVALID_SKIP', 'skipDeclarations 的条目必须是对象');
     const checkId = requiredText(item.checkId ?? item.check, 'skipDeclarations.checkId');
-    if (ids.has(checkId)) fail('DUPLICATE_SKIP', `Duplicate skip declaration for ${checkId}`);
+    if (ids.has(checkId)) fail('DUPLICATE_SKIP', `检查 ${checkId} 的跳过声明重复`);
     ids.add(checkId);
     return {
       checkId,
@@ -129,7 +129,7 @@ function normalizeSkips(value, context) {
 }
 
 function normalizeFailure(value) {
-  if (!isObject(value)) fail('INVALID_FAILURE', 'unresolvedFailures entries must be objects');
+  if (!isObject(value)) fail('INVALID_FAILURE', 'unresolvedFailures 的条目必须是对象');
   const acceptanceIds = value.acceptanceIds === undefined ? [] : stringArray(value.acceptanceIds, 'unresolvedFailures.acceptanceIds', true);
   return {
     checkId: requiredText(value.checkId ?? value.check, 'unresolvedFailures.checkId'),
@@ -148,12 +148,12 @@ function normalizeFailure(value) {
 }
 
 function normalizeResolvedFailure(value, index) {
-  if (!isObject(value)) fail('INVALID_RESOLUTION', `resolvedFailures[${index}] must be an object`);
+  if (!isObject(value)) fail('INVALID_RESOLUTION', `resolvedFailures[${index}] 必须是对象`);
   const acceptanceIds = value.acceptanceIds === undefined
     ? []
     : stringArray(value.acceptanceIds, `resolvedFailures[${index}].acceptanceIds`, true);
   if (!Array.isArray(value.resolutionEvidence) || value.resolutionEvidence.length === 0) {
-    fail('INVALID_RESOLUTION', `resolvedFailures[${index}].resolutionEvidence must be a non-empty array`);
+    fail('INVALID_RESOLUTION', `resolvedFailures[${index}].resolutionEvidence 必须是非空数组`);
   }
   return {
     checkId: requiredText(value.checkId ?? value.check, `resolvedFailures[${index}].checkId`),
@@ -219,7 +219,7 @@ function failureFromCheck(check, context, at, prior) {
     operation: check.operation,
     artifactVersion: context.artifactVersion,
     environment: context.environment,
-    reason: check.reason || 'verification failed',
+    reason: check.reason || '验证失败',
     firstSeenAt: prior?.firstSeenAt ?? at,
     lastSeenAt: at,
   };
@@ -256,7 +256,7 @@ function priorFailures(previous) {
       operation: typeof check.operation === 'string' ? check.operation.trim() : '',
       artifactVersion: typeof previous.artifactVersion === 'string' ? previous.artifactVersion.trim() : '',
       environment: typeof previous.environment === 'string' ? previous.environment.trim() : '',
-      reason: typeof check.reason === 'string' && check.reason.trim() ? check.reason.trim() : 'previous verification failed',
+      reason: typeof check.reason === 'string' && check.reason.trim() ? check.reason.trim() : '先前验证失败',
       firstSeenAt: previous.verifiedAt ?? new Date(0).toISOString(),
       lastSeenAt: previous.verifiedAt ?? new Date(0).toISOString(),
     };
@@ -307,19 +307,19 @@ function skipIndex(skips) {
 export function evaluateRecord(record, anchor, options = {}) {
   const errors = [];
   const warnings = [];
-  if (!isObject(record) || record.schemaVersion !== RECORD_SCHEMA_VERSION) errors.push('Unsupported verification schema');
+  if (!isObject(record) || record.schemaVersion !== RECORD_SCHEMA_VERSION) errors.push('不支持的验证记录格式');
   try {
     validateAnchor(anchor, isObject(anchor) && typeof anchor.taskId === 'string' ? anchor.taskId : undefined);
   } catch (error) {
-    errors.push(`Invalid Task Anchor: ${error.message}`);
+    errors.push(`任务记录无效：${error.message}`);
     return { ok: false, errors, warnings, derivedVerdict: 'UNVERIFIED', unresolvedFailures: [], requiredAcceptance: new Set(), checkById: new Map() };
   }
   if (!isObject(record)) return { ok: false, errors, warnings, derivedVerdict: 'UNVERIFIED', unresolvedFailures: [], requiredAcceptance: new Set(), checkById: new Map() };
   const taskId = record?.taskId;
-  if (taskId !== anchor.taskId) errors.push('Verification taskId does not match Task Anchor');
+  if (taskId !== anchor.taskId) errors.push('验证记录的 taskId 与任务记录不一致');
   const revision = record?.contractRevision;
   const contract = Number.isSafeInteger(revision) ? anchor.contractRevisions.find(item => item.revision === revision) : null;
-  if (!contract) errors.push(`Unknown contract revision ${revision}`);
+  if (!contract) errors.push(`未知的合同修订 ${revision}`);
   const recordContext = contract ? {
     taskId: record.taskId,
     contractRevision: revision,
@@ -329,8 +329,8 @@ export function evaluateRecord(record, anchor, options = {}) {
   } : null;
   const checks = record.checks === undefined ? [] : record.checks;
   const skips = record.skipDeclarations === undefined ? [] : record.skipDeclarations;
-  if (!Array.isArray(checks)) errors.push('checks must be an array');
-  if (!Array.isArray(skips)) errors.push('skipDeclarations must be an array');
+  if (!Array.isArray(checks)) errors.push('checks 必须是数组');
+  if (!Array.isArray(skips)) errors.push('skipDeclarations 必须是数组');
   const requiredAcceptance = new Set(contract?.acceptance.filter(item => item.required).map(item => item.id) ?? []);
   const covered = new Set();
   const checkIds = new Set();
@@ -338,40 +338,40 @@ export function evaluateRecord(record, anchor, options = {}) {
   const requiredByCheck = new Map();
   for (const check of Array.isArray(checks) ? checks : []) {
     if (!isObject(check)) {
-      errors.push('Verification check is not an object');
+      errors.push('验证检查项不是对象');
       continue;
     }
     const checkId = check.checkId;
     if (typeof checkId !== 'string' || !checkId.trim()) {
-      errors.push('Verification checkId is missing');
+      errors.push('缺少验证检查项的 checkId');
       continue;
     }
-    if (checkIds.has(checkId)) errors.push(`Duplicate checkId ${checkId}`);
+    if (checkIds.has(checkId)) errors.push(`检查标识重复：${checkId}`);
     checkIds.add(checkId);
     checkById.set(checkId, check);
     const acceptanceIds = Array.isArray(check.acceptanceIds) ? check.acceptanceIds : [];
-    if (!Array.isArray(check.acceptanceIds)) errors.push(`Check ${checkId} acceptanceIds must be an array`);
+    if (!Array.isArray(check.acceptanceIds)) errors.push(`检查 ${checkId} 的 acceptanceIds 必须是数组`);
     const acceptanceSet = new Set();
     for (const acceptanceId of acceptanceIds) {
       if (typeof acceptanceId !== 'string' || !acceptanceId.trim()) {
-        errors.push(`Check ${checkId} acceptanceIds must contain non-empty strings`);
+        errors.push(`检查 ${checkId} 的 acceptanceIds 必须包含非空字符串`);
         continue;
       }
-      if (acceptanceSet.has(acceptanceId)) errors.push(`Check ${checkId} has duplicate acceptanceId ${acceptanceId}`);
+      if (acceptanceSet.has(acceptanceId)) errors.push(`检查 ${checkId} 包含重复的验收标识 ${acceptanceId}`);
       acceptanceSet.add(acceptanceId);
-      if (!contract?.acceptance.some(item => item.id === acceptanceId)) errors.push(`Check ${checkId} references unknown acceptance ${acceptanceId}`);
+      if (!contract?.acceptance.some(item => item.id === acceptanceId)) errors.push(`检查 ${checkId} 引用了未知验收项 ${acceptanceId}`);
       else covered.add(acceptanceId);
     }
     const expectedRequired = acceptanceIds.some(acceptanceId => contract?.acceptance.find(item => item.id === acceptanceId)?.required === true)
       ? true
       : acceptanceIds.length === 0 && check.required === true;
-    if (check.required !== undefined && typeof check.required !== 'boolean') errors.push(`Check ${checkId} required must be boolean`);
-    else if (check.required !== undefined && check.required !== expectedRequired && acceptanceIds.length > 0) errors.push(`Check ${checkId} requiredness does not match the Task Anchor`);
+    if (check.required !== undefined && typeof check.required !== 'boolean') errors.push(`检查 ${checkId} 的 required 必须是布尔值`);
+    else if (check.required !== undefined && check.required !== expectedRequired && acceptanceIds.length > 0) errors.push(`检查 ${checkId} 的必需属性与任务记录不一致`);
     requiredByCheck.set(checkId, expectedRequired);
-    if (!CHECK_RESULTS.has(check.result)) errors.push(`Unsupported result for ${checkId}: ${check.result}`);
+    if (!CHECK_RESULTS.has(check.result)) errors.push(`检查 ${checkId} 的结果不受支持：${check.result}`);
     let validEvidence = 0;
     if (!Array.isArray(check.evidence)) {
-      errors.push(`Check ${checkId} evidence must be an array`);
+      errors.push(`检查 ${checkId} 的 evidence 必须是数组`);
     } else {
       for (let index = 0; index < check.evidence.length; index += 1) {
         try {
@@ -382,57 +382,57 @@ export function evaluateRecord(record, anchor, options = {}) {
         }
       }
     }
-    if (check.result === 'PASS' && validEvidence === 0) errors.push(`PASS check ${checkId} lacks valid evidence`);
+    if (check.result === 'PASS' && validEvidence === 0) errors.push(`通过检查 ${checkId} 缺少有效证据`);
   }
   const missingRequiredAcceptance = [...requiredAcceptance].filter(acceptanceId => !covered.has(acceptanceId));
-  for (const acceptanceId of missingRequiredAcceptance) errors.push(`Required acceptance ${acceptanceId} has no check coverage`);
+  for (const acceptanceId of missingRequiredAcceptance) errors.push(`必要验收项 ${acceptanceId} 没有对应检查`);
   const validSkips = Array.isArray(skips) ? skips : [];
   const skipsById = skipIndex(validSkips);
   const skipIds = new Set();
   for (const skip of validSkips) {
     if (!isObject(skip)) {
-      errors.push('Skip declaration must be an object');
+      errors.push('跳过声明必须是对象');
       continue;
     }
     const checkId = skip.checkId;
     if (typeof checkId !== 'string' || !checkId.trim()) {
-      errors.push('Skip declaration checkId is required');
+      errors.push('跳过声明必须包含 checkId');
       continue;
     }
-    if (skipIds.has(checkId)) errors.push(`Duplicate skip declaration for ${checkId}`);
+    if (skipIds.has(checkId)) errors.push(`检查 ${checkId} 的跳过声明重复`);
     skipIds.add(checkId);
     for (const field of ['source', 'reason', 'taskId', 'artifactVersion', 'environment']) {
-      if (typeof skip[field] !== 'string' || !skip[field].trim()) errors.push(`Skip declaration ${checkId} ${field} is required`);
+      if (typeof skip[field] !== 'string' || !skip[field].trim()) errors.push(`跳过声明 ${checkId} 缺少必填字段 ${field}`);
     }
-    if (!checkIds.has(checkId)) errors.push(`Skip declaration references unknown check ${checkId}`);
+    if (!checkIds.has(checkId)) errors.push(`跳过声明引用了未知检查 ${checkId}`);
     const skippedCheck = checkById.get(checkId);
-    if (skippedCheck && skippedCheck.result !== 'NOT_RUN') errors.push(`Skip declaration for ${checkId} must reference a NOT_RUN check`);
-    if (skip.taskId !== record.taskId || skip.artifactVersion !== record.artifactVersion || skip.environment !== record.environment) errors.push(`Skip scope mismatch for ${checkId}`);
+    if (skippedCheck && skippedCheck.result !== 'NOT_RUN') errors.push(`检查 ${checkId} 的跳过声明必须对应未执行（NOT_RUN）的检查`);
+    if (skip.taskId !== record.taskId || skip.artifactVersion !== record.artifactVersion || skip.environment !== record.environment) errors.push(`检查 ${checkId} 的跳过声明适用范围不匹配`);
   }
   const unresolvedFailures = [];
-  if (record.unresolvedFailures !== undefined && !Array.isArray(record.unresolvedFailures)) errors.push('unresolvedFailures must be an array');
+  if (record.unresolvedFailures !== undefined && !Array.isArray(record.unresolvedFailures)) errors.push('unresolvedFailures 必须是数组');
   for (const [index, failure] of (Array.isArray(record.unresolvedFailures) ? record.unresolvedFailures : []).entries()) {
     try { unresolvedFailures.push(normalizeFailure(failure)); } catch (error) { errors.push(`unresolvedFailures[${index}]: ${error.message}`); }
   }
   const unresolvedIds = new Set(unresolvedFailures.map(item => item.checkId));
-  for (const check of Array.isArray(checks) ? checks : []) if (isObject(check) && check.result === 'FAIL' && typeof check.checkId === 'string' && !unresolvedIds.has(check.checkId)) errors.push(`FAIL check ${check.checkId} is missing from unresolvedFailures`);
+  for (const check of Array.isArray(checks) ? checks : []) if (isObject(check) && check.result === 'FAIL' && typeof check.checkId === 'string' && !unresolvedIds.has(check.checkId)) errors.push(`失败检查 ${check.checkId} 未保留在 unresolvedFailures 中`);
   for (const failure of unresolvedFailures) {
     const current = checkById.get(failure.checkId);
     if (current?.result === 'PASS' && recordContext && canResolveFailure(failure, current, recordContext, record.verifiedAt)) {
-      errors.push(`Resolved FAIL ${failure.checkId} remains in unresolvedFailures`);
+      errors.push(`已有通过结果的检查 ${failure.checkId} 仍有未解决失败`);
     }
   }
-  for (const failure of unresolvedFailures) errors.push(`Unresolved FAIL for ${failure.checkId}`);
+  for (const failure of unresolvedFailures) errors.push(`检查 ${failure.checkId} 存在未解决的失败`);
   const resolvedFailures = [];
-  if (record.resolvedFailures !== undefined && !Array.isArray(record.resolvedFailures)) errors.push('resolvedFailures must be an array');
+  if (record.resolvedFailures !== undefined && !Array.isArray(record.resolvedFailures)) errors.push('resolvedFailures 必须是数组');
   for (const [index, resolution] of (Array.isArray(record.resolvedFailures) ? record.resolvedFailures : []).entries()) {
     try { resolvedFailures.push(normalizeResolvedFailure(resolution, index)); } catch (error) { errors.push(error.message); }
   }
   if (typeof options.expectedArtifactVersion === 'string' && options.expectedArtifactVersion !== record.artifactVersion) {
-    errors.push(`Artifact version mismatch: expected ${options.expectedArtifactVersion}, found ${record.artifactVersion}`);
+    errors.push(`产物版本不匹配：预期 ${options.expectedArtifactVersion}，实际 ${record.artifactVersion}`);
   }
   if (typeof options.expectedEnvironment === 'string' && options.expectedEnvironment !== record.environment) {
-    errors.push(`Environment mismatch: expected ${options.expectedEnvironment}, found ${record.environment}`);
+    errors.push(`环境不匹配：预期 ${options.expectedEnvironment}，实际 ${record.environment}`);
   }
   let derivedVerdict = 'VERIFIED';
   if (missingRequiredAcceptance.length > 0) derivedVerdict = 'UNVERIFIED';
@@ -452,7 +452,7 @@ export function evaluateRecord(record, anchor, options = {}) {
       hasRequiredNotRun = true;
       if (!skipsById.has(check.checkId)) {
         hasMissingSkip = true;
-        errors.push(`Required check ${check.checkId} lacks a user skip declaration`);
+        errors.push(`必要检查 ${check.checkId} 缺少用户跳过声明`);
       }
     }
     if (required && check.result !== 'PASS' && check.result !== 'NOT_RUN') hasHardFailure = true;
@@ -460,15 +460,15 @@ export function evaluateRecord(record, anchor, options = {}) {
   if (hasHardFailure) derivedVerdict = 'UNVERIFIED';
   else if (hasMissingSkip) derivedVerdict = 'BLOCKED';
   else if (hasRequiredNotRun) derivedVerdict = 'PASS_WITH_SKIPS';
-  if (record?.recordedVerdict && record.recordedVerdict !== derivedVerdict) errors.push(`recordedVerdict ${record.recordedVerdict} does not match derived ${derivedVerdict}`);
-  if (!VERDICTS.has(record?.recordedVerdict)) errors.push(`Unsupported recordedVerdict ${record?.recordedVerdict}`);
+  if (record?.recordedVerdict && record.recordedVerdict !== derivedVerdict) errors.push(`记录结论 ${record.recordedVerdict} 与根据检查结果得出的 ${derivedVerdict} 不一致`);
+  if (!VERDICTS.has(record?.recordedVerdict)) errors.push(`不支持的记录结论 ${record?.recordedVerdict}`);
   if (derivedVerdict === 'PASS_WITH_SKIPS') {
-    for (const check of Array.isArray(checks) ? checks : []) if (isObject(check) && requiredByCheck.get(check.checkId) === true && check.result === 'NOT_RUN' && !skipsById.has(check.checkId)) errors.push(`Required check ${check.checkId} lacks a user skip declaration`);
+    for (const check of Array.isArray(checks) ? checks : []) if (isObject(check) && requiredByCheck.get(check.checkId) === true && check.result === 'NOT_RUN' && !skipsById.has(check.checkId)) errors.push(`必要检查 ${check.checkId} 缺少用户跳过声明`);
   }
-  if (record?.recordedVerdict === 'PASS_WITH_SKIPS' && !hasRequiredNotRun) errors.push('PASS_WITH_SKIPS requires a required NOT_RUN check');
-  if (record?.recordedVerdict === 'VERIFIED' && hasRequiredNotRun) errors.push('VERIFIED cannot contain a required NOT_RUN check');
-  if (Array.isArray(record?.checks) && record.checks.length === 0) errors.push('Verification record has no checks');
-  if (record.artifactSnapshot === undefined) warnings.push('Artifact snapshot is unavailable; applicability may be UNKNOWN');
+  if (record?.recordedVerdict === 'PASS_WITH_SKIPS' && !hasRequiredNotRun) errors.push('PASS_WITH_SKIPS 要求至少一项必要检查未执行（NOT_RUN）');
+  if (record?.recordedVerdict === 'VERIFIED' && hasRequiredNotRun) errors.push('VERIFIED 不能包含未执行（NOT_RUN）的必要检查');
+  if (Array.isArray(record?.checks) && record.checks.length === 0) errors.push('验证记录没有检查项');
+  if (record.artifactSnapshot === undefined) warnings.push('产物快照不可用，适用性可能为未知（UNKNOWN）');
   return { ok: errors.length === 0, errors, warnings, derivedVerdict, unresolvedFailures, resolvedFailures, requiredAcceptance, checkById };
 }
 
@@ -493,8 +493,8 @@ function structuralRecord(request, anchor, previous) {
   else if (isObject(request.executor)) {
     const id = requiredText(request.executor.id ?? request.executor.name, 'executor.id');
     executor = { id };
-  } else fail('INVALID_INPUT', 'executor is required');
-  if (typeof request.independent !== 'boolean') fail('INVALID_INPUT', 'independent must be boolean');
+  } else fail('INVALID_INPUT', '缺少必填字段 executor');
+  if (typeof request.independent !== 'boolean') fail('INVALID_INPUT', 'independent 必须是布尔值');
   const record = {
     schemaVersion: RECORD_SCHEMA_VERSION,
     taskId: anchor.taskId,
@@ -520,12 +520,12 @@ async function writeRecord(request) {
   const paths = await taskPaths(request.projectRoot, requiredText(request.taskId, 'taskId'));
   return withTaskLock(paths, async () => {
     const anchor = await readJsonFile(paths.anchor);
-    if (anchor === null) fail('ANCHOR_MISSING', `Task Anchor does not exist: ${paths.anchor}`);
-    if (request.contractRevision !== anchor.contractRevision) fail('STALE_CONTRACT_REVISION', `Verification must target current contract revision ${anchor.contractRevision}`);
+    if (anchor === null) fail('ANCHOR_MISSING', `任务记录不存在：${paths.anchor}`);
+    if (request.contractRevision !== anchor.contractRevision) fail('STALE_CONTRACT_REVISION', `验证必须对应当前合同修订 ${anchor.contractRevision}`);
     const previous = await readJsonFile(paths.verification);
     const { record, evaluated: initial } = structuralRecord(request, anchor, previous);
     if (request.recordedVerdict !== undefined && request.recordedVerdict !== record.recordedVerdict) {
-      fail('VERDICT_MISMATCH', `recordedVerdict must be ${record.recordedVerdict} for these checks`);
+      fail('VERDICT_MISMATCH', `根据这些检查结果，recordedVerdict 必须为 ${record.recordedVerdict}`);
     }
     if (record.artifactSnapshot === null) record.artifactSnapshot = await captureSnapshot(paths.projectRoot, { artifactFiles: request.artifactFiles ?? [] });
     const evaluated = evaluateRecord(record, anchor);
@@ -543,9 +543,9 @@ async function writeRecord(request) {
 async function validateRecord(request) {
   const paths = await taskPaths(request.projectRoot, requiredText(request.taskId, 'taskId'));
   const anchor = await readJsonFile(paths.anchor);
-  if (anchor === null) return { status: 'BLOCK', changed: false, data: null, diagnostics: [{ code: 'ANCHOR_MISSING', message: 'Task Anchor is missing', severity: 'BLOCK' }] };
+  if (anchor === null) return { status: 'BLOCK', changed: false, data: null, diagnostics: [{ code: 'ANCHOR_MISSING', message: '缺少任务记录', severity: 'BLOCK' }] };
   const record = await readJsonFile(paths.verification);
-  if (record === null) return { status: 'BLOCK', changed: false, data: null, diagnostics: [{ code: 'VERIFICATION_MISSING', message: 'Final Verification Record is missing', severity: 'BLOCK' }] };
+  if (record === null) return { status: 'BLOCK', changed: false, data: null, diagnostics: [{ code: 'VERIFICATION_MISSING', message: '缺少最终验证记录', severity: 'BLOCK' }] };
   const evaluated = evaluateRecord(record, anchor, request);
   return {
     status: evaluated.ok && ['VERIFIED', 'PASS_WITH_SKIPS'].includes(record.recordedVerdict) ? 'OK' : 'BLOCK',
@@ -558,17 +558,17 @@ async function validateRecord(request) {
 async function readRecord(request) {
   const paths = await taskPaths(request.projectRoot, requiredText(request.taskId, 'taskId'));
   const record = await readJsonFile(paths.verification);
-  if (record === null) return { status: 'MISSING', changed: false, data: { file: paths.verification }, diagnostics: ['Final Verification Record is missing'] };
+  if (record === null) return { status: 'MISSING', changed: false, data: { file: paths.verification }, diagnostics: ['缺少最终验证记录'] };
   return { status: 'OK', changed: false, data: record, diagnostics: [] };
 }
 
 async function dispatch(request) {
-  if (!isObject(request)) fail('INVALID_INPUT', 'Expected an object');
+  if (!isObject(request)) fail('INVALID_INPUT', '请求必须是对象');
   const operation = requiredText(request.operation, 'operation');
   if (operation === 'write') return writeRecord(request);
   if (operation === 'validate') return validateRecord(request);
   if (operation === 'read') return readRecord(request);
-  fail('INVALID_OPERATION', `Unsupported operation ${operation}`);
+  fail('INVALID_OPERATION', `不支持的操作 ${operation}`);
 }
 
 export async function run(request) {
@@ -590,7 +590,7 @@ export { normalizeEvidence, normalizeChecks, normalizeSkips };
 async function cli() {
   const index = process.argv.indexOf('--input');
   if (index < 0 || !process.argv[index + 1]) {
-    process.stdout.write(JSON.stringify({ status: 'ERROR', changed: false, data: null, diagnostics: [{ code: 'USAGE', message: 'Use --input <request.json>' }] }) + '\n');
+    process.stdout.write(JSON.stringify({ status: 'ERROR', changed: false, data: null, diagnostics: [{ code: 'USAGE', message: '请使用 --input <request.json> 指定请求文件' }] }) + '\n');
     process.exitCode = 2;
     return;
   }
