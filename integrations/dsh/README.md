@@ -1,6 +1,6 @@
 # dsh（DeepSeek Harness）接入
 
-使用相同的 42 个 Skill 和 Node.js 工具。安装前需要 Node.js 22+ 和 npm；dsh 自身要求 Node ^22.19 或 >=24。
+使用相同的 47 个 Skill 和 Node.js 工具。安装前需要 Node.js 22+ 和 npm；dsh 自身要求 Node ^22.19 或 >=24。
 
 目标为 `~/.dsh/skills`，`DSH_HOME` 环境变量已设置时为 `$DSH_HOME/skills`。dsh 也扫描 `~/.agents/skills/`（用户级共享）和项目级 `.dsh/skills/`、`.agents/skills/`。安装不修改宿主模型、权限或凭据。
 

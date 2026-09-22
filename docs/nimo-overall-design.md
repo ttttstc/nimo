@@ -3,3 +3,5 @@
 新版实现依据为 [Issue #13 完整方案](nimo-v1-issue-13-spec.md)。核心采用 Mode、Playbook 和直接 Skill 引用；旧 Capability、Provider 和 project.yaml 设计已移除，不提供迁移或兼容层。
 
 历史 evidence 仅说明当时版本，不代表新版已经验证。宿主能力和验证范围按实际运行结果报告。
+
+Issue #34 V1 的任务观察入口见 [nimo Inspector](nimo-inspector-v1.md)。Inspector 读取 Task Anchor、Final Verification Record 和可选 Audit，生成离线 HTML；它不重跑验证，不自动关联 Session，也不改变验证或外部操作权限。

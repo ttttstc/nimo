@@ -1,6 +1,6 @@
 # opencode 接入
 
-使用相同的 42 个 Skill 和 Node.js 工具。安装前需要 Node.js 22+ 和 npm；宿主自身必须支持读取 Skill。
+使用相同的 47 个 Skill 和 Node.js 工具。安装前需要 Node.js 22+ 和 npm；宿主自身必须支持读取 Skill。
 
 目标为 `~/.config/opencode/skills`，`XDG_CONFIG_HOME` 已设置时为 `$XDG_CONFIG_HOME/opencode/skills`。OpenCode 也会读取 `~/.claude/skills/` 和 `~/.agents/skills/`：已通过 Claude Code 集成安装过的用户无需重装。安装不修改宿主模型、权限或凭据。
 

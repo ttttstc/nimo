@@ -11,6 +11,8 @@ description: "实现后、回归、合入或交付前时使用。围绕当前任
 
 验证结论只证明其绑定的当前产物版本。验证完成后，只要待交付代码发生语义变化，原结论不再证明新版本；交付前确认最后一次语义代码变化早于最后一次有效 Final Verify，顺序相反就必须重新验证。
 
+Final Verify 的结构化记录写入 `.nimo/tasks/<task-id>/verification.json`，由 [record.mjs](scripts/record.mjs) 生成和校验。记录完整保存 `taskId`、`contractRevision`、`artifactVersion`、`environment`、执行者、独立性、`recordedVerdict`、逐项 `checks`、`skipDeclarations` 和 `unresolvedFailures`。验收的 `required` 只从 Task Anchor 读取；Verify JSON 中的同名输入不能把必要项降级。
+
 ## 开发后统一审视
 
 开发前明确主要行为和验收预期，不把提前创建测试资产或更新 Feature Map 设为通用编码门禁。开发完成后，本 Skill 对照用户要求、已确认方案和实际差异统一审视场景，路由资产补齐，再执行验证。预期不能从现有实现反推；规格与实现冲突时保留冲突，不改预期迎合结果。Bug 的先行复现、重构的行为基线、性能的测量基线，以及用户明确要求的 TDD，仍按对应流程保留。
@@ -37,6 +39,7 @@ description: "实现后、回归、合入或交付前时使用。围绕当前任
 - 被跳过的检查保持 `NOT_RUN`，另注“用户声明跳过”；不删除地图场景，不自动免除用例／配方记录和其余验证。
 - 最终判定遵守公共契约：有效用户声明覆盖必要未执行项、其余必要检查通过且没有未处理失败时返回 `PASS_WITH_SKIPS`，测试门禁放行；未获声明或已有失败的情况不放行。
 - 跳过测试不等于授权部署、合并或绕过仓库强制检查。
+- 先前的 `FAIL` 必须保留在 `unresolvedFailures`，直到同一检查有适用的后续 `PASS`；后续 `NOT_RUN`、`NOT_APPLICABLE` 或跳过声明不能覆盖它。
 
 ## 步骤
 

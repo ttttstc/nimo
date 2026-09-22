@@ -209,6 +209,7 @@ knowledge refresh: $nimo 刷新项目知识；如果还没有项目事实就建�
 | [nimo-figure-it-out](skills/nimo-figure-it-out/SKILL.md)                 | 没有更窄 playbook 可用——设计可审计执行方案（大型迁移、多部分改动）。              |
 | [nimo-tdd](skills/nimo-tdd/SKILL.md)                                     | 修 bug 且有便宜本地测试路径——先写失败测试，再写修复。                        |
 | [nimo-verify](skills/nimo-verify/SKILL.md)                               | 实现后 / 回归 / 合入 / 交付前验证——走真实用户路径，不放宽预期。                 |
+| [nimo-inspect](skills/nimo-inspect/SKILL.md)                             | 按需生成本地离线任务报告，分开展示历史判定、当前适用性、证据层和显式 Session。 |
 | [nimo-deslop](skills/nimo-deslop/SKILL.md)                               | 提交前清理本次差异：叙述性注释、死兼容路径、无关改动。                           |
 | [nimo-unslop](skills/nimo-unslop/SKILL.md)                               | 删除任何文字中的 AI 腔调，加回人的声音。                                |
 | [nimo-no-comments](skills/nimo-no-comments/SKILL.md)                     | 清理 / 评审注释；约束注释优先转成类型 / 运行时 / 测试 / CI 约束。              |
