@@ -118,6 +118,8 @@ Check / Source / Required / Verification / Evidence / Result / Artifact Version
 
 不得为了填 Audit 把未执行的验证写成 PASS。
 
+Inspector 可以读取已有 Audit 并生成摘要。结构化 Task Anchor 和 Verify JSON 是合同与验证事实的优先来源；Audit 只补充 Decisions、Harness、Trace、Artifacts、Verification 和 Learning。旧格式仍可读，冲突单独显示，不静默覆盖结构化记录。
+
 ### Artifact
 
 记录可解析的 Artifact 引用，例如 commit、文件、PR、构建产物或发布包。最终 Outcome 必须绑定精确 Artifact Version 才能支持 `VERIFIED`。

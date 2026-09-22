@@ -11,7 +11,7 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SOURCE_ROOT = process.env.NIMO_TEST_SOURCE ? resolve(process.env.NIMO_TEST_SOURCE) : REPO_ROOT;
 const INSTALLER_URL = pathToFileURL(join(REPO_ROOT, 'skills', 'nimo-mode', 'scripts', 'install.mjs'));
 const EXPECTED_SKILLS = [
-  'configure-nimo', 'nimo-arena', 'nimo-architect', 'nimo-deslop', 'nimo-figure-it-out', 'nimo-how', 'nimo-interrogate',
+  'configure-nimo', 'nimo-arena', 'nimo-architect', 'nimo-deslop', 'nimo-figure-it-out', 'nimo-how', 'nimo-inspect', 'nimo-interrogate',
   'nimo-knowledge-audit', 'nimo-knowledge-maintain', 'nimo-mode', 'nimo-no-comments', 'nimo-setup', 'nimo-show-me-your-work', 'nimo-skill-author', 'nimo-skill-evaluate',
   'nimo-swarm', 'nimo-tdd', 'nimo-technical-writing', 'nimo-unslop', 'nimo-verification-create', 'nimo-verification-maintain', 'nimo-verify', 'nimo-why',
   'nimo-principle-attack-the-premise', 'nimo-principle-boundary-discipline', 'nimo-principle-build-the-lever', 'nimo-principle-encode-lessons-in-structure',
@@ -135,14 +135,14 @@ async function removeTemp(root) {
   await rm(resolvedRoot, { recursive: true, force: true });
 }
 
-test('clean install contains all 46 Skills and remains runnable after source removal', async () => {
+test('clean install contains all 47 Skills and remains runnable after source removal', async () => {
   const root = await makeTemp('install');
   try {
     const source = await copySourceFixture(root);
     const home = join(root, '目标 home with spaces 中文');
     const target = join(home, 'skills');
     const sourceSkills = await skillDirectories(join(source, 'skills'));
-    assert.equal(sourceSkills.length, 46, 'the package source must contain exactly 46 Skills');
+    assert.equal(sourceSkills.length, 47, 'the package source must contain exactly 47 Skills');
     assert.deepEqual(sourceSkills, EXPECTED_SKILLS, 'the package source must contain the specified Skill set');
 
     const outcome = await invoke(install, { source, target });

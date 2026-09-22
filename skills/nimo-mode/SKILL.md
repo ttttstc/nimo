@@ -20,6 +20,8 @@ description: "nimo 工程任务总入口。用户明确调用 nimo，或任务�
 
 所有开发流程在实现完成后、交付前统一调用 [nimo-verify](../nimo-verify/SKILL.md)：对照要求、方案与实际差异审视本次主要场景，由它路由 Create／Maintain 补齐测试与 Feature Map，再执行验证。开发前只需明确预期，不强制先创建测试资产；Bug 复现、重构／性能基线和明确要求的 TDD 保留前置证据。各 Playbook 不复制测试收口规则，用户声明跳过按 `nimo-verify` 单独记录交付边界，不能冒充通过。
 
+进入已授权开发时，任务持有者用 [task-anchor.mjs](scripts/task-anchor.mjs) 初始化或修订 `.nimo/tasks/<task-id>/task.json`。合同修订保存确认来源和完整验收快照；验证记录只引用 `contractRevision`，不能降低 Anchor 中的 `required`。
+
 ## 原则索引
 
 - [先质疑共同前提](../nimo-principle-attack-the-premise/SKILL.md)：多个共享同一前提的修复连续在同一验证门槛失败。
@@ -58,6 +60,7 @@ description: "nimo 工程任务总入口。用户明确调用 nimo，或任务�
 | 请求 | Playbook |
 |---|---|
 | 新增或改变行为 | [feature](playbooks/feature.md) |
+| 查看执行链路、验证依据或任务证据，或 `nimo inspect [task-id]` | [nimo-inspect](../nimo-inspect/SKILL.md) |
 | 缺陷修复 | [bug-fix](playbooks/bug-fix.md) |
 | 只读理解与判断 | [investigation](playbooks/investigation.md) |
 | 保持行为的结构调整 | [refactoring](playbooks/refactoring.md) |
