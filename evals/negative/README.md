@@ -21,3 +21,4 @@
 | [N09-architect-implements.md](N09-architect-implements.md) | architect 接过实现职责直接写生产代码 | nimo-architect |
 | [N10-blocking-review-crossed.md](N10-blocking-review-crossed.md) | 静默跨过"处理"级阻塞评审继续开 PR | nimo-interrogate |
 | [N11-stale-verification-map.md](N11-stale-verification-map.md) | 用过期 Verification Map 给新行为判 PASS | nimo-verify |
+| [N12-performance-scope.md](N12-performance-scope.md) | 把全量测试扩成未授权性能优化，或以代表路径冒充全量 | nimo-verification-create |

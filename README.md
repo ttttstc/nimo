@@ -217,7 +217,7 @@ knowledge refresh: $nimo 刷新项目知识；如果还没有项目事实就建�
 | [nimo-skill-author](skills/nimo-skill-author/SKILL.md)                   | 创建或修改 SKILL.md：编写可运行、可验证的 Skill。                      |
 | [nimo-skill-evaluate](skills/nimo-skill-evaluate/SKILL.md)               | Skill 行为评测与版本比较：候选盲跑、隔离运行、评分。                         |
 | [nimo-technical-writing](skills/nimo-technical-writing/SKILL.md)         | 四层技术写作标准：Diataxis 结构、Google 风格、STE 规则、Global English。 |
-| [nimo-verification-create](skills/nimo-verification-create/SKILL.md)     | 项目还没有可证明行为的验证方式。生成项目本地验证 skill 和功能地图。                 |
+| [nimo-verification-create](skills/nimo-verification-create/SKILL.md)     | 增量补齐或按确认范围补全验证场景。性能需显式确认，按需构筑用例或路由性能优化流程。 |
 | [nimo-verification-maintain](skills/nimo-verification-maintain/SKILL.md) | 功能地图和产品漂移了。源码核对＋实际跑一遍，三分类处置。                          |
 | [nimo-knowledge-audit](skills/nimo-knowledge-audit/SKILL.md)             | 用户或定时任务要检查项目知识：只读识别事实、概览、索引和关系漂移。                   |
 | [nimo-knowledge-maintain](skills/nimo-knowledge-maintain/SKILL.md)       | 建立或刷新项目知识：支持基线、增量和全量，把全仓事实编译成概览→索引→知识页。             |
