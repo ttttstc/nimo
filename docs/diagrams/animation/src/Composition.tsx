@@ -7,51 +7,51 @@ import {
   useVideoConfig,
 } from "remotion";
 
-const DARK = "#0f172a";
-const CYAN = "#22d3ee";
-const GREEN = "#34d399";
-const AMBER = "#fbbf24";
-const ROSE = "#fb7185";
-const MUTED = "#94a3b8";
+const CREAM = "#F0EEE6";
+const INK = "#191919";
+const CRAIL = "#D97757";
+const WARM = "#6E6B64";
+const HAIRLINE = "#D8D5CC";
+
+const SERIF = "Georgia, 'Times New Roman', 'SimSun', serif";
 
 const STAGES = [
-  { key: "intent", title: "入口判断意图", sub: "自然语言识别 · 明确说法优先", color: CYAN },
-  { key: "playbook", title: "匹配 playbook", sub: "复制步骤 · 按任务调整", color: GREEN },
-  { key: "delegate", title: "委派子 agent", sub: "完整任务约定 · 主 agent 验收", color: CYAN },
-  { key: "verify", title: "真实验证", sub: "真实用户路径 · 不放宽预期", color: AMBER },
-  { key: "deliver", title: "交付结论", sub: "通过 / 失败 / 未验证 · 附证据", color: ROSE },
-];
-
-const VERDICTS = [
-  { label: "通过 PASS", color: GREEN },
-  { label: "失败 FAIL", color: ROSE },
-  { label: "未验证 UNVERIFIED", color: MUTED },
+  { title: "入口判断意图", sub: "自然语言识别 · 明确说法优先" },
+  { title: "匹配 playbook", sub: "复制步骤 · 按任务调整顺序" },
+  { title: "委派子 agent", sub: "完整任务约定 · 主 agent 验收" },
+  { title: "真实验证", sub: "真实用户路径 · 不放宽预期" },
+  { title: "交付结论", sub: "通过 / 失败 / 未验证 · 附证据" },
 ];
 
 export const MyComposition: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
-  const stageLen = 26;
-  const titleFrames = 20;
-  const verdictFrames = 66;
 
-  const titleProgress = spring({ frame, fps, config: { damping: 200 } });
-  const titleY = interpolate(titleProgress, [0, 1], [-40, 0]);
-  const titleOpacity = interpolate(frame, [0, 10], [0, 1], {
+  const titleFrames = 30;
+  const stageStart = titleFrames + 8;
+  const stageLen = 30;
+  const stagesEnd = stageStart + STAGES.length * stageLen;
+
+  // Title card
+  const titleIn = spring({ frame, fps, config: { damping: 200 } });
+  const titleY = interpolate(titleIn, [0, 1], [-32, 0]);
+  const titleOpacity = interpolate(frame, [0, 8], [0, 1], {
     extrapolateRight: "clamp",
   });
-  const titleExit = interpolate(frame, [titleFrames, titleFrames + 8], [1, 0], {
+  const titleExit = interpolate(
+    frame,
+    [titleFrames, titleFrames + 8],
+    [1, 0],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
+  const ruleW = interpolate(frame, [6, titleFrames], [0, 88], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
-  const stageStart = titleFrames + 6;
-  const stagesEnd = stageStart + STAGES.length * stageLen;
-  const verdictStart = stagesEnd + 4;
-
   return (
-    <AbsoluteFill style={{ background: DARK }}>
-      {/* title card */}
+    <AbsoluteFill style={{ background: CREAM, fontFamily: SERIF }}>
+      {/* Title card */}
       <div
         style={{
           position: "absolute",
@@ -65,170 +65,143 @@ export const MyComposition: React.FC = () => {
       >
         <div
           style={{
-            fontSize: 110,
-            fontWeight: 800,
-            color: "#fff",
+            fontSize: 128,
+            fontWeight: 600,
+            color: INK,
+            letterSpacing: -1,
             transform: `translateY(${titleY}px)`,
-            letterSpacing: -2,
           }}
         >
           nimo
         </div>
         <div
           style={{
-            fontSize: 34,
-            color: CYAN,
-            marginTop: 18,
-            fontWeight: 600,
+            width: ruleW,
+            height: 3,
+            background: CRAIL,
+            marginTop: 22,
+            marginBottom: 26,
           }}
-        >
+        />
+        <div style={{ fontSize: 32, color: WARM, letterSpacing: 6 }}>
           可审计的 agent 工程交付
-        </div>
-        <div style={{ fontSize: 22, color: MUTED, marginTop: 14 }}>
-          原则 · Playbook · 真实验证 · 证据
         </div>
       </div>
 
-      {/* stages */}
+      {/* Stage rail */}
+      <div
+        style={{
+          position: "absolute",
+          left: 264,
+          top: 176,
+          width: 2,
+          height: interpolate(
+            frame,
+            [stageStart, stagesEnd],
+            [0, (STAGES.length - 1) * 96],
+            { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+          ),
+          background: CRAIL,
+          opacity: frame > stageStart ? 1 : 0,
+        }}
+      />
+
+      {/* Stages */}
       {STAGES.map((stage, i) => {
         const start = stageStart + i * stageLen;
         const local = frame - start;
-        const visible = local >= 0 && frame < stagesEnd + 6;
-        if (!visible) return null;
+        if (local < 0) return null;
         const enter = spring({ frame: local, fps, config: { damping: 200 } });
-        const active = frame < start + stageLen;
-        const y = 110 + i * 88;
-        const opacity = active
-          ? interpolate(local, [0, 6], [0, 1], { extrapolateRight: "clamp" })
-          : 1;
-        const barW = interpolate(enter, [0, 1], [0, 560]);
+        const x = interpolate(enter, [0, 1], [26, 0]);
+        const opacity = interpolate(local, [0, 6], [0, 1], {
+          extrapolateRight: "clamp",
+        });
+        const y = 144 + i * 96;
         return (
           <div
-            key={stage.key}
+            key={stage.title}
             style={{
               position: "absolute",
-              left: 260,
+              left: 300,
               top: y,
               display: "flex",
-              alignItems: "center",
-              gap: 26,
+              alignItems: "baseline",
+              gap: 28,
               opacity,
+              transform: `translateX(${x}px)`,
             }}
           >
             <div
               style={{
-                width: 64,
-                height: 64,
-                borderRadius: 16,
-                background: "#1e293b",
-                border: `2.5px solid ${stage.color}`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 30,
-                fontWeight: 800,
-                color: stage.color,
+                fontSize: 44,
+                color: CRAIL,
+                fontWeight: 600,
+                fontVariantNumeric: "lining-nums",
+                minWidth: 64,
               }}
             >
               {String(i + 1).padStart(2, "0")}
             </div>
             <div>
-              <div style={{ fontSize: 40, fontWeight: 700, color: "#fff" }}>
+              <div
+                style={{
+                  fontSize: 40,
+                  color: INK,
+                  fontWeight: 600,
+                  lineHeight: 1.2,
+                }}
+              >
                 {stage.title}
               </div>
-              <div style={{ fontSize: 22, color: MUTED, marginTop: 4 }}>
+              <div
+                style={{
+                  fontSize: 21,
+                  color: WARM,
+                  marginTop: 8,
+                  letterSpacing: 1,
+                }}
+              >
                 {stage.sub}
               </div>
             </div>
-            <div
-              style={{
-                height: 6,
-                width: barW,
-                background: stage.color,
-                borderRadius: 3,
-                marginLeft: 8,
-              }}
-            />
           </div>
         );
       })}
 
-      {/* connector line growing through stages */}
-      <div
-        style={{
-          position: "absolute",
-          left: 291,
-          top: 110 + 32,
-          width: 3,
-          height: interpolate(
-            frame,
-            [stageStart, stagesEnd],
-            [0, (STAGES.length - 1) * 88],
-            { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
-          ),
-          background: `linear-gradient(${CYAN}, ${GREEN}, ${ROSE})`,
-          opacity: frame > stageStart && frame < stagesEnd + 6 ? 1 : 0,
-        }}
-      />
-
-      {/* verdicts */}
-      {frame >= verdictStart && (
+      {/* Closing */}
+      {frame >= durationInFrames - 36 && (
         <div
           style={{
             position: "absolute",
-            left: 0,
-            right: 0,
-            top: 560,
-            display: "flex",
-            justifyContent: "center",
-            gap: 44,
-          }}
-        >
-          {VERDICTS.map((v, i) => {
-            const local = frame - verdictStart - i * 8;
-            if (local < 0) return null;
-            const enter = spring({ frame: local, fps, config: { damping: 200 } });
-            const scale = interpolate(enter, [0, 1], [0.6, 1]);
-            return (
-              <div
-                key={v.label}
-                style={{
-                  padding: "20px 34px",
-                  borderRadius: 18,
-                  border: `3px solid ${v.color}`,
-                  background: "#1e293b",
-                  color: v.color,
-                  fontSize: 34,
-                  fontWeight: 800,
-                  whiteSpace: "nowrap",
-                  transform: `scale(${scale})`,
-                }}
-              >
-                {v.label}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* closing tagline */}
-      {frame >= durationInFrames - 30 && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: 60,
+            bottom: 64,
             width: "100%",
-            textAlign: "center",
-            fontSize: 26,
-            color: MUTED,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 14,
             opacity: interpolate(
               frame,
-              [durationInFrames - 30, durationInFrames - 20],
+              [durationInFrames - 36, durationInFrames - 22],
               [0, 1]
             ),
           }}
         >
-          github.com/ttttstc/nimo
+          <div
+            style={{
+              width: 88,
+              height: 3,
+              background: CRAIL,
+            }}
+          />
+          <div
+            style={{
+              fontSize: 24,
+              color: WARM,
+              letterSpacing: 4,
+            }}
+          >
+            github.com/ttttstc/nimo
+          </div>
         </div>
       )}
     </AbsoluteFill>

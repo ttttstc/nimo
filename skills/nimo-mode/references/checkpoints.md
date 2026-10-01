@@ -8,9 +8,21 @@
 - 交付结论：`VERIFIED | PASS_WITH_SKIPS | UNVERIFIED | BLOCKED`，按下方统一判定契约；逐检查 `NOT_RUN` 不等于任务级阻塞。
 - 知识影响：`NOT_APPLICABLE | NONE | REVIEW_RECOMMENDED`，另存原因、受影响知识领域和当前产物版本。它只是后续知识审计的优先级信号，不是 `knowledge-audit` 结论。
 
-[交互版](../../../docs/diagrams/task-states.html)（支持缩放、聚焦与关系追踪）：
-
-![nimo 任务状态机](../../../docs/diagrams/task-states.svg)
+```mermaid
+stateDiagram-v2
+    [*] --> running
+    running --> waitingInput: 需要真实产品决定
+    waitingInput --> running: 得到有效回答
+    running --> blocked: 必要前提不可用
+    blocked --> running: 前提恢复并重新核实
+    running --> paused: 用户暂停或宿主无法续跑
+    paused --> running: 明确恢复并核对现场
+    running --> delivered: 交付产物及独立质量结论
+    running --> cancelled: 用户取消
+    waitingInput --> cancelled
+    blocked --> cancelled
+    paused --> cancelled
+```
 
 状态本身不启动工具，也不授予权限。等待输入没有“超时默认批准”；用户说继续，只承接最近明确的目标和范围。
 
