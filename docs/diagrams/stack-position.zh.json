@@ -1,0 +1,228 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "nimo 在栈里的位置",
+    "locale": "zh-CN",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "evals",
+      "type": "database",
+      "label": "Skill 评测维护",
+      "sublabel": "案例 · 隔离比较 · 回归检查",
+      "pos": [
+        48,
+        40
+      ],
+      "size": [
+        176,
+        62
+      ]
+    },
+    {
+      "id": "know",
+      "type": "database",
+      "label": "项目知识飞轮",
+      "sublabel": "概览 · 快速索引 · 知识页 · 漂移审计",
+      "pos": [
+        310,
+        40
+      ],
+      "size": [
+        176,
+        62
+      ]
+    },
+    {
+      "id": "users",
+      "type": "external",
+      "label": "开发者与产品、技术负责人",
+      "pos": [
+        48,
+        280
+      ],
+      "size": [
+        180,
+        62
+      ]
+    },
+    {
+      "id": "entry",
+      "type": "frontend",
+      "label": "统一入口 nimo",
+      "sublabel": "自然语言识别 · 明确说法优先",
+      "pos": [
+        310,
+        280
+      ],
+      "size": [
+        176,
+        62
+      ]
+    },
+    {
+      "id": "guidance",
+      "type": "backend",
+      "label": "工程指导",
+      "sublabel": "现状 · 缺口 · 下一步与完成条件",
+      "pos": [
+        580,
+        120
+      ],
+      "size": [
+        176,
+        62
+      ]
+    },
+    {
+      "id": "execution",
+      "type": "backend",
+      "label": "工程执行",
+      "sublabel": "Bug 修复 · Feature 开发",
+      "pos": [
+        580,
+        440
+      ],
+      "size": [
+        176,
+        62
+      ]
+    },
+    {
+      "id": "advice",
+      "type": "frontend",
+      "label": "有依据的建议",
+      "pos": [
+        836,
+        120
+      ],
+      "size": [
+        150,
+        62
+      ]
+    },
+    {
+      "id": "artifacts",
+      "type": "frontend",
+      "label": "工作产物 + 有证据的验证结论",
+      "pos": [
+        836,
+        440
+      ],
+      "size": [
+        190,
+        62
+      ]
+    },
+    {
+      "id": "host",
+      "type": "cloud",
+      "label": "宿主提供",
+      "sublabel": "模型 · 工具执行 · 权限 · 会话",
+      "pos": [
+        310,
+        580
+      ],
+      "size": [
+        176,
+        62
+      ]
+    },
+    {
+      "id": "verif",
+      "type": "database",
+      "label": "项目验证维护",
+      "sublabel": "功能地图 · 实际操作 · 漂移修正",
+      "pos": [
+        580,
+        580
+      ],
+      "size": [
+        176,
+        62
+      ]
+    },
+    {
+      "id": "ci",
+      "type": "security",
+      "label": "项目现有 CI 与仓库保护",
+      "sublabel": "强制执行合并与发布门禁",
+      "pos": [
+        790,
+        580
+      ],
+      "size": [
+        176,
+        62
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "users",
+      "to": "entry",
+      "variant": "emphasis"
+    },
+    {
+      "from": "know",
+      "to": "entry",
+      "variant": "dashed",
+      "label": "提供低成本项目上下文",
+      "labelAt": [
+        398,
+        180
+      ]
+    },
+    {
+      "from": "evals",
+      "to": "entry",
+      "variant": "dashed",
+      "label": "持续改进工程方法"
+    },
+    {
+      "from": "host",
+      "to": "entry",
+      "variant": "dashed",
+      "label": "承载运行"
+    },
+    {
+      "from": "entry",
+      "to": "guidance",
+      "label": "不知道下一步"
+    },
+    {
+      "from": "entry",
+      "to": "execution",
+      "label": "明确任务"
+    },
+    {
+      "from": "guidance",
+      "to": "advice",
+      "variant": "emphasis"
+    },
+    {
+      "from": "execution",
+      "to": "artifacts",
+      "variant": "emphasis",
+      "label": "验证后交付"
+    },
+    {
+      "from": "verif",
+      "to": "execution",
+      "variant": "dashed",
+      "label": "提供可操作的验证路径",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "from": "ci",
+      "to": "execution",
+      "variant": "security",
+      "label": "强制执行合并与发布门禁",
+      "fromSide": "top",
+      "toSide": "bottom"
+    }
+  ]
+}

@@ -12,6 +12,10 @@ i maintain nimo. over the past year i've watched people hand more and more work 
 
 fork it. improve it. make it yours. PRs are welcome!
 
+![nimo main flow animation](docs/diagrams/nimo-flow.gif)
+
+how a task goes from your message to delivery, animated (source in [docs/diagrams/animation](docs/diagrams/animation)).
+
 ## install
 
 prerequisites: Node.js 22+ and npm. with Codex you also need Codex CLI 0.144+, with Claude Code you also need Claude Code 2.0.20+.
@@ -163,20 +167,7 @@ explicit wording always wins over inference: "discuss first" and "don't modify" 
 
 how a task goes from your message to delivery:
 
-```mermaid
-flowchart TB
-    S[You say something] --> I{Entry classifies intent}
-    I -->|Unclear / just talking| G[Treat as guidance<br/>read-only, no side effects]
-    I -->|Clear task| P[Match a playbook<br/>copy steps, reorder per task<br/>required checks cannot be skipped]
-    G --> OUT1[Output: status · gaps · priority action · done criteria]
-    P --> D{Simple or complex}
-    D -->|Simple implementation| M[Main agent does it directly]
-    D -->|Non-trivial implementation| SUB[Delegate to a sub-agent<br/>with a full task contract: goal · boundaries · deliverables · acceptance · stop rules]
-    SUB --> CHK[Main agent verifies<br/>sub-agent's "done" doesn't count until checked]
-    M --> V[Verify: real user paths<br/>no loosened expectations]
-    CHK --> V
-    V --> OUT2[Deliver: pass / fail / unverified<br/>each stated explicitly, with evidence]
-```
+![nimo entry flow](docs/diagrams/entry-flow.en.svg)
 
 key points:
 
@@ -320,18 +311,7 @@ show-me-your-work: $show-me-your-work keep a decision trail i can review when i'
 
 ## where nimo sits
 
-```mermaid
-flowchart TB
-    U[Developers, product & tech leads] --> E[Unified entry: nimo<br/>Natural-language intent · explicit wording wins]
-    E -->|Next step unclear| G[Engineering guidance<br/>Status · gaps · next move & done criteria]
-    E -->|Clear task| X[Engineering execution<br/>Bug fixes · Feature development]
-    G --> R[Evidence-backed advice]
-    X --> R2[Working artifacts + evidence-backed verification]
-    V[Project verification maintenance<br/>Feature map · real operations · drift fixes] -.provides actionable verification paths.-> X
-    A[Skill evaluation maintenance<br/>Cases · isolated comparison · regression] -.continuously improves methods.-> E
-    H[Host provides: models · tool execution · permissions · sessions] -.runs.-> E
-    CI[Your existing CI & repo protection] -.enforces merge & release gates.-> X
-```
+![where nimo sits in the stack](docs/diagrams/stack-position.en.svg)
 
 nimo is the engineering-method layer in the AI dev stack:
 

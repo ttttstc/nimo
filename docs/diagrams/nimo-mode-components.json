@@ -1,0 +1,256 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "nimo-mode 组件关系",
+    "locale": "zh-CN",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "user",
+      "type": "external",
+      "label": "用户请求与当前授权",
+      "pos": [
+        48,
+        200
+      ],
+      "size": [
+        180,
+        62
+      ]
+    },
+    {
+      "id": "mode",
+      "type": "frontend",
+      "label": "nimo-mode",
+      "sublabel": "理解请求 · 建立上下文 · 选择流程",
+      "pos": [
+        330,
+        200
+      ],
+      "size": [
+        186,
+        62
+      ]
+    },
+    {
+      "id": "playbook",
+      "type": "backend",
+      "label": "匹配的 Playbook",
+      "sublabel": "工作顺序 · 证据 · 停止点",
+      "pos": [
+        620,
+        90
+      ],
+      "size": [
+        180,
+        62
+      ]
+    },
+    {
+      "id": "skill",
+      "type": "backend",
+      "label": "内置或当前宿主可见的 Skill",
+      "pos": [
+        604,
+        310
+      ],
+      "size": [
+        212,
+        62
+      ]
+    },
+    {
+      "id": "host",
+      "type": "cloud",
+      "label": "宿主原生工具",
+      "sublabel": "子 Agent · 权限与会话",
+      "pos": [
+        900,
+        310
+      ],
+      "size": [
+        180,
+        62
+      ]
+    },
+    {
+      "id": "evidence",
+      "type": "database",
+      "label": "产物与验证证据",
+      "pos": [
+        900,
+        90
+      ],
+      "size": [
+        180,
+        62
+      ]
+    },
+    {
+      "id": "config",
+      "type": "backend",
+      "label": "配置工具",
+      "sublabel": "解析 · 校验 · 去重",
+      "pos": [
+        48,
+        420
+      ],
+      "size": [
+        170,
+        62
+      ]
+    },
+    {
+      "id": "teamyaml",
+      "type": "database",
+      "label": "团队 nimo.yaml",
+      "pos": [
+        48,
+        560
+      ],
+      "size": [
+        170,
+        56
+      ]
+    },
+    {
+      "id": "personalyaml",
+      "type": "database",
+      "label": "个人 nimo.yaml",
+      "pos": [
+        280,
+        560
+      ],
+      "size": [
+        170,
+        56
+      ]
+    },
+    {
+      "id": "refs",
+      "type": "database",
+      "label": "原则引用与知识范围",
+      "pos": [
+        330,
+        420
+      ],
+      "size": [
+        170,
+        56
+      ]
+    },
+    {
+      "id": "tools",
+      "type": "database",
+      "label": "本地记账与事实检查工具",
+      "sublabel": "不调模型 · 不启 Agent · 不合并 PR",
+      "pos": [
+        620,
+        560
+      ],
+      "size": [
+        190,
+        62
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "user",
+      "to": "mode",
+      "variant": "emphasis"
+    },
+    {
+      "from": "mode",
+      "to": "playbook",
+      "variant": "emphasis"
+    },
+    {
+      "from": "playbook",
+      "to": "skill",
+      "variant": "default",
+      "label": "引用能力",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "straight",
+      "labelAt": [
+        710,
+        190
+      ]
+    },
+    {
+      "from": "skill",
+      "to": "host",
+      "variant": "default",
+      "label": "宿主执行"
+    },
+    {
+      "id": "c-ev-out",
+      "from": "host",
+      "to": "evidence",
+      "variant": "emphasis",
+      "label": "产出",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "route": "straight"
+    },
+    {
+      "id": "c-ev-back",
+      "from": "evidence",
+      "to": "mode",
+      "variant": "default",
+      "label": "反馈",
+      "fromSide": "left",
+      "toSide": "top",
+      "via": [
+        [
+          880,
+          121
+        ],
+        [
+          880,
+          60
+        ],
+        [
+          423,
+          60
+        ]
+      ],
+      "labelAt": [
+        423,
+        140
+      ]
+    },
+    {
+      "from": "config",
+      "to": "mode",
+      "variant": "default",
+      "label": "注入原则与知识范围",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "from": "teamyaml",
+      "to": "config",
+      "variant": "default"
+    },
+    {
+      "from": "personalyaml",
+      "to": "config",
+      "variant": "default"
+    },
+    {
+      "from": "config",
+      "to": "refs",
+      "variant": "default"
+    },
+    {
+      "from": "tools",
+      "to": "mode",
+      "variant": "dashed",
+      "label": "记账与事实检查"
+    }
+  ]
+}

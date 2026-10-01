@@ -1,0 +1,272 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "nimo 入口流程",
+    "locale": "zh-CN",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "entry",
+      "label": "入口"
+    },
+    {
+      "id": "guidance",
+      "label": "工程指导"
+    },
+    {
+      "id": "exec",
+      "label": "工程执行"
+    },
+    {
+      "id": "delegate",
+      "label": "委派与验收"
+    },
+    {
+      "id": "verify",
+      "label": "验证"
+    },
+    {
+      "id": "deliver",
+      "label": "交付"
+    }
+  ],
+  "phases": [
+    {
+      "id": "intake",
+      "label": "意图与匹配",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "route",
+      "label": "分派与执行",
+      "fromCol": 2,
+      "toCol": 3
+    },
+    {
+      "id": "finish",
+      "label": "验证与交付",
+      "fromCol": 4,
+      "toCol": 5
+    }
+  ],
+  "mainPath": [
+    "user",
+    "intent",
+    "playbook",
+    "decide",
+    "sub",
+    "chk",
+    "verify",
+    "impact",
+    "out2"
+  ],
+  "nodes": [
+    {
+      "id": "user",
+      "lane": "entry",
+      "col": 0,
+      "type": "external",
+      "label": "你说一句话"
+    },
+    {
+      "id": "intent",
+      "lane": "entry",
+      "col": 1,
+      "type": "security",
+      "label": "入口判断意图"
+    },
+    {
+      "id": "guide",
+      "lane": "guidance",
+      "col": 2,
+      "type": "backend",
+      "label": "按指导处理",
+      "sublabel": "只读不改 · 无副作用"
+    },
+    {
+      "id": "out1",
+      "lane": "guidance",
+      "col": 3,
+      "type": "frontend",
+      "label": "指导输出",
+      "sublabel": "现状 · 缺口 · 优先动作 · 完成条件",
+      "width": 150
+    },
+    {
+      "id": "playbook",
+      "lane": "exec",
+      "col": 1,
+      "type": "backend",
+      "label": "匹配 playbook",
+      "sublabel": "复制步骤 · 按任务调整",
+      "tag": "必要检查不能省"
+    },
+    {
+      "id": "decide",
+      "lane": "exec",
+      "col": 2,
+      "type": "security",
+      "label": "简单还是复杂"
+    },
+    {
+      "id": "direct",
+      "lane": "exec",
+      "col": 3,
+      "type": "backend",
+      "label": "主 agent 直接做",
+      "width": 140
+    },
+    {
+      "id": "sub",
+      "lane": "delegate",
+      "col": 2,
+      "type": "backend",
+      "label": "委派子 agent",
+      "sublabel": "完整任务约定",
+      "tag": "目标 · 边界 · 交付物 · 验收 · 停止",
+      "width": 150
+    },
+    {
+      "id": "chk",
+      "lane": "delegate",
+      "col": 3,
+      "type": "backend",
+      "label": "主 agent 验收",
+      "sublabel": "核对过才算"
+    },
+    {
+      "id": "verify",
+      "lane": "verify",
+      "col": 4,
+      "type": "security",
+      "label": "验证",
+      "sublabel": "真实用户路径 · 不放宽预期",
+      "width": 140,
+      "tag": "不自动审计"
+    },
+    {
+      "id": "impact",
+      "lane": "verify",
+      "col": 5,
+      "type": "backend",
+      "label": "知识影响判断",
+      "sublabel": "NONE / REVIEW_RECOMMENDED",
+      "width": 140
+    },
+    {
+      "id": "out2",
+      "lane": "deliver",
+      "col": 5,
+      "type": "frontend",
+      "label": "交付",
+      "sublabel": "通过 / 失败 / 未验证 · 附证据",
+      "width": 150
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-say",
+      "from": "user",
+      "to": "intent",
+      "role": "main"
+    },
+    {
+      "id": "e-unclear",
+      "from": "intent",
+      "to": "guide",
+      "label": "不清楚 / 只想聊聊",
+      "role": "branch"
+    },
+    {
+      "id": "e-clear",
+      "from": "intent",
+      "to": "playbook",
+      "label": "明确要做",
+      "role": "main"
+    },
+    {
+      "id": "e-advice",
+      "from": "guide",
+      "to": "out1"
+    },
+    {
+      "id": "e-match",
+      "from": "playbook",
+      "to": "decide",
+      "role": "main"
+    },
+    {
+      "id": "e-simple",
+      "from": "decide",
+      "to": "direct",
+      "label": "简单实现",
+      "role": "branch"
+    },
+    {
+      "id": "e-delegate",
+      "from": "decide",
+      "to": "sub",
+      "label": "非简单实现",
+      "role": "main"
+    },
+    {
+      "id": "e-contract",
+      "from": "sub",
+      "to": "chk",
+      "role": "main"
+    },
+    {
+      "id": "e-accept",
+      "from": "chk",
+      "to": "verify",
+      "role": "main"
+    },
+    {
+      "id": "e-direct-verify",
+      "from": "direct",
+      "to": "verify",
+      "role": "branch"
+    },
+    {
+      "id": "e-impact",
+      "from": "verify",
+      "to": "impact",
+      "role": "main"
+    },
+    {
+      "id": "e-deliver",
+      "from": "impact",
+      "to": "out2",
+      "role": "main"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "三种结论",
+      "items": [
+        "通过、失败、未验证——没验证就标未验证",
+        "缺条件就报告受阻，不放宽预期"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "委派约定",
+      "items": [
+        "目标 · 边界 · 交付物 · 验收标准 · 停止条件",
+        "子 agent 说完成不算，主 agent 核对过才算"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "知识影响",
+      "items": [
+        "结论只有 NONE / REVIEW_RECOMMENDED",
+        "普通工程任务不自动运行知识审计"
+      ]
+    }
+  ]
+}

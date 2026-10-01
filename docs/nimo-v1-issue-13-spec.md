@@ -62,20 +62,7 @@ nimo 调研基线为 `d6641ddd44145d901ca58297020a2ccd4615d822`。已有 README 
 
 ### 3.1 责任划分
 
-```mermaid
-flowchart TB
-    U[用户请求与当前授权] --> M[nimo-mode]
-    T[团队 nimo.yaml] --> C[配置工具：解析、校验、去重]
-    P[个人 nimo.yaml] --> C
-    C --> I[原则引用与知识范围]
-    I --> M
-    M --> B[匹配的 Playbook]
-    B --> S[内置或当前宿主可见的 Skill]
-    S --> H[宿主原生工具、子 Agent、权限与会话]
-    H --> E[产物与验证证据]
-    E --> M
-    L[本地记账与事实检查工具] <--> M
-```
+![nimo-mode 组件关系](diagrams/nimo-mode-components.svg)
 
 - **Mode**：理解请求和授权，建立上下文，选择流程，保留必要步骤，决定何时委派、验证、暂停和交付。
 - **Playbook**：描述一种任务的工作顺序、必要输入、证据和停止点。使用 Markdown，不解析成可执行 DAG。
