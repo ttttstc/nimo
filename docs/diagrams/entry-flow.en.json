@@ -1,0 +1,253 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "nimo Entry Flow",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "output": "docs/diagrams/entry-flow.en.html"
+  },
+  "lanes": [
+    {
+      "id": "entry",
+      "label": "Entry"
+    },
+    {
+      "id": "guidance",
+      "label": "Guidance"
+    },
+    {
+      "id": "exec",
+      "label": "Execution"
+    },
+    {
+      "id": "delegate",
+      "label": "Delegation"
+    },
+    {
+      "id": "verify",
+      "label": "Verification"
+    },
+    {
+      "id": "deliver",
+      "label": "Delivery"
+    }
+  ],
+  "phases": [
+    {
+      "id": "intake",
+      "label": "Intent + match",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "route",
+      "label": "Route + execute",
+      "fromCol": 2,
+      "toCol": 3
+    },
+    {
+      "id": "finish",
+      "label": "Verify + deliver",
+      "fromCol": 4,
+      "toCol": 5
+    }
+  ],
+  "mainPath": [
+    "user",
+    "intent",
+    "playbook",
+    "decide",
+    "sub",
+    "chk",
+    "verify",
+    "out2"
+  ],
+  "nodes": [
+    {
+      "id": "user",
+      "lane": "entry",
+      "col": 0,
+      "type": "external",
+      "label": "You say something",
+      "width": 130
+    },
+    {
+      "id": "intent",
+      "lane": "entry",
+      "col": 1,
+      "type": "security",
+      "label": "Entry classifies intent",
+      "width": 170
+    },
+    {
+      "id": "guide",
+      "lane": "guidance",
+      "col": 2,
+      "type": "backend",
+      "label": "Treat as guidance",
+      "sublabel": "read-only · no side effects",
+      "width": 130
+    },
+    {
+      "id": "out1",
+      "lane": "guidance",
+      "col": 3,
+      "type": "frontend",
+      "label": "Guidance output",
+      "sublabel": "status · gaps · done criteria",
+      "width": 160
+    },
+    {
+      "id": "playbook",
+      "lane": "exec",
+      "col": 1,
+      "type": "backend",
+      "label": "Match a playbook",
+      "sublabel": "copy steps · reorder",
+      "width": 130
+    },
+    {
+      "id": "decide",
+      "lane": "exec",
+      "col": 2,
+      "type": "security",
+      "label": "Simple or complex",
+      "width": 130
+    },
+    {
+      "id": "direct",
+      "lane": "exec",
+      "col": 3,
+      "type": "backend",
+      "label": "Main agent does it",
+      "width": 130
+    },
+    {
+      "id": "sub",
+      "lane": "delegate",
+      "col": 2,
+      "type": "backend",
+      "label": "Delegate to sub-agent",
+      "sublabel": "full task contract",
+      "width": 140
+    },
+    {
+      "id": "chk",
+      "lane": "delegate",
+      "col": 3,
+      "type": "backend",
+      "label": "Main agent verifies",
+      "sublabel": "checked, not self-reported",
+      "width": 140
+    },
+    {
+      "id": "verify",
+      "lane": "verify",
+      "col": 4,
+      "type": "security",
+      "label": "Verify",
+      "sublabel": "real user paths · no loosening",
+      "width": 140
+    },
+    {
+      "id": "out2",
+      "lane": "deliver",
+      "col": 5,
+      "type": "frontend",
+      "label": "Deliver",
+      "sublabel": "pass / fail / unverified",
+      "width": 150
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-say",
+      "from": "user",
+      "to": "intent",
+      "role": "main"
+    },
+    {
+      "id": "e-unclear",
+      "from": "intent",
+      "to": "guide",
+      "label": "Unclear / just talking",
+      "role": "branch"
+    },
+    {
+      "id": "e-clear",
+      "from": "intent",
+      "to": "playbook",
+      "label": "Clear task",
+      "role": "main"
+    },
+    {
+      "id": "e-advice",
+      "from": "guide",
+      "to": "out1"
+    },
+    {
+      "id": "e-match",
+      "from": "playbook",
+      "to": "decide",
+      "role": "main"
+    },
+    {
+      "id": "e-simple",
+      "from": "decide",
+      "to": "direct",
+      "label": "Simple implementation",
+      "role": "branch"
+    },
+    {
+      "id": "e-delegate",
+      "from": "decide",
+      "to": "sub",
+      "label": "Non-trivial",
+      "role": "main"
+    },
+    {
+      "id": "e-contract",
+      "from": "sub",
+      "to": "chk",
+      "role": "main"
+    },
+    {
+      "id": "e-accept",
+      "from": "chk",
+      "to": "verify",
+      "role": "main"
+    },
+    {
+      "id": "e-direct-verify",
+      "from": "direct",
+      "to": "verify",
+      "role": "branch"
+    },
+    {
+      "id": "e-deliver",
+      "from": "verify",
+      "to": "out2",
+      "label": "attach evidence",
+      "role": "main"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Three verdicts",
+      "items": [
+        "pass, fail, unverified — unverified is labeled unverified",
+        "missing conditions are reported as blockers, not skipped"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Delegation contract",
+      "items": [
+        "goal · boundaries · deliverables · acceptance · stop rules",
+        "a sub-agent's done doesn't count until the main agent checks it"
+      ]
+    }
+  ]
+}

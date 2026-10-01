@@ -16,6 +16,10 @@
 
 ![nimo 能力大盘](docs/image/nimo-capabilities.svg)
 
+一次任务从入口到交付的动态演示（动画源码见 [docs/diagrams/animation](docs/diagrams/animation)）：
+
+![nimo 主流程动画](docs/diagrams/nimo-flow.gif)
+
 ## 七大设计原则
 
 1. **约束结果，不约束路径** —— 明确工程不变量，保留 Agent 自主规划空间。
@@ -87,23 +91,9 @@ cd nimo
 
 ### 主要流程
 
-一个任务从进入到交付的过程：
+一个任务从进入到交付的过程（[交互版](docs/diagrams/entry-flow.zh.html)，支持缩放、聚焦与关系追踪）：
 
-```mermaid
-flowchart TB
-    S[你说一句话] --> I{入口判断意图}
-    I -->|不清楚 / 只想聊聊| G[按指导处理<br/>只读不改，无副作用]
-    I -->|明确要做| P[匹配 playbook<br/>复制步骤，按任务调整顺序<br/>必要检查不能省]
-    G --> OUT1[输出：现状 · 缺口 · 优先动作 · 完成条件]
-    P --> D{简单还是复杂}
-    D -->|简单实现| M[主 agent 直接做]
-    D -->|非简单实现| SUB[委派子 agent<br/>带完整任务约定：目标 · 边界 · 交付物 · 验收标准 · 停止条件]
-    SUB --> CHK[主 agent 验收<br/>子 agent 说完成不算，核对过才算]
-    M --> V[验证：走真实用户路径<br/>不放宽预期]
-    CHK --> V
-    V --> K[知识影响判断<br/>NONE / REVIEW_RECOMMENDED<br/>不自动审计]
-    K --> OUT2[交付：通过 / 失败 / 未验证<br/>附证据与必要知识审计提示]
-```
+![nimo 入口流程](docs/diagrams/entry-flow.zh.svg)
 
 要点：
 
@@ -226,19 +216,9 @@ knowledge refresh: $nimo 刷新项目知识；如果还没有项目事实就建�
 
 ## 在栈里的位置
 
-```mermaid
-flowchart TB
-    U[开发者与产品、技术负责人] --> E[统一入口 nimo<br/>自然语言识别 · 明确说法优先]
-    E -->|不知道下一步| G[工程指导<br/>现状 · 缺口 · 下一步与完成条件]
-    E -->|明确任务| X[工程执行<br/>Bug 修复 · Feature 开发]
-    G --> R[有依据的建议]
-    X --> R2[工作产物 + 有证据的验证结论]
-    V[项目验证维护<br/>功能地图 · 实际操作 · 漂移修正] -.提供可操作的验证路径.-> X
-    K[项目知识飞轮<br/>概览 · 快速索引 · 知识页 · 漂移审计] -.提供低成本项目上下文.-> E
-    A[Skill 评测维护<br/>案例 · 隔离比较 · 回归检查] -.持续改进工程方法.-> E
-    H[宿主提供：模型 · 工具执行 · 权限 · 会话] -.承载运行.-> E
-    CI[项目现有 CI 与仓库保护] -.强制执行合并与发布门禁.-> X
-```
+[交互版](docs/diagrams/stack-position.zh.html)（支持缩放、聚焦与关系追踪）：
+
+![nimo 在栈里的位置](docs/diagrams/stack-position.zh.svg)
 
 nimo 是 AI 研发栈里的「工程方法层」：
 

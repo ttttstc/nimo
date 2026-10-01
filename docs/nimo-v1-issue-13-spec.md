@@ -62,20 +62,9 @@ nimo 调研基线为 `d6641ddd44145d901ca58297020a2ccd4615d822`。已有 README 
 
 ### 3.1 责任划分
 
-```mermaid
-flowchart TB
-    U[用户请求与当前授权] --> M[nimo-mode]
-    T[团队 nimo.yaml] --> C[配置工具：解析、校验、去重]
-    P[个人 nimo.yaml] --> C
-    C --> I[原则引用与知识范围]
-    I --> M
-    M --> B[匹配的 Playbook]
-    B --> S[内置或当前宿主可见的 Skill]
-    S --> H[宿主原生工具、子 Agent、权限与会话]
-    H --> E[产物与验证证据]
-    E --> M
-    L[本地记账与事实检查工具] <--> M
-```
+[交互版](diagrams/nimo-mode-components.html)（支持缩放、聚焦与关系追踪）：
+
+![nimo-mode 组件关系](diagrams/nimo-mode-components.svg)
 
 - **Mode**：理解请求和授权，建立上下文，选择流程，保留必要步骤，决定何时委派、验证、暂停和交付。
 - **Playbook**：描述一种任务的工作顺序、必要输入、证据和停止点。使用 Markdown，不解析成可执行 DAG。
@@ -613,21 +602,9 @@ PR 链从明确目标列表和平台实际 base/head 关系核对，禁止用分
 - 检查结果：`PASS | FAIL | NOT_RUN | NOT_APPLICABLE`，另存证据、独立性和原因。检查未执行不能改成 PASS。
 - 交付结论：`VERIFIED | UNVERIFIED | BLOCKED`。即使用户接受跳过非强制检查，也只能交付 UNVERIFIED 并列出跳过项。
 
-```mermaid
-stateDiagram-v2
-    [*] --> running
-    running --> waitingInput: 需要真实产品决定
-    waitingInput --> running: 得到有效回答
-    running --> blocked: 必要前提不可用
-    blocked --> running: 前提恢复并重新核实
-    running --> paused: 用户暂停或宿主无法续跑
-    paused --> running: 明确恢复并核对现场
-    running --> delivered: 交付产物及独立质量结论
-    running --> cancelled: 用户取消
-    waitingInput --> cancelled
-    blocked --> cancelled
-    paused --> cancelled
-```
+[交互版](diagrams/task-states.html)（支持缩放、聚焦与关系追踪）：
+
+![nimo 任务状态机](diagrams/task-states.svg)
 
 状态本身不启动工具，也不授予权限。等待输入没有“超时默认批准”；用户说继续，只承接最近明确的目标和范围。
 

@@ -5,3 +5,11 @@ node_modules/
 evals/runs/
 docs/evidence/issue-13/
 *.tmp
+
+# Remotion animation workspace
+docs/diagrams/animation/node_modules/
+docs/diagrams/animation/.cache/
+docs/diagrams/.frame-*.png
+docs/diagrams/.anim-check.png
+frame-check*.png
+.preview.html

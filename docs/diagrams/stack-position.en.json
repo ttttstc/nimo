@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Where nimo Sits in the Stack",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "output": "docs/diagrams/stack-position.en.html"
+  },
+  "components": [
+    { "id": "evals", "type": "database", "label": "Skill eval maintenance", "sublabel": "cases · compare · regression", "pos": [48, 40], "size": [176, 62] },
+    { "id": "know", "type": "database", "label": "Knowledge flywheel", "sublabel": "overview · index · drift audit", "pos": [310, 40], "size": [176, 62] },
+    { "id": "users", "type": "external", "label": "Developers, PMs & tech leads", "pos": [48, 280], "size": [180, 62] },
+    { "id": "entry", "type": "frontend", "label": "Unified entry: nimo", "sublabel": "natural-language intent", "pos": [310, 280], "size": [176, 62] },
+    { "id": "guidance", "type": "backend", "label": "Engineering guidance", "sublabel": "status · gaps · done criteria", "pos": [580, 120], "size": [176, 62] },
+    { "id": "execution", "type": "backend", "label": "Engineering execution", "sublabel": "bug fixes · feature dev", "pos": [580, 440], "size": [176, 62] },
+    { "id": "advice", "type": "frontend", "label": "Evidence-backed advice", "pos": [836, 120], "size": [150, 62] },
+    { "id": "artifacts", "type": "frontend", "label": "Artifacts + evidence", "sublabel": "verified conclusions", "pos": [836, 440], "size": [190, 62] },
+    { "id": "host", "type": "cloud", "label": "Host provides", "sublabel": "models · tools · permissions", "pos": [310, 580], "size": [176, 62] },
+    { "id": "verif", "type": "database", "label": "Verification maintenance", "sublabel": "feature map · drift fixes", "pos": [580, 580], "size": [176, 62] },
+    { "id": "ci", "type": "security", "label": "CI & repo protection", "sublabel": "merge & release gates", "pos": [790, 580], "size": [176, 62] }
+  ],
+  "connections": [
+    { "from": "users", "to": "entry", "variant": "emphasis" },
+    { "from": "know", "to": "entry", "variant": "dashed", "label": "low-cost context", "labelAt": [398, 180] },
+    { "from": "evals", "to": "entry", "variant": "dashed", "label": "improves methods" },
+    { "from": "host", "to": "entry", "variant": "dashed", "label": "runs nimo" },
+    { "from": "entry", "to": "guidance", "label": "next step unclear" },
+    { "from": "entry", "to": "execution", "label": "clear task" },
+    { "from": "guidance", "to": "advice", "variant": "emphasis" },
+    { "from": "execution", "to": "artifacts", "variant": "emphasis", "label": "verified delivery", "labelAt": [796, 524] },
+    { "from": "verif", "to": "execution", "variant": "dashed", "label": "verification paths", "fromSide": "top", "toSide": "bottom" },
+    { "from": "ci", "to": "execution", "variant": "security", "label": "merge & release gates", "fromSide": "top", "toSide": "bottom" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Engineering-method layer",
+      "items": [
+        "nimo is the engineering-method layer of the AI dev stack",
+        "it defines \"what counts as done right and done complete\"",
+        "the host executes; your CI is the final gate"
+      ]
+    }
+  ]
+}
