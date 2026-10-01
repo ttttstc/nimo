@@ -13,3 +13,4 @@ docs/diagrams/.frame-*.png
 docs/diagrams/.anim-check.png
 frame-check*.png
 .preview.html
+docs/diagrams/.scan.json
