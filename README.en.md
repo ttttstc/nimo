@@ -165,7 +165,7 @@ explicit wording always wins over inference: "discuss first" and "don't modify" 
 
 ### main flow
 
-how a task goes from your message to delivery ([interactive version](docs/diagrams/entry-flow.en.html) — pan, zoom, focus, relationship tracing):
+how a task goes from your message to delivery:
 
 ![nimo entry flow](docs/diagrams/entry-flow.en.svg)
 
@@ -310,8 +310,6 @@ show-me-your-work: $show-me-your-work keep a decision trail i can review when i'
 | [configure-nimo](skills/configure-nimo/SKILL.md)                         | add / remove / list / validate team and personal principles and knowledge sources.                                                         |
 
 ## where nimo sits
-
-[interactive version](docs/diagrams/stack-position.en.html) — pan, zoom, focus, relationship tracing:
 
 ![where nimo sits in the stack](docs/diagrams/stack-position.en.svg)
 

@@ -4,8 +4,7 @@
   "meta": {
     "title": "nimo 入口流程",
     "locale": "zh-CN",
-    "quality_profile": "showcase",
-    "output": "docs/diagrams/entry-flow.zh.html"
+    "quality_profile": "showcase"
   },
   "lanes": [
     {

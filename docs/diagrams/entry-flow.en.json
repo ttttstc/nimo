@@ -4,8 +4,7 @@
   "meta": {
     "title": "nimo Entry Flow",
     "locale": "en",
-    "quality_profile": "showcase",
-    "output": "docs/diagrams/entry-flow.en.html"
+    "quality_profile": "showcase"
   },
   "lanes": [
     {

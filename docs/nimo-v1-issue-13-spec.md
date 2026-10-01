@@ -62,8 +62,6 @@ nimo 调研基线为 `d6641ddd44145d901ca58297020a2ccd4615d822`。已有 README 
 
 ### 3.1 责任划分
 
-[交互版](diagrams/nimo-mode-components.html)（支持缩放、聚焦与关系追踪）：
-
 ![nimo-mode 组件关系](diagrams/nimo-mode-components.svg)
 
 - **Mode**：理解请求和授权，建立上下文，选择流程，保留必要步骤，决定何时委派、验证、暂停和交付。

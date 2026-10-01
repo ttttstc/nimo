@@ -14,3 +14,5 @@ docs/diagrams/.anim-check.png
 frame-check*.png
 .preview.html
 docs/diagrams/.scan.json
+docs/diagrams/*.html
+docs/diagrams/*.visual-check.*

@@ -4,8 +4,7 @@
   "meta": {
     "title": "nimo-mode 组件关系",
     "locale": "zh-CN",
-    "quality_profile": "showcase",
-    "output": "docs/diagrams/nimo-mode-components.html"
+    "quality_profile": "showcase"
   },
   "components": [
     {

@@ -91,7 +91,7 @@ cd nimo
 
 ### 主要流程
 
-一个任务从进入到交付的过程（[交互版](docs/diagrams/entry-flow.zh.html)，支持缩放、聚焦与关系追踪）：
+一个任务从进入到交付的过程：
 
 ![nimo 入口流程](docs/diagrams/entry-flow.zh.svg)
 
@@ -215,8 +215,6 @@ knowledge refresh: $nimo 刷新项目知识；如果还没有项目事实就建�
 | [configure-nimo](skills/configure-nimo/SKILL.md)                         | 添加 / 删除 / 查看 / 校验团队和个人原则与知识来源。                        |
 
 ## 在栈里的位置
-
-[交互版](docs/diagrams/stack-position.zh.html)（支持缩放、聚焦与关系追踪）：
 
 ![nimo 在栈里的位置](docs/diagrams/stack-position.zh.svg)
 
