@@ -105,7 +105,8 @@
       "type": "backend",
       "label": "Match a playbook",
       "sublabel": "copy steps · reorder",
-      "width": 130
+      "width": 130,
+      "tag": "required checks stay"
     },
     {
       "id": "decide",
@@ -130,7 +131,8 @@
       "type": "backend",
       "label": "Delegate to sub-agent",
       "sublabel": "full task contract",
-      "width": 140
+      "width": 195,
+      "tag": "goal · boundary · deliverable · acceptance · stop"
     },
     {
       "id": "chk",
@@ -148,7 +150,8 @@
       "type": "security",
       "label": "Verify",
       "sublabel": "real user paths · no loosening",
-      "width": 140
+      "width": 140,
+      "tag": "no auto audit"
     },
     {
       "id": "out2",

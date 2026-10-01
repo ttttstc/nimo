@@ -172,33 +172,44 @@ export const MyComposition: React.FC = () => {
       />
 
       {/* verdicts */}
-      {frame >= verdictStart &&
-        VERDICTS.map((v, i) => {
-          const local = frame - verdictStart - i * 8;
-          if (local < 0) return null;
-          const enter = spring({ frame: local, fps, config: { damping: 200 } });
-          const scale = interpolate(enter, [0, 1], [0.6, 1]);
-          return (
-            <div
-              key={v.label}
-              style={{
-                position: "absolute",
-                left: 260 + i * 420,
-                top: 560,
-                padding: "22px 40px",
-                borderRadius: 18,
-                border: `3px solid ${v.color}`,
-                background: "#1e293b",
-                color: v.color,
-                fontSize: 38,
-                fontWeight: 800,
-                transform: `scale(${scale})`,
-              }}
-            >
-              {v.label}
-            </div>
-          );
-        })}
+      {frame >= verdictStart && (
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            top: 560,
+            display: "flex",
+            justifyContent: "center",
+            gap: 44,
+          }}
+        >
+          {VERDICTS.map((v, i) => {
+            const local = frame - verdictStart - i * 8;
+            if (local < 0) return null;
+            const enter = spring({ frame: local, fps, config: { damping: 200 } });
+            const scale = interpolate(enter, [0, 1], [0.6, 1]);
+            return (
+              <div
+                key={v.label}
+                style={{
+                  padding: "20px 34px",
+                  borderRadius: 18,
+                  border: `3px solid ${v.color}`,
+                  background: "#1e293b",
+                  color: v.color,
+                  fontSize: 34,
+                  fontWeight: 800,
+                  whiteSpace: "nowrap",
+                  transform: `scale(${scale})`,
+                }}
+              >
+                {v.label}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* closing tagline */}
       {frame >= durationInFrames - 30 && (

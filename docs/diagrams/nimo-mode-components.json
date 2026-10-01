@@ -52,13 +52,13 @@
     {
       "id": "skill",
       "type": "backend",
-      "label": "内置或宿主可见的 Skill",
+      "label": "内置或当前宿主可见的 Skill",
       "pos": [
-        620,
+        604,
         310
       ],
       "size": [
-        180,
+        212,
         62
       ]
     },
@@ -173,9 +173,12 @@
       "to": "skill",
       "variant": "default",
       "label": "引用能力",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "straight",
       "labelAt": [
         710,
-        176
+        190
       ]
     },
     {

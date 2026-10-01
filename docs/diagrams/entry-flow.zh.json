@@ -102,7 +102,8 @@
       "col": 1,
       "type": "backend",
       "label": "匹配 playbook",
-      "sublabel": "复制步骤 · 按任务调整"
+      "sublabel": "复制步骤 · 按任务调整",
+      "tag": "必要检查不能省"
     },
     {
       "id": "decide",
@@ -125,7 +126,9 @@
       "col": 2,
       "type": "backend",
       "label": "委派子 agent",
-      "sublabel": "完整任务约定"
+      "sublabel": "完整任务约定",
+      "tag": "目标 · 边界 · 交付物 · 验收 · 停止",
+      "width": 150
     },
     {
       "id": "chk",
@@ -142,7 +145,8 @@
       "type": "security",
       "label": "验证",
       "sublabel": "真实用户路径 · 不放宽预期",
-      "width": 140
+      "width": 140,
+      "tag": "不自动审计"
     },
     {
       "id": "impact",
