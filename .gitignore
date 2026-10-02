@@ -2,6 +2,7 @@ node_modules/
 .worktrees/
 .nimo/tasks/
 .nimo/inspector/
+.nimo/how/
 evals/runs/
 docs/evidence/issue-13/
 *.tmp

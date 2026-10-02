@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>源码架构画布</title>
+  <style>
+    :root { color-scheme: light; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif; color: #202d3a; background: #f4f6f9; }
+    * { box-sizing: border-box; }
+    body { margin: 0; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+    button,input { font: inherit; }
+    button { background: #fff; border: 1px solid #cbd5e1; border-radius: 7px; color: #26384a; padding: 7px 11px; cursor: pointer; }
+    button:hover { border-color: #4a74ba; background: #edf3ff; }
+    button:focus-visible,input:focus-visible,[tabindex]:focus-visible { outline: 3px solid #e19927; outline-offset: 2px; }
+    button:disabled { cursor: default; opacity: .4; }
+    button[aria-pressed="true"],.step[aria-current="step"] { color: #174eb3; border-color: #4a74ba; background: #e9f0ff; }
+    header { background: #fff; border-bottom: 1px solid #dbe1ea; padding: 15px 20px 12px; flex: none; }
+    h1 { font-size: 21px; margin: 0 0 5px; }
+    .summary { margin: 0; font-size: 13px; color: #53677b; max-width: 1100px; }
+    .snapshot { font-size: 11px; margin: 8px 0 0; color: #6c7f93; overflow-wrap: anywhere; }
+    .toolbar { display: flex; align-items: center; gap: 10px; padding-top: 12px; flex-wrap: wrap; }
+    #scenarios { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+    .search { position: relative; display: flex; gap: 5px; }
+    #search { width: 210px; border: 1px solid #cbd5e1; border-radius: 7px; padding: 7px 9px; min-width: 0; }
+    #search-results { position: absolute; z-index: 3; right: 0; top: 42px; width: 280px; max-height: 260px; overflow-y: auto; background: white; box-shadow: 0 7px 24px #25395825; border: 1px solid #dbe1ea; border-radius: 8px; padding: 5px; }
+    #search-results[hidden] { display: none; }
+    .result { display: block; width: 100%; text-align: left; border: 0; margin: 2px 0; overflow-wrap: anywhere; }
+    .view-controls { display: flex; gap: 4px; }
+    main { display: flex; flex: 1; min-height: 0; }
+    #viewport { flex: 1; min-width: 0; position: relative; overflow: hidden; background: radial-gradient(#c8d1df 1px, transparent 1px) 0 0 / 20px 20px; touch-action: none; }
+    #canvas { display: block; width: 100%; height: 100%; user-select: none; cursor: grab; }
+    #canvas:active { cursor: grabbing; }
+    .map-help { position: absolute; bottom: 12px; left: 12px; margin: 0; padding: 7px 10px; border: 1px solid #dbe1ea; border-radius: 6px; background: #ffffffed; font-size: 11px; color: #5b7085; pointer-events: none; }
+    aside { width: 330px; flex: none; overflow-y: auto; background: #fff; border-left: 1px solid #dbe1ea; padding: 18px; }
+    aside h2 { margin: 0 0 7px; font-size: 17px; }
+    aside h3 { margin: 22px 0 10px; font-size: 13px; }
+    aside p { font-size: 13px; line-height: 1.65; margin: 6px 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+    .scope { display: inline-block; font-size: 11px; color: #60768b; padding: 3px 6px; background: #f0f3f7; border-radius: 4px; margin-bottom: 12px; }
+    #steps { list-style: none; padding: 0; margin: 12px 0; }
+    .step { width: 100%; text-align: left; margin-bottom: 6px; line-height: 1.5; font-size: 13px; }
+    .step-description { display: block; margin-top: 3px; font-size: 12px; color: #61778f; }
+    .step-controls { display: flex; gap: 7px; flex-wrap: wrap; position: sticky; top: 0; z-index: 1; background: #fff; padding: 6px 0; }
+    .step-controls[hidden] { display: none; }
+    .sources { padding: 0; list-style: none; font-size: 12px; color: #3e5875; }
+    .sources li { margin: 7px 0; padding: 7px; background: #f3f6fa; border-radius: 5px; overflow-wrap: anywhere; white-space: pre-wrap; }
+    .badge { display: inline-block; padding: 3px 7px; border-radius: 4px; font-size: 11px; background: #eaf4ee; color: #347354; }
+    .badge.inferred { background: #fff2d6; color: #94661f; }
+    .badge.unknown { background: #fce9ea; color: #a8454c; }
+    .group-box { fill: #edf2f8; stroke: #c8d5e5; stroke-width: 1.5; }
+    .group-title { fill: #627b96; font-size: 17px; font-weight: 600; }
+    .edge-line { fill: none; stroke: #8499b1; stroke-width: 2; }
+    .edge-label { fill: #596f89; font-size: 11px; paint-order: stroke; stroke: #edf2f8; stroke-width: 4; stroke-linejoin: round; }
+    .edge[data-kind="async"] .edge-line { stroke-dasharray: 7 5; }
+    .edge[data-certainty="inferred"] .edge-label,.edge[data-certainty="unknown"] .edge-label { fill: #996a24; }
+    .node { cursor: pointer; }
+    .node-box { fill: #fff; stroke: #a7b9cd; stroke-width: 1.6; }
+    .node[data-certainty="unknown"] .node-box { stroke: #c16f76; stroke-dasharray: 4 3; }
+    .node[data-certainty="inferred"] .node-box { stroke: #c69c54; stroke-dasharray: 5 3; }
+    .node-title { color: #253c56; font-size: 14px; font-weight: 600; line-height: 18px; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; word-break: normal; pointer-events: none; }
+    .node-kind { fill: #6e8299; font-size: 10px; pointer-events: none; }
+    .node-status { font-size: 10px; fill: #627b71; pointer-events: none; }
+    .node[data-certainty="unknown"] .node-status { fill: #a84f59; }
+    .node[data-certainty="inferred"] .node-status { fill: #956c28; }
+    .node.in-path .node-box { fill: #f5f8ff; stroke: #7e9dcc; stroke-width: 2; }
+    .node.active .node-box { fill: #eff5ff; stroke: #3f74d0; stroke-width: 2.5; }
+    .node.selected .node-box { stroke: #285ec0; stroke-width: 3; }
+    .edge.in-path .edge-line { stroke: #5989cb; stroke-width: 2.5; marker-end: url(#arrow-active); }
+    .edge.in-path .edge-label { fill: #4778ba; }
+    .edge.active .edge-line { stroke: #2865c8; stroke-width: 3.2; marker-end: url(#arrow-active); }
+    .edge.active .edge-label { fill: #215bc1; font-weight: 600; }
+    .muted { opacity: .17; }
+    #announcement { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    @media (max-width: 720px) {
+      header { padding: 10px 12px; }
+      h1 { font-size: 17px; }
+      .summary { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; font-size: 12px; }
+      .toolbar { gap: 7px; padding-top: 8px; }
+      #scenarios { flex-basis: 100%; max-height: 72px; overflow-y: auto; }
+      #scenarios button { font-size: 12px; padding: 5px 8px; }
+      .search { flex: 1; min-width: 140px; }
+      #search { width: 100%; }
+      #search-results { width: min(280px,90vw); left: 0; right: auto; }
+      main { flex-direction: column; }
+      #viewport { min-height: 190px; }
+      aside { width: 100%; border-left: 0; border-top: 1px solid #dbe1ea; height: 36%; min-height: 140px; padding: 12px; }
+      aside h3 { margin-top: 12px; }
+      #steps { display: flex; gap: 6px; overflow-x: auto; margin: 8px 0; }
+      #steps li { min-width: 160px; }
+      .step-description { display: none; }
+      .step[aria-current="step"] .step-description { display: block; }
+      .map-help { font-size: 10px; bottom: 7px; left: 7px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 id="title"></h1>
+    <p class="summary" id="summary"></p>
+    <p class="snapshot" id="snapshot"></p>
+    <div class="toolbar">
+      <nav id="scenarios" aria-label="场景路径"></nav>
+      <div class="search">
+        <input id="search" type="search" placeholder="搜索节点 / 符号 / 文件" aria-label="搜索节点" autocomplete="off">
+        <div id="search-results" aria-label="搜索结果" hidden></div>
+      </div>
+      <div class="view-controls" aria-label="画布缩放">
+        <button id="zoom-out" aria-label="缩小">−</button>
+        <button id="zoom-in" aria-label="放大">+</button>
+        <button id="fit" aria-label="适应整个画布">Fit</button>
+      </div>
+    </div>
+  </header>
+  <main>
+    <section id="viewport" aria-label="架构画布">
+      <svg id="canvas" tabindex="0" role="group" aria-label="源码架构图；拖动平移，滚轮缩放，方向键平移">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#8499b1"/></marker>
+          <marker id="arrow-active" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#2865c8"/></marker>
+        </defs>
+        <g id="map"><g id="groups"></g><g id="edges"></g><g id="nodes"></g></g>
+      </svg>
+      <p class="map-help">拖动平移 · 滚轮缩放 · 点击节点看依据 · Esc 退出路径</p>
+    </section>
+    <aside aria-label="场景步骤与节点详情">
+      <span class="scope" id="scope"></span>
+      <section id="journey-panel">
+        <h2 id="journey-title">架构概览</h2>
+        <p id="journey-description"></p>
+        <div class="step-controls" id="step-controls" hidden>
+          <button id="previous">上一步</button><button id="next">下一步</button><button id="exit">退出路径</button>
+        </div>
+        <ol id="steps"></ol>
+      </section>
+      <section id="detail"><h3>节点详情</h3><p>选择节点，查看说明和代码依据。</p></section>
+      <p id="announcement" aria-live="polite"></p>
+    </aside>
+  </main>
+  <script id="model" type="application/json">/*__NIMO_MODEL__*/</script>
+  <script>
+    'use strict';
+    const model = JSON.parse(document.getElementById('model').textContent);
+    const $ = (id) => document.getElementById(id);
+    const namespace = 'http://www.w3.org/2000/svg';
+    const certainty = { confirmed: '已确认', inferred: '推断', unknown: '未知 / 待核对' };
+    const kinds = { component: '组件', function: '函数', data: '数据', resource: '资源', decision: '判断', note: '说明' };
+    const nodeById = new Map(model.nodes.map((node) => [node.id,node]));
+    const position = new Map();
+    const nodeElements = new Map();
+    const edgeElements = new Map();
+    const journeyButtons = new Map();
+    let journey = null;
+    let stepIndex = 0;
+    let selectedNode = null;
+    let view = { x: 0,y: 0,scale: 1 };
+    let fullBounds;
+    let drag;
+
+    function element(tag, text, className) {
+      const item = document.createElement(tag);
+      if (text !== undefined) item.textContent = text;
+      if (className) item.className = className;
+      return item;
+    }
+    function svgElement(tag, attributes, text) {
+      const item = document.createElementNS(namespace,tag);
+      for (const [key,value] of Object.entries(attributes)) item.setAttribute(key,String(value));
+      if (text !== undefined) item.textContent = text;
+      return item;
+    }
+    function shorten(text, length) { return [...text].length > length ? [...text].slice(0,length - 1).join('') + '…' : text; }
+    function boundsFor(ids) {
+      const boxes = ids.map((id) => position.get(id)).filter(Boolean);
+      const minX = Math.min(...boxes.map((box) => box.x));
+      const minY = Math.min(...boxes.map((box) => box.y));
+      return { x: minX,y: minY,width: Math.max(...boxes.map((box) => box.x + box.width)) - minX,height: Math.max(...boxes.map((box) => box.y + box.height)) - minY };
+    }
+    function applyView() { $('map').setAttribute('transform',`translate(${view.x} ${view.y}) scale(${view.scale})`); }
+    function focusBounds(box) {
+      const width = $('viewport').clientWidth;
+      const height = $('viewport').clientHeight;
+      const padding = Math.min(65,width / 8,height / 8);
+      view.scale = Math.min(1.5,Math.max(.08,Math.min((width - padding * 2) / box.width,(height - padding * 2) / box.height)));
+      view.x = (width - box.width * view.scale) / 2 - box.x * view.scale;
+      view.y = (height - box.height * view.scale) / 2 - box.y * view.scale;
+      applyView();
+    }
+    function zoom(multiplier, x = $('viewport').clientWidth / 2, y = $('viewport').clientHeight / 2) {
+      const old = view.scale;
+      view.scale = Math.max(.08,Math.min(3,old * multiplier));
+      view.x = x - (x - view.x) * view.scale / old;
+      view.y = y - (y - view.y) * view.scale / old;
+      applyView();
+    }
+    function writeHash() {
+      const params = new URLSearchParams();
+      if (journey) { params.set('journey',journey.id); params.set('step',String(stepIndex + 1)); }
+      if (selectedNode) params.set('node',selectedNode.id);
+      const hash = params.toString();
+      try { history.replaceState(null,'',location.pathname + location.search + (hash ? '#' + hash : '')); }
+      catch { /* Local file viewers may block history; the canvas remains usable. */ }
+    }
+    function updateHighlights() {
+      const step = journey?.steps[stepIndex];
+      const pathNodes = new Set(journey?.steps.flatMap((item) => item.nodeIds) ?? []);
+      const pathEdges = new Set(journey?.steps.flatMap((item) => item.edgeIds) ?? []);
+      const activeNodes = new Set(step?.nodeIds ?? []);
+      const activeEdges = new Set(step?.edgeIds ?? []);
+      for (const [id,item] of nodeElements) {
+        item.classList.toggle('in-path',pathNodes.has(id));
+        item.classList.toggle('active',activeNodes.has(id));
+        item.classList.toggle('muted',Boolean(journey) && !pathNodes.has(id) && selectedNode?.id !== id);
+        item.classList.toggle('selected',selectedNode?.id === id);
+        item.setAttribute('aria-pressed',String(selectedNode?.id === id));
+      }
+      for (const [id,item] of edgeElements) {
+        item.classList.toggle('in-path',pathEdges.has(id));
+        item.classList.toggle('active',activeEdges.has(id));
+        item.classList.toggle('muted',Boolean(journey) && !pathEdges.has(id));
+      }
+    }
+    function showNode(id, focus = true) {
+      selectedNode = nodeById.get(id) ?? null;
+      $('detail').replaceChildren(element('h3','节点详情'));
+      if (!selectedNode) { $('detail').append(element('p','选择节点，查看说明和代码依据。')); updateHighlights(); return; }
+      $('detail').append(element('h2',selectedNode.title));
+      $('detail').append(element('span',certainty[selectedNode.certainty],`badge ${selectedNode.certainty}`));
+      const group = model.groups.find((item) => item.id === selectedNode.groupId);
+      $('detail').append(element('p',kinds[selectedNode.kind] + (group ? ' · ' + group.title : '')));
+      $('detail').append(element('p',selectedNode.description));
+      $('detail').append(element('h3','代码依据'));
+      if (!selectedNode.sources.length) $('detail').append(element('p','暂无可核对的源码位置；请补充调查。'));
+      const sources = element('ul',undefined,'sources');
+      for (const source of selectedNode.sources) sources.append(element('li',source.path + (source.line ? ':' + source.line : '') + (source.symbol ? '\n符号：' + source.symbol : '')));
+      $('detail').append(sources);
+      updateHighlights();
+      if (focus) focusBounds(boundsFor([id]));
+      $('announcement').textContent = `已选择 ${selectedNode.title}，${certainty[selectedNode.certainty]}`;
+      writeHash();
+    }
+    function showStep(index, focus = true) {
+      if (!journey) return;
+      stepIndex = Math.max(0,Math.min(journey.steps.length - 1,index));
+      const step = journey.steps[stepIndex];
+      for (const [index,item] of [...$('steps').children].entries()) item.firstChild.setAttribute('aria-current',index === stepIndex ? 'step' : 'false');
+      $('steps').children[stepIndex].firstChild.scrollIntoView({ block:'nearest',inline:'nearest' });
+      $('previous').disabled = stepIndex === 0;
+      $('next').disabled = stepIndex === journey.steps.length - 1;
+      selectedNode = null;
+      showNode(step.nodeIds[0],false);
+      if (focus) focusBounds(boundsFor(step.nodeIds));
+      $('announcement').textContent = `${journey.title}，第 ${stepIndex + 1} 步：${step.title}`;
+      writeHash();
+    }
+    function showJourney(id, index = 0, focus = true) {
+      journey = model.journeys.find((item) => item.id === id) ?? null;
+      selectedNode = null;
+      for (const [id,button] of journeyButtons) button.setAttribute('aria-pressed',String(journey ? journey.id === id : id === ''));
+      $('journey-title').textContent = journey?.title ?? '架构概览';
+      $('journey-description').textContent = journey?.description ?? '场景按钮可逐步查看路径。节点和连线来自这次源码调查；推断与缺口另有标注。';
+      $('step-controls').hidden = !journey;
+      $('steps').replaceChildren();
+      if (journey) {
+        journey.steps.forEach((step,index) => {
+          const button = element('button',`${index + 1}. ${step.title}`,'step');
+          button.append(element('span',step.description,'step-description'));
+          button.addEventListener('click',() => showStep(index));
+          const item = element('li'); item.append(button); $('steps').append(item);
+        });
+        showStep(index,focus);
+      } else {
+        showNode(null,false);
+        if (focus) focusBounds(fullBounds);
+        updateHighlights();
+        writeHash();
+      }
+    }
+
+    $('title').textContent = model.title;
+    document.title = model.title + ' · 源码架构画布';
+    $('summary').textContent = model.summary;
+    $('scope').textContent = '调查范围 · ' + model.id;
+    $('snapshot').textContent = '静态源码快照 · 生成于 ' + model.generatedAt + ' · HEAD ' + (model.snapshot.head ? model.snapshot.head.slice(0,12) : '未知') + ' · ' + model.snapshot.sources.length + ' 个文件摘要';
+    for (const item of [{ id:'',title:'概览' },...model.journeys]) {
+      const button = element('button',item.title);
+      button.setAttribute('aria-pressed','false');
+      button.addEventListener('click',() => showJourney(item.id));
+      journeyButtons.set(item.id,button); $('scenarios').append(button);
+    }
+
+    const partitions = model.groups.map((group) => ({ ...group,nodes:model.nodes.filter((node) => node.groupId === group.id) }));
+    const ungrouped = model.nodes.filter((node) => !node.groupId);
+    if (ungrouped.length) partitions.push({ id:null,title: model.groups.length ? '其他节点' : '源码范围',nodes:ungrouped });
+    let cursorX = 28;
+    let cursorY = 28;
+    let rowHeight = 0;
+    let extentX = 0;
+    let extentY = 0;
+    partitions.forEach((group,index) => {
+      if (index && index % 2 === 0) { cursorX = 28; cursorY += rowHeight + 55; rowHeight = 0; }
+      const columns = Math.min(2,Math.max(1,group.nodes.length));
+      const width = columns * 248 + 28;
+      const height = Math.max(1,Math.ceil(group.nodes.length / columns)) * 130 + 65;
+      $('groups').append(svgElement('rect',{ x:cursorX,y:cursorY,width,height,rx:15,class:'group-box' }));
+      $('groups').append(svgElement('text',{ x:cursorX + 18,y:cursorY + 30,class:'group-title' },shorten(group.title,28)));
+      group.nodes.forEach((node,index) => {
+        const x = cursorX + 20 + index % columns * 248;
+        const y = cursorY + 52 + Math.floor(index / columns) * 130;
+        position.set(node.id,{ x,y,width:224,height:100 });
+      });
+      extentX = Math.max(extentX,cursorX + width);
+      extentY = Math.max(extentY,cursorY + height);
+      rowHeight = Math.max(rowHeight,height);
+      cursorX += width + 55;
+    });
+    fullBounds = { x:0,y:0,width:extentX + 28,height:extentY + 28 };
+    model.edges.forEach((edge,index) => {
+      const from = position.get(edge.source);
+      const to = position.get(edge.target);
+      const same = edge.source === edge.target;
+      const horizontal = Math.abs(to.x - from.x) >= Math.abs(to.y - from.y);
+      let x1,y1,x2,y2,d,labelX,labelY;
+      if (same) {
+        x1 = from.x + from.width - 18; y1 = from.y + 24; x2 = from.x + from.width - 18; y2 = from.y + 76;
+        d = `M ${x1} ${y1} C ${x1 + 70} ${y1 - 22},${x2 + 70} ${y2 + 22},${x2} ${y2}`;
+        labelX = x1 + 50; labelY = from.y + 50;
+      } else if (horizontal) {
+        const forward = to.x >= from.x;
+        x1 = from.x + (forward ? from.width : 0); y1 = from.y + from.height / 2;
+        x2 = to.x + (forward ? 0 : to.width); y2 = to.y + to.height / 2;
+        const middle = (x1 + x2) / 2;
+        d = `M ${x1} ${y1} C ${middle} ${y1},${middle} ${y2},${x2} ${y2}`;
+        labelX = middle; labelY = (y1 + y2) / 2 - 7 - index % 3 * 11;
+      } else {
+        const forward = to.y >= from.y;
+        x1 = from.x + from.width / 2; y1 = from.y + (forward ? from.height : 0);
+        x2 = to.x + to.width / 2; y2 = to.y + (forward ? 0 : to.height);
+        const middle = (y1 + y2) / 2;
+        d = `M ${x1} ${y1} C ${x1} ${middle},${x2} ${middle},${x2} ${y2}`;
+        labelX = (x1 + x2) / 2 + 7; labelY = middle;
+      }
+      const item = svgElement('g',{ class:'edge','data-edge-id':edge.id,'data-kind':edge.kind,'data-certainty':edge.certainty ?? 'confirmed' });
+      item.append(svgElement('title',{},edge.label + ' · ' + certainty[edge.certainty ?? 'confirmed']));
+      item.append(svgElement('path',{ d,class:'edge-line','marker-end':'url(#arrow)' }));
+      const prefix = edge.certainty && edge.certainty !== 'confirmed' ? '[' + certainty[edge.certainty] + '] ' : '';
+      item.append(svgElement('text',{ x:labelX,y:labelY,class:'edge-label','text-anchor':'middle' },shorten(prefix + edge.label,36)));
+      edgeElements.set(edge.id,item); $('edges').append(item);
+    });
+    for (const node of model.nodes) {
+      const box = position.get(node.id);
+      const item = svgElement('g',{ class:'node','data-node-id':node.id,'data-certainty':node.certainty,tabindex:0,role:'button','aria-label':node.title + '，' + certainty[node.certainty] });
+      item.append(svgElement('title',{},node.title + '\n' + node.description));
+      item.append(svgElement('rect',{ ...box,rx:9,class:'node-box' }));
+      item.append(svgElement('text',{ x:box.x + 13,y:box.y + 19,class:'node-kind' },kinds[node.kind]));
+      const title = svgElement('foreignObject',{ x:box.x + 13,y:box.y + 28,width:198,height:36 });
+      title.append(element('div',node.title,'node-title'));
+      item.append(title);
+      item.append(svgElement('text',{ x:box.x + 13,y:box.y + 86,class:'node-status' },certainty[node.certainty]));
+      item.addEventListener('click',() => showNode(node.id));
+      item.addEventListener('keydown',(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); showNode(node.id); } });
+      nodeElements.set(node.id,item); $('nodes').append(item);
+    }
+
+    function search() {
+      const query = $('search').value.trim().toLocaleLowerCase();
+      $('search-results').replaceChildren();
+      $('search-results').hidden = !query;
+      if (!query) return;
+      const matches = model.nodes.filter((node) => [node.title,node.id,node.description,...node.sources.flatMap((source) => [source.path,source.symbol ?? ''])].join('\n').toLocaleLowerCase().includes(query)).slice(0,30);
+      for (const node of matches) {
+        const button = element('button',node.title + ' · ' + certainty[node.certainty],'result');
+        button.addEventListener('click',() => { showNode(node.id); $('search-results').hidden = true; nodeElements.get(node.id).focus({ preventScroll:true }); });
+        $('search-results').append(button);
+      }
+      if (!matches.length) $('search-results').append(element('p','没有匹配节点。'));
+    }
+    $('search').addEventListener('input',search);
+    $('search').addEventListener('keydown',(event) => {
+      if (event.key === 'Enter') { event.preventDefault(); $('search-results').querySelector('button')?.click(); }
+      if (event.key === 'ArrowDown') { event.preventDefault(); $('search-results').querySelector('button')?.focus(); }
+      if (event.key === 'Escape') { event.stopPropagation(); $('search-results').hidden = true; }
+    });
+    document.addEventListener('click',(event) => { if (!event.target.closest('.search')) $('search-results').hidden = true; });
+    $('previous').addEventListener('click',() => showStep(stepIndex - 1));
+    $('next').addEventListener('click',() => showStep(stepIndex + 1));
+    $('exit').addEventListener('click',() => showJourney(''));
+    $('fit').addEventListener('click',() => focusBounds(fullBounds));
+    $('zoom-in').addEventListener('click',() => zoom(1.2));
+    $('zoom-out').addEventListener('click',() => zoom(1 / 1.2));
+    $('canvas').addEventListener('wheel',(event) => {
+      event.preventDefault();
+      const rect = $('canvas').getBoundingClientRect();
+      zoom(Math.exp(-Math.max(-150,Math.min(150,event.deltaY)) * .003),event.clientX - rect.left,event.clientY - rect.top);
+    },{ passive:false });
+    $('canvas').addEventListener('pointerdown',(event) => {
+      if (event.target.closest('.node') || event.button !== 0) return;
+      drag = { pointer:event.pointerId,x:event.clientX,y:event.clientY,viewX:view.x,viewY:view.y };
+      $('canvas').setPointerCapture(event.pointerId);
+    });
+    $('canvas').addEventListener('pointermove',(event) => {
+      if (!drag || drag.pointer !== event.pointerId) return;
+      view.x = drag.viewX + event.clientX - drag.x; view.y = drag.viewY + event.clientY - drag.y; applyView();
+    });
+    for (const name of ['pointerup','pointercancel','lostpointercapture']) $('canvas').addEventListener(name,() => { drag = null; });
+    $('canvas').addEventListener('keydown',(event) => {
+      if (event.target !== $('canvas')) return;
+      const moves = { ArrowLeft:[40,0],ArrowRight:[-40,0],ArrowUp:[0,40],ArrowDown:[0,-40] };
+      if (moves[event.key]) { event.preventDefault(); view.x += moves[event.key][0]; view.y += moves[event.key][1]; applyView(); }
+      if (event.key === '+' || event.key === '=') { event.preventDefault(); zoom(1.2); }
+      if (event.key === '-') { event.preventDefault(); zoom(1 / 1.2); }
+      if (event.key.toLowerCase() === 'f') focusBounds(fullBounds);
+    });
+    document.addEventListener('keydown',(event) => { if (event.key === 'Escape') showJourney(''); });
+    function readHash() {
+      const params = new URLSearchParams(location.hash.slice(1));
+      const id = params.get('journey');
+      const step = Number(params.get('step'));
+      const node = params.get('node');
+      showJourney(id,Number.isSafeInteger(step) && step > 0 ? step - 1 : 0);
+      if (nodeById.has(node)) showNode(node,!journey);
+    }
+    window.addEventListener('hashchange',readHash);
+    new ResizeObserver(() => { if (journey) focusBounds(boundsFor(journey.steps[stepIndex].nodeIds)); else if (selectedNode) focusBounds(boundsFor([selectedNode.id])); else focusBounds(fullBounds); }).observe($('viewport'));
+    readHash();
+  </script>
+</body>
+</html>
