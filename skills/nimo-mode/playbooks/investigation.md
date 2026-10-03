@@ -15,7 +15,7 @@
 
 只读请求："X 是怎么工作的？""Y 当初为什么建成这样？""我们确定 Z 吗？""该做 X 还是 Y？"它们产出一份带引用的解释或一份建议，不是代码改动。
 
-1. 经 [nimo-how](../../nimo-how/SKILL.md) 路由：默认同时交付解释与范围相称的导览画布；"我们确定吗？"先理解再经 [nimo-interrogate](../../nimo-interrogate/SKILL.md) 独立质疑。动机问题（"当初为什么建成这样"）另经 [nimo-why](../../nimo-why/SKILL.md) 路由。
+1. 经 [nimo-how](../../nimo-how/SKILL.md) 路由：默认同时交付解释与范围相称的导览画布；项目级问题盘点场景与缺口，按总览、核心对象和独立场景介绍，步骤保留完整主线；"我们确定吗？"先理解再经 [nimo-interrogate](../../nimo-interrogate/SKILL.md) 独立质疑。动机问题（"当初为什么建成这样"）另经 [nimo-why](../../nimo-why/SKILL.md) 路由。
 2. 吞吐量检查点保持一行：`吞吐量检查点：n/a，只读调查`。四项版本只用于代码形工作。
 3. 产出 nimo-how 形状的解释和可打开的画布路径；用户只要文字或禁止写入时保留内联解释。请求是在备选项之间做决定时，产出一份建议，附取舍表。
 4. 对回复应用 [nimo-unslop](../../nimo-unslop/SKILL.md)。

@@ -27,6 +27,17 @@ function model() {
   };
 }
 
+function modelV2() {
+  const input = model();
+  input.schemaVersion = 2;
+  input.categories = [{ id: 'requests', title: '请求场景' }];
+  input.overview = { description: '入口与处理边界。', sections: [{ title: '应用', description: '处理一次请求。', nodeIds: ['entry', 'handler'] }] };
+  input.objectNodeIds = ['handler'];
+  Object.assign(input.journeys[0], { categoryId: 'requests', status: 'confirmed', preconditions: ['请求已到达'], completion: '处理结果已返回' });
+  input.journeys[0].steps.forEach((step, index) => Object.assign(step, { actor: index ? '处理函数' : '入口', input: index ? '调用参数' : '请求', output: index ? '结果' : '调用参数' }));
+  return input;
+}
+
 async function fixture(t, withGit = true) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'nimo-how-'));
   const repo = path.join(root, 'source');
@@ -75,6 +86,109 @@ test('canvas accepts a local one-node explanation and visible unknown source gap
   const result = await generate(input, f.options);
   assert.equal((await saved(result)).nodes[0].certainty, 'unknown');
   assert.equal((await check(await saved(result), { projectRoot: f.repo })).status, 'MATCH');
+});
+
+test('v2 semantic metadata roundtrips in the canonical single-file bundle', async (t) => {
+  const f = await fixture(t);
+  const input = modelV2();
+  input.journeys[0].steps.reverse();
+  const result = await generate(input, f.options), stored = await saved(result);
+  const html = await fs.readFile(result.htmlPath, 'utf8');
+  const embedded = JSON.parse(html.match(/<script id="model" type="application\/json">([\s\S]*?)<\/script>/)[1]);
+  assert.deepEqual(embedded, stored);
+  for (const key of ['categories', 'overview', 'objectNodeIds', 'journeys']) assert.deepEqual(stored[key], input[key]);
+  assert.equal(stored.journeys[0].steps[0].actor, '处理函数');
+  assert.equal((await check(stored, { projectRoot: f.repo })).status, 'MATCH');
+  assert.equal(html.includes('stepInfo'), false);
+  assert.equal(html.includes('model.ui'), false);
+  assert.equal(html.includes('Agent Hub'), false);
+  assert.equal(html.includes('/*__NIMO_MODEL__*/'), false);
+});
+
+test('v2 metadata rejects unknown or duplicate references, invalid types and unsupported fields', () => {
+  const cases = [
+    (input) => { input.categories = null; },
+    (input) => input.categories.push({ ...input.categories[0] }),
+    (input) => { input.categories[0].sceneIds = ['request']; },
+    (input) => { input.overview.sections[0].nodeIds = ['missing']; },
+    (input) => { input.overview.sections[0].nodeIds = ['entry', 'entry']; },
+    (input) => { input.overview.sections[0].description = 1; },
+    (input) => { input.objectNodeIds = ['missing']; },
+    (input) => { input.objectNodeIds = ['entry', 'entry']; },
+    (input) => { input.journeys[0].categoryId = 'missing'; },
+    (input) => { input.journeys[0].status = 'runtime-passed'; },
+    (input) => { delete input.journeys[0].status; },
+    (input) => { input.journeys[0].preconditions = 'request'; },
+    (input) => { input.journeys[0].preconditions = [1]; },
+    (input) => { delete input.journeys[0].completion; },
+    (input) => { input.journeys[0].steps[0].actor = 1; },
+    (input) => { delete input.journeys[0].steps[0].input; },
+    (input) => { input.journeys[0].steps[0].output = ''; },
+    (input) => { input.ui = {}; },
+    (input) => { input.schemaVersion = 1; },
+    (input) => { input.categories = Array.from({ length: 101 }, (_, i) => ({ id: `c${i}`, title: '分类' })); },
+    (input) => { input.overview.sections = Array.from({ length: 101 }, () => input.overview.sections[0]); },
+    (input) => { input.journeys[0].preconditions = Array(101).fill('前提'); },
+  ];
+  for (const mutate of cases) {
+    const input = modelV2(); mutate(input);
+    assert.throws(() => validateModel(input), { code: 'INVALID_MODEL' });
+  }
+  for (const [key, value] of Object.entries({ status: 'confirmed', preconditions: [], completion: '结果' })) {
+    const input = model(); input.journeys[0][key] = value;
+    assert.throws(() => validateModel(input), { code: 'INVALID_MODEL' });
+  }
+  const input = model(); input.journeys[0].steps[0].actor = '入口';
+  assert.throws(() => validateModel(input), { code: 'INVALID_MODEL' });
+});
+
+test('v2 uninvestigated states require an honest reason and empty steps; partial models need no categories or journeys', async (t) => {
+  const f = await fixture(t);
+  for (const status of ['not-investigated', 'out-of-scope']) {
+    const input = modelV2();
+    Object.assign(input.journeys[0], { status, reason: '该路径尚未调查。', steps: [], preconditions: [], completion: '' });
+    assert.deepEqual(validateModel(input).journeys[0].steps, []);
+    const result = await generate(input, f.options);
+    assert.equal((await saved(result)).journeys[0].reason, input.journeys[0].reason);
+    assert.equal((await check(await saved(result), { projectRoot: f.repo })).status, 'MATCH');
+    const noReason = structuredClone(input); delete noReason.journeys[0].reason;
+    assert.throws(() => validateModel(noReason), { code: 'INVALID_MODEL' });
+    input.journeys[0].steps = modelV2().journeys[0].steps;
+    assert.throws(() => validateModel(input), { code: 'INVALID_MODEL' });
+  }
+  const pending = modelV2(); pending.journeys[0].status = 'needs-validation';
+  assert.throws(() => validateModel(pending), { code: 'INVALID_MODEL' });
+  pending.journeys[0].reason = '返回链路仍需核实。';
+  assert.doesNotThrow(() => validateModel(pending));
+  pending.journeys[0].steps = [];
+  assert.throws(() => validateModel(pending), { code: 'INVALID_MODEL' });
+  const confirmed = modelV2(); confirmed.journeys[0].completion = '';
+  assert.throws(() => validateModel(confirmed), { code: 'INVALID_MODEL' });
+  const partial = modelV2(); delete partial.categories; delete partial.overview; delete partial.objectNodeIds;
+  delete partial.journeys[0].categoryId;
+  assert.doesNotThrow(() => validateModel(partial));
+  partial.groups = []; partial.edges = []; partial.journeys = [];
+  partial.nodes = [{ id: 'local', title: '局部函数', kind: 'function', description: '来源尚未查明。', certainty: 'unknown', sources: [] }];
+  assert.equal((await saved(await generate(partial, f.options))).nodes[0].kind, 'function');
+});
+
+test('v2 injected semantic text remains inert and invalid metadata cannot replace a bundle', async (t) => {
+  const f = await fixture(t), input = modelV2();
+  const malicious = '</script><img src="https://remote.invalid" onerror="globalThis.stolen=true">&\u2028\u2029';
+  input.categories[0].title = malicious; input.overview.description = malicious;
+  Object.assign(input.journeys[0], { status: 'needs-validation', reason: malicious, completion: malicious, preconditions: [malicious] });
+  Object.assign(input.journeys[0].steps[0], { actor: malicious, input: malicious, output: malicious });
+  const result = await generate(input, f.options);
+  const before = await Promise.all([fs.readFile(result.htmlPath, 'utf8'), fs.readFile(result.modelPath, 'utf8')]);
+  const scripts = [...before[0].matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)];
+  assert.equal(scripts.length, 2);
+  assert.deepEqual(JSON.parse(scripts[0][1]), await saved(result));
+  assert.equal(scripts[0][1].includes('<'), false);
+  assert.equal(scripts[1][1].includes('globalThis.stolen'), false);
+  new Function(scripts[1][1]);
+  input.objectNodeIds = ['missing'];
+  await assert.rejects(generate(input, f.options), { code: 'INVALID_MODEL' });
+  assert.deepEqual(await Promise.all([fs.readFile(result.htmlPath, 'utf8'), fs.readFile(result.modelPath, 'utf8')]), before);
 });
 
 test('model validator rejects duplicate IDs, dangling references and invalid source claims', () => {

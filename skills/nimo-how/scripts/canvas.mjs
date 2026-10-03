@@ -14,6 +14,7 @@ const TOTAL_SOURCE_LIMIT = 64 * 1024 * 1024;
 const slug = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}$/;
 const reservedName = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
 const certaintyValues = ['confirmed', 'inferred', 'unknown'];
+const journeyStatuses = ['confirmed', 'needs-validation', 'not-investigated', 'out-of-scope'];
 
 function fail(code, message) {
   throw Object.assign(new Error(message), { code });
@@ -53,6 +54,11 @@ function uniqueIds(items, label) {
   return ids;
 }
 
+function references(value, allowed, label, limit, minimum = 0) {
+  array(value, label, limit, minimum);
+  if (new Set(value).size !== value.length || value.some((item) => !allowed.has(item))) fail('INVALID_MODEL', `${label} contains duplicate or unknown references`);
+}
+
 function sourcePath(value) {
   string(value, 'source.path', 512);
   if (value.startsWith('/') || /[\\:<>"|?*\x00-\x1f]/.test(value) || value.split('/').some((part) => !part || part === '.' || part === '..' || /[. ]$/.test(part))) {
@@ -81,8 +87,9 @@ function validateSnapshot(snapshot, expectedPaths) {
 
 /** Validate the complete domain model before any output is changed. */
 export function validateModel(input) {
-  object(input, 'model', ['schemaVersion', 'id', 'title', 'summary', 'groups', 'nodes', 'edges', 'journeys', 'snapshot', 'generatedAt']);
-  if (input.schemaVersion !== 1) fail('INVALID_MODEL', 'schemaVersion must be 1');
+  const v2 = input?.schemaVersion === 2;
+  object(input, 'model', ['schemaVersion', 'id', 'title', 'summary', 'groups', 'nodes', 'edges', 'journeys', 'snapshot', 'generatedAt', ...(v2 ? ['categories', 'overview', 'objectNodeIds'] : [])]);
+  if (![1, 2].includes(input.schemaVersion)) fail('INVALID_MODEL', 'schemaVersion must be 1 or 2');
   id(input.id, 'model.id');
   string(input.title, 'model.title', 240);
   string(input.summary, 'model.summary');
@@ -112,6 +119,27 @@ export function validateModel(input) {
     }
   }
   const nodeIds = uniqueIds(input.nodes, 'nodes');
+  const categories = input.categories === undefined ? [] : input.categories;
+  if (v2) {
+    array(categories, 'categories', 100);
+    for (const category of categories) {
+      object(category, 'category', ['id', 'title']);
+      string(category.title, 'category.title', 240);
+    }
+    if (input.objectNodeIds !== undefined) references(input.objectNodeIds, nodeIds, 'objectNodeIds', 300);
+    if (input.overview !== undefined) {
+      object(input.overview, 'overview', ['description', 'sections']);
+      string(input.overview.description, 'overview.description');
+      array(input.overview.sections, 'overview.sections', 100);
+      for (const section of input.overview.sections) {
+        object(section, 'overview.section', ['title', 'description', 'nodeIds']);
+        string(section.title, 'overview.section.title', 240);
+        if (section.description !== undefined) string(section.description, 'overview.section.description');
+        references(section.nodeIds, nodeIds, 'overview.section.nodeIds', 300);
+      }
+    }
+  }
+  const categoryIds = uniqueIds(categories, 'categories');
   for (const edge of input.edges) {
     object(edge, 'edge', ['id', 'source', 'target', 'label', 'kind', 'certainty']);
     string(edge.label, 'edge.label', 240, true);
@@ -123,18 +151,27 @@ export function validateModel(input) {
   uniqueIds(input.journeys, 'journeys');
   let stepCount = 0;
   for (const journey of input.journeys) {
-    object(journey, 'journey', ['id', 'title', 'description', 'steps']);
+    object(journey, 'journey', ['id', 'title', 'description', 'steps', ...(v2 ? ['categoryId', 'status', 'preconditions', 'completion', 'reason'] : [])]);
     string(journey.title, 'journey.title', 240);
     string(journey.description, 'journey.description');
-    array(journey.steps, 'journey.steps', 100, 1);
+    const uninvestigated = v2 && ['not-investigated', 'out-of-scope'].includes(journey.status);
+    if (v2) {
+      if (journey.categoryId !== undefined && !categoryIds.has(journey.categoryId)) fail('INVALID_MODEL', `journey ${journey.id} refers to an unknown category`);
+      oneOf(journey.status, journeyStatuses, 'journey.status');
+      array(journey.preconditions, 'journey.preconditions', 100);
+      for (const condition of journey.preconditions) string(condition, 'journey.precondition');
+      string(journey.completion, 'journey.completion', 4000, uninvestigated);
+      if (journey.reason !== undefined || journey.status !== 'confirmed') string(journey.reason, 'journey.reason');
+    }
+    array(journey.steps, 'journey.steps', uninvestigated ? 0 : 100, uninvestigated ? 0 : 1);
     stepCount += journey.steps.length;
     for (const step of journey.steps) {
-      object(step, 'step', ['title', 'description', 'nodeIds', 'edgeIds']);
+      object(step, 'step', ['title', 'description', 'nodeIds', 'edgeIds', ...(v2 ? ['actor', 'input', 'output'] : [])]);
       string(step.title, 'step.title', 240);
       string(step.description, 'step.description');
+      if (v2) for (const key of ['actor', 'input', 'output']) string(step[key], `step.${key}`);
       for (const [key, allowed] of Object.entries({ nodeIds, edgeIds })) {
-        array(step[key], `step.${key}`, key === 'nodeIds' ? 300 : 1000, key === 'nodeIds' ? 1 : 0);
-        if (new Set(step[key]).size !== step[key].length || step[key].some((value) => !allowed.has(value))) fail('INVALID_MODEL', `step.${key} contains duplicate or unknown references`);
+        references(step[key], allowed, `step.${key}`, key === 'nodeIds' ? 300 : 1000, key === 'nodeIds' ? 1 : 0);
       }
     }
   }
