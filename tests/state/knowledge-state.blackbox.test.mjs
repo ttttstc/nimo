@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -178,6 +178,61 @@ test('external knowledge uses a path-derived pseudonym without persisting plaint
     assert.equal(serialized.includes(external), false, 'state must not persist an external absolute path in plaintext');
   } finally {
     await rm(current.root, { recursive: true, force: true });
+  }
+});
+
+test('project and target aliases share internal identity, canonical readback, and missing baselines', async () => {
+  const current = await fixture('aliases');
+  try {
+    const canonicalRoot = await realpath(current.projectRoot), canonicalTarget = await realpath(current.knowledge);
+    const aliasRoot = join(dirname(canonicalRoot), 'project-alias'), aliasTarget = join(aliasRoot, 'docs', 'architecture.md');
+    await symlink(canonicalRoot, aliasRoot, process.platform === 'win32' ? 'junction' : 'dir');
+    assert.equal(await realpath(aliasRoot), canonicalRoot, 'fixture alias must resolve to the same physical project');
+    const initialized = await run({ operation: 'init', projectRoot: aliasRoot });
+    assert.equal(initialized.status, 'OK', JSON.stringify(initialized.diagnostics));
+    const updated = await run({ operation: 'update', projectRoot: aliasRoot, expectedRevision: 0,
+      projectVersion: 'head-2', maintainedAt: '2026-10-03T00:00:00Z',
+      targets: [await target(current, { path: canonicalTarget })] });
+    assert.equal(updated.status, 'OK');
+    const read = await run({ operation: 'read', projectRoot: canonicalRoot });
+    assert.deepEqual(read.data, await persisted(current), 'canonical root must independently read the same on-disk state');
+    assert.deepEqual(Object.keys(read.data.targets), ['./docs/architecture.md']);
+    const checked = await run({ operation: 'check', projectRoot: canonicalRoot, targets: [{ path: aliasTarget }] });
+    assert.equal(checked.data.targets[0].target, './docs/architecture.md');
+    assert.equal(checked.data.targets[0].status, 'UNCHANGED');
+    const duplicate = await run({ operation: 'check', projectRoot: aliasRoot, targets: [{ path: canonicalTarget }, { path: aliasTarget }] });
+    assert.equal(duplicate.status, 'BLOCK');
+    assert.match(JSON.stringify(duplicate.diagnostics), /DUPLICATE_TARGET/);
+    await rm(current.knowledge);
+    for (const [projectRoot, targetPath] of [[canonicalRoot, aliasTarget], [aliasRoot, canonicalTarget]]) {
+      const missing = await run({ operation: 'check', projectRoot, targets: [{ path: targetPath }] });
+      assert.equal(missing.data.targets[0].target, './docs/architecture.md');
+      assert.equal(missing.data.targets[0].status, 'MISSING');
+      assert.equal(missing.data.targets[0].baselineContentHash, read.data.targets['./docs/architecture.md'].contentHash);
+    }
+    assert.deepEqual(await persisted(current), read.data, 'read-only checks must preserve the baseline');
+  } finally {
+    await rm(current.root, { recursive: true, force: true });
+  }
+});
+
+test('initialization supports an absent project and missing targets below absent directories', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'nimo-knowledge-state-absent-'));
+  const projectRoot = join(root, 'future', 'project');
+  try {
+    const initialized = await run({ operation: 'init', projectRoot });
+    assert.equal(initialized.status, 'OK');
+    assert.equal(initialized.changed, true);
+    const canonicalRoot = await realpath(projectRoot);
+    const read = await run({ operation: 'read', projectRoot: canonicalRoot });
+    assert.deepEqual(read.data, JSON.parse(await readFile(join(projectRoot, '.nimo/state/knowledge.json'), 'utf8')));
+    const check = await run({ operation: 'check', projectRoot: canonicalRoot,
+      targets: [{ path: join(projectRoot, 'docs', 'unwritten', 'architecture.md') }] });
+    assert.equal(check.status, 'OK');
+    assert.deepEqual(check.data.targets, [{ target: './docs/unwritten/architecture.md', status: 'MISSING',
+      baselineContentHash: null, actualContentHash: null, verifiedRevision: null }]);
+  } finally {
+    await rm(root, { recursive: true, force: true });
   }
 });
 
