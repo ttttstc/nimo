@@ -11,6 +11,21 @@ const slash = value => value.split(path.sep).join('/');
 const hashValue = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
 const externalTargetPrefix = 'external-path-sha256:';
 
+async function canonicalPath(requested) {
+  let current = requested;
+  const missing = [];
+  while (true) {
+    try { return path.join(await fs.realpath(current), ...missing.reverse()); }
+    catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+      const parent = path.dirname(current);
+      if (parent === current) throw error;
+      missing.push(path.basename(current));
+      current = parent;
+    }
+  }
+}
+
 function portableTargetKey(projectRoot, file) {
   const relative = path.relative(projectRoot, file);
   if (relative && relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative)) {
@@ -61,9 +76,8 @@ async function readState(file) {
 
 async function observeTarget(projectRoot, value) {
   const requested = absolute(value, 'knowledge target path');
-  const unresolvedKey = portableTargetKey(projectRoot, path.resolve(requested));
   const actual = await fs.realpath(requested).catch(error => { if (error.code === 'ENOENT') return null; throw error; });
-  if (!actual) return { key: unresolvedKey, actualContentHash: null };
+  if (!actual) return { key: portableTargetKey(projectRoot, await canonicalPath(requested)), actualContentHash: null };
   const stat = await fs.stat(actual);
   if (!stat.isFile()) fail('INVALID_TARGET', `Knowledge target must resolve to a regular file: ${requested}`, 4);
   return {
@@ -129,7 +143,7 @@ async function materializeTargets(projectRoot, targets, projectVersion) {
 export async function run(request) {
   return guarded(async () => {
     if (!object(request)) fail('INVALID_REQUEST', 'Expected an object');
-    const projectRoot = absolute(request.projectRoot, 'projectRoot');
+    const projectRoot = await canonicalPath(absolute(request.projectRoot, 'projectRoot'));
     const file = path.join(projectRoot, '.nimo', 'state', 'knowledge.json');
     const operation = request.operation;
 
