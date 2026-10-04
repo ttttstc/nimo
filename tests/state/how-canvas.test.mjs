@@ -3,6 +3,7 @@ import test from 'node:test';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
+import vm from 'node:vm';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
@@ -31,7 +32,17 @@ function modelV2() {
   const input = model();
   input.schemaVersion = 2;
   input.categories = [{ id: 'requests', title: '请求场景' }];
-  input.overview = { description: '入口与处理边界。', sections: [{ title: '应用', description: '处理一次请求。', nodeIds: ['entry', 'handler'] }] };
+  input.overview = {
+    description: '入口与处理边界。',
+    sections: [{ title: '应用', description: '处理一次请求。', nodeIds: ['entry', 'handler'] }],
+    components: [
+      { id: 'web', title: '网页', description: '接收请求。', nodeIds: ['entry'] },
+      { id: 'runner', title: '执行器', description: '处理请求。', nodeIds: ['handler'] },
+    ],
+    flowJourneyIds: ['request'],
+    development: [{ title: '应用源码', nodeIds: ['entry', 'handler'] }],
+    physical: [{ title: '部署配置', description: '代码支持的依赖边界。', nodeIds: ['handler'] }],
+  };
   input.objectNodeIds = ['handler'];
   Object.assign(input.journeys[0], { categoryId: 'requests', status: 'confirmed', preconditions: ['请求已到达'], completion: '处理结果已返回' });
   input.journeys[0].steps.forEach((step, index) => Object.assign(step, { actor: index ? '处理函数' : '入口', input: index ? '调用参数' : '请求', output: index ? '结果' : '调用参数' }));
@@ -73,9 +84,41 @@ test('canvas generates a complete single-file bundle against a separate source r
   const html = await fs.readFile(result.htmlPath, 'utf8');
   const embedded = html.match(/<script id="model" type="application\/json">([\s\S]*?)<\/script>/)[1];
   assert.deepEqual(JSON.parse(embedded), stored);
+  assert.equal((html.match(/<script\b/g) || []).length, 2, 'model and viewer remain the only inline script elements');
+  assert.equal(/<script[^>]+\bsrc=/i.test(html), false, 'viewer loads no external script');
+  assert.equal(html.includes('innerHTML'), false, 'viewer renders model text through DOM text nodes');
+  assert.equal(html.includes('/*__NIMO_GRAPH__*/'), false);
+  assert.equal(html.includes('/*__NIMO_RUNTIME__*/'), false);
+  assert.equal(html.includes('export function'), false, 'source modules are inlined without ESM exports');
+  assert.doesNotThrow(() => new vm.Script(html.match(/<script>([\s\S]*?)<\/script>/)[1]), 'combined inline viewer script parses as standalone JavaScript');
+  assert.equal(JSON.stringify(stored).includes('camera'), false, 'private camera state is not serialized into the model');
   assert.equal(html.includes('export function main()'), false, 'source contents must not be embedded');
   assert.deepEqual(await fs.readdir(path.dirname(result.htmlPath)), ['index.html', 'model.json']);
   assert.deepEqual(await fs.readdir(path.join(f.cwd, '.nimo', 'how')), ['example']);
+});
+
+test('public CLI accepts a CRLF viewer runtime from a Windows checkout', async (t) => {
+  const f = await fixture(t);
+  const sourceScripts = path.dirname(cli);
+  const copiedScripts = path.join(f.root, 'installed-how', 'scripts');
+  await fs.mkdir(copiedScripts, { recursive: true });
+  for (const name of ['canvas.mjs', 'graph.mjs', 'viewer-runtime.mjs', 'viewer.html']) {
+    await fs.copyFile(path.join(sourceScripts, name), path.join(copiedScripts, name));
+  }
+  const runtimePath = path.join(copiedScripts, 'viewer-runtime.mjs');
+  const runtime = (await fs.readFile(runtimePath, 'utf8')).replace(/\r\n/g, '\n').replace(/\n/g, '\r\n');
+  await fs.writeFile(runtimePath, runtime);
+  assert.match(await fs.readFile(runtimePath, 'utf8'), /\r\n/);
+
+  const inputPath = path.join(f.root, 'input.json');
+  await fs.writeFile(inputPath, JSON.stringify(model()));
+  const copiedCli = path.join(copiedScripts, 'canvas.mjs');
+  const generated = await execute(process.execPath, [copiedCli, '--input', inputPath, '--project-root', f.repo, '--out', '.nimo/how/crlf'], { cwd: f.cwd, windowsHide: true });
+  const result = JSON.parse(generated.stdout);
+  assert.equal(result.status, 'OK');
+  const html = await fs.readFile(result.htmlPath, 'utf8');
+  assert.equal(html.includes("from './graph.mjs'"), false);
+  assert.doesNotThrow(() => new vm.Script(html.match(/<script>([\s\S]*?)<\/script>/)[1]));
 });
 
 test('canvas accepts a local one-node explanation and visible unknown source gaps', async (t) => {
@@ -97,12 +140,57 @@ test('v2 semantic metadata roundtrips in the canonical single-file bundle', asyn
   const embedded = JSON.parse(html.match(/<script id="model" type="application\/json">([\s\S]*?)<\/script>/)[1]);
   assert.deepEqual(embedded, stored);
   for (const key of ['categories', 'overview', 'objectNodeIds', 'journeys']) assert.deepEqual(stored[key], input[key]);
+  assert.equal(stored.schemaVersion, 2);
+  assert.deepEqual(stored.overview.components[0].nodeIds, ['entry']);
+  assert.deepEqual(stored.overview.flowJourneyIds, ['request']);
+  assert.deepEqual(stored.overview.development, input.overview.development);
+  assert.deepEqual(stored.overview.physical, input.overview.physical);
   assert.equal(stored.journeys[0].steps[0].actor, '处理函数');
   assert.equal((await check(stored, { projectRoot: f.repo })).status, 'MATCH');
   assert.equal(html.includes('stepInfo'), false);
   assert.equal(html.includes('model.ui'), false);
   assert.equal(html.includes('Agent Hub'), false);
   assert.equal(html.includes('/*__NIMO_MODEL__*/'), false);
+  assert.equal(html.includes('/*__NIMO_GRAPH__*/'), false);
+  assert.equal(html.includes('/*__NIMO_RUNTIME__*/'), false);
+});
+
+test('v2 L0 ownership and 4+1 references are strict while remaining optional for legacy models', () => {
+  const legacy = modelV2();
+  delete legacy.overview.components;
+  delete legacy.overview.flowJourneyIds;
+  delete legacy.overview.development;
+  delete legacy.overview.physical;
+  assert.doesNotThrow(() => validateModel(legacy));
+
+  const cases = [
+    (input) => { input.overview.components[0].ui = {}; },
+    (input) => { input.overview.components.push({ ...input.overview.components[0] }); },
+    (input) => { input.overview.components[0].title = ''; },
+    (input) => { input.overview.components[0].description = 1; },
+    (input) => { input.overview.components[0].nodeIds = []; },
+    (input) => { input.overview.components[0].nodeIds = ['missing']; },
+    (input) => { input.overview.components[0].nodeIds = ['entry', 'entry']; },
+    (input) => { input.overview.components[1].nodeIds = ['entry']; },
+    (input) => { input.overview.flowJourneyIds = ['missing']; },
+    (input) => { input.overview.flowJourneyIds = ['request', 'request']; },
+    (input) => { delete input.overview.components; },
+    (input) => { input.overview.development[0].nodeIds = ['missing']; },
+    (input) => { input.overview.physical[0].description = 1; },
+    (input) => { input.overview.physical[0].nodeIds = ['entry', 'entry']; },
+    (input) => { input.overview.development[0].coordinate = { x: 1, y: 2 }; },
+  ];
+  for (const mutate of cases) {
+    const input = modelV2(); mutate(input);
+    assert.throws(() => validateModel(input), { code: 'INVALID_MODEL' });
+  }
+  const tooManyFlows = modelV2();
+  for (const id of ['request-2', 'request-3', 'request-4']) tooManyFlows.journeys.push({ ...structuredClone(tooManyFlows.journeys[0]), id });
+  tooManyFlows.overview.flowJourneyIds = ['request', 'request-2', 'request-3', 'request-4'];
+  assert.throws(() => validateModel(tooManyFlows), { code: 'INVALID_MODEL' });
+  const tooMany = modelV2();
+  tooMany.overview.development = Array.from({ length: 101 }, () => ({ title: '源码组织', nodeIds: [] }));
+  assert.throws(() => validateModel(tooMany), { code: 'INVALID_MODEL' });
 });
 
 test('v2 metadata rejects unknown or duplicate references, invalid types and unsupported fields', () => {
