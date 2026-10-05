@@ -32,7 +32,7 @@ description: "实现前的设计探索：建立事实基础、产出多个整体
 
 至少拿到两个**整体结构明显不同**的候选后才能综合，即使第一个候选已经看起来足够好。这是 nimo-principle-exhaust-the-design-space 的具体应用。需要比较的是整体架构方案，不是在同一个方案里换几个局部细节。
 
-综合前，用[设计风险清单](references/design-red-flags.md)逐项检查每个候选。浅层抽象、内部信息泄漏、按执行时序而不是职责拆模块、只做透传的方法，都应修订或淘汰。
+综合前，用[设计风险清单](references/design-red-flags.md)逐项检查每个候选。假设下一个贡献者是 agent：只看自己打开过的文件，复制离它最近的示例，走最短能编译的路径。优先选择"从一个文件看是对的改动，对整个仓库也是对的"的设计。
 
 比较可行候选时关注接口深度：优先选择用更小、更简单的公共接口隐藏更多内部复杂度的方案。能力集中在少数高价值接口里，通常比把同一能力拆散到多层调用链更容易维护。
 
@@ -77,4 +77,4 @@ arena 最终返回一个综合设计包，并把选择理由写入理由模板�
 
 遵守 [宿主合同](../nimo-mode/references/host-contract.md) 和 [委派纪律](../nimo-mode/references/delegation.md)。只读、方案或停止要求优先，步骤不扩大授权。默认不修改生产实现代码；交付具体产物、当前版本证据、未完成项及原因。跳过步骤必须记录理由，不能用 Skill 名称列表代替成果。
 
-来源：[pstack architect](https://github.com/cursor/plugins/blob/f5bdd6826fd0a0d9cbc4347134c3a74a200b9d9d/pstack/skills/architect/SKILL.md)。
+来源：[pstack architect](https://github.com/cursor/plugins/blob/a58628271271837ef5f386adca29c0812683a19a/pstack/skills/architect/SKILL.md)。

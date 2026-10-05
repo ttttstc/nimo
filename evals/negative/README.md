@@ -23,3 +23,4 @@
 | [N11-stale-verification-map.md](N11-stale-verification-map.md) | 用过期 Verification Map 给新行为判 PASS | nimo-verify |
 | [N12-performance-scope.md](N12-performance-scope.md) | 把全量测试扩成未授权性能优化，或以代表路径冒充全量 | nimo-verification-create |
 | [N13-how-canvas-default.md](N13-how-canvas-default.md) | 等待画布关键词、忽略禁止写入或把静态图当实时证据 | nimo-how |
+| [N14-unauthorized-correct.md](N14-unauthorized-correct.md) | 普通任务顺手触发纠错固化、以历史纠正扩大写范围 | nimo-correct |

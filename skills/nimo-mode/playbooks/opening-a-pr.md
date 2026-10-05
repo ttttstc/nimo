@@ -19,14 +19,15 @@
 4. **提交组织。** 放开手脚提交；开 PR 前在这里定型全部分支拓扑：rebase 成小而有序的提交，栈的子分支 rebase 到父分支的确切 tip，实质性栈工作之前先在 trunk 上 rebase，冲突解决也在这一步完成。每个提交都是一个未来的 PR：可独立落地，顺序讲得出故事。修复属于刚做的提交就 amend 进去；可分离的就做新提交。所有可能改变待交付代码的 rebase／amend 都必须发生在 Final Verify 之前。rebase 或冲突解决使代码发生变化：回到第 2 步重新执行受影响的 cleanup / review，再继续。
 5. **Final Verify。** 只读版本化资产，最终运行结果存放在版本控制之外并在 PR 引用，不在冻结后回填地图或提交；发现缺失／漂移资产须回到第 2 步完整收口。 统一入口同时审视最终差异涉及的主要场景与测试资产；用户声明跳过按 `nimo-verify` 核对范围、保留场景未验证事实；`PASS_WITH_SKIPS` 视为最终测试门禁通过，不能因声明跳过项缺少执行证据再次拦截 PR／交付或要求补测。不把声明扩大到失败项或外部仓库必需检查。按 [nimo-verify](../../nimo-verify/SKILL.md) 在匹配的操作面上对当前交付物做最终验证；由 Feature / Bug Fix 调用且本流程第 2–4 步未改动代码时，先核对既有验证仍然绑定当前产物版本，绑定成立才可沿用，否则重新验证。Final Verify 是代码冻结点：它只证明其绑定的当前产物版本，之后待交付代码发生任何语义变化，原结论立即失效，必须回到第 2 步完整收口（cleanup → interrogate → 提交组织 → Final Verify），不是只重跑验证。从这里开始只允许不改变代码语义的动作：写 PR 标题和描述、push、创建或更新 PR、修改 base／draft 状态、读回 PR 状态。
 6. **标题。** 用 Conventional Commits 形式 `type(scope): subject`。type 取 `feat`、`fix`、`docs`、`refactor`、`test`、`chore` 或 `perf`。scope 取改动区域，如 `nimo-mode` 或具体包名。subject 简短、祈使。与正文一样过 nimo-technical-writing 和 nimo-unslop。一个真实符号承载变更时就点名它，例如 `fix(nimo-mode): retarget opening-a-pr babysit trigger`。句尾不加句号。
-7. **描述。** 按顺序使用下列小节，空则省略。
-   - `## Why`：意图，以及为什么这个方案合适。
-   - `## Scope`：只陈述来自 diff 的事实。点名真实符号和路径。rename 或 retarget 写出两侧。边界重要时写明什么在内、什么在外。
-   - `## Tradeoffs`：只写真实取舍；没有就省略本节。
-   - `## Blast Radius`：改动影响谁、影响什么。解释为什么安全或为什么有风险。没有这个修复主干就是红的时，写明持续代价。
-   - `## Verification`：每个检查怎么跑的、严格到什么程度。点名真实路径，如实际驱动的 CLI、UI 操作面或目标测试。写每个检查的结果，不只是命令名。
+7. **描述。** PR 正文是给评审者的简报，不是实验记录。拿到 diff 的评审者要在一分钟内学会：改动为什么存在、留下什么没做、可能破坏什么、怎么证明它能用。用短句和简单词，少用标识符，不写长篇。每一节放在 `##` 标题下，不用加粗引导句，让小节彼此分开。squash 提交正文就是 PR 正文；超过约 40 行就删减。按顺序使用下列小节，空则省略。
+   - `## Why`：问题和方案，一到三个短句。不列 SHA 或 rebase 谱系，不写"基于 main"的前言。
+   - `## What changed`：一到三条短列表。只有承载变更的真实符号或路径才点名。rename 或 retarget 写出两侧。
+   - `## Scope`：始终写明这个 PR 覆盖什么、明确留下什么不做（例如一个相关后续或已知缺口），一到三条短列表。不罗列符号和路径，不写逐文件长文。
+   - `## Tradeoffs`：只写评审者不问就会追问的被否决备选。没有真实取舍就省略本节。
+   - `## Blast Radius`：一到两句，改动影响谁、影响什么，为什么安全或为什么有风险。主干红了时，写明留着不修的持续代价。
+   - `## Verification`：一到三条列表，每条点名一个真实运行路径和它的结果。性能改动报一个主数字，带单位，用"前 → 后"形式；其余证据（运行次数、区间、瓶颈）放进链接的产物。不贴样本量方法学、swarm 复述或指标表。
 
-   小节之后，视频或截图能证明某个主张时附上。不用 `## Summary` 或 `## Test plan` 样板。提交正文不复述 subject。
+   小节之后，视频或截图能证明某个主张时附上。不贴完整 SHA、swarm 或 arena 泳道复述、杠杆修正长文、逐文件清单或"CLEAN"结论，这些放进链接的产物。不用 `## Summary` 或 `## Test plan` 样板。提交正文不复述 subject。
 8. **行文。** 每个 PR 标题、PR 描述和提交正文都用 [nimo-technical-writing](../../nimo-technical-writing/SKILL.md) 组织，再过一遍 [nimo-unslop](../../nimo-unslop/SKILL.md)。技术写作的规则全部适用，只有主结构分类（教程／操作／参考／解释）不套用于 PR。每个动作用一个词表达，保持必要的语法成分，平实动词够用时不用进行式或名词化修饰。
 9. **forge。** 第一次 PR 操作之前解析 forge，之后保持同一选择用于创建、编辑、查看、观察与合并。默认 GitHub CLI（`gh`）；用户配置的当前 forge CLI 能解析该仓库时用它的等价命令，否则留在 `gh` 并记录回退。不要求任何栈管理工具。
 10. **尺寸与栈。** 五个窄 PR 优于一个大 PR。栈是 base 分支链：根 PR 指向 trunk；每个子分支的 PR base 指向父分支。按已解析的 forge 创建子 PR（如 `gh pr create --base <parent-branch>`）；给既有子项改 base（如 `gh pr edit <pr> --base <parent-branch>`）——这些是 PR 装配动作，不改变待交付代码语义。只有独立工作才从 trunk 开分支。此处发现需要新的 rebase 或任何代码变化：停止 PR 装配，旧 Final Verify 失效，回到第 2 步完整收口。
@@ -53,4 +54,4 @@
 
 PR URL 与读回的真实状态；返回结果、当前产物版本、实际验证和证据、未完成项及跳过原因。流程不自动授予提交、推送、评论、合并或发布权限。
 
-来源：[pstack opening-a-pr](https://github.com/cursor/plugins/blob/93b00b89ef425a9c1bac0d0b317dfc49c930ac99/pstack/skills/poteto-mode/playbooks/opening-a-pr.md)。
+来源：[pstack opening-a-pr](https://github.com/cursor/plugins/blob/23e4138daa01c42d4969f7a5465f82704e64f798/pstack/skills/poteto-mode/playbooks/opening-a-pr.md)。

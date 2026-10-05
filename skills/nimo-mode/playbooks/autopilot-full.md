@@ -22,7 +22,7 @@
 3. **owner 真并行，绝不堆叠。** PR 自包含时同时开多个 owner：一个分支一个写入者、文件互不相交、跨 PR 漂移由 rebase 吸收。只有真正重叠的工作才串行。自包含 PR 直接从 main 切分支；需要排序的工作是先合并再切分支。唯一例外：owner 必须拆分真正有依赖的变更时，可以持有一条短暂的私有 base-branch 栈。
 4. **每个 merge-ready head 在合并前过 swarm 验证。** 在 owner 的 merge-ready head SHA 上，按 [nimo-swarm](../../nimo-swarm/SKILL.md) 扇出并行独立验证者并聚合为一个 verdict；扇出机制以该 Skill 为准，此处不复述。泳道：在该 SHA 重跑门禁；在变更触及的真实操作面上现场证明承重行为（按 [nimo-verify](../../nimo-verify/SKILL.md) 选择实际工具）；审计回执与 diff，不信任 PR 描述正文。**对 trunk 的回归泳道。** 在当前 trunk 上跑同一承重场景；trunk 没有该功能时，如实记录这一事实，改为把关 diff 新增的行为加上用户等待的最终状态，而不是假装 trunk 能产出它。现场泳道原则上必需；用户明确声明跳过且满足公共判定契约时，以 PASS_WITH_SKIPS 作为可放行 verdict，并保留未实测事实。没有执行也没有声明时，verdict 不算干净。没有 root 的干净 verdict 不得合并。发现回给 owner 前向修复，新 head 得到一次全新的 swarm 和全新的 verdict。
 5. **干净 verdict 下 owner 合并并领取下一项。** owner 只从刚 rebase 到 trunk 的 head 合并。merge-ready 报告在 trunk 当前的 head 上做出，swarm verdict 钉住该 SHA。合并前 trunk 又前进时，按 [shipping](shipping.md) 的 patch-id 规则决定重验：patch-id 不变才能保留 verdict，否则新 head 使 verdict 失效。owner 通过已解析的 forge squash 合并自己的 PR（GitHub 上 `gh pr merge <pr> --squash` 或当前 forge 的等价命令），然后从队列领取下一个自包含事项。operator 的完全自主授权加上 root 的干净 verdict 才构成合并授权——仅靠跟进到绿本身永远没有这种授权。operator 点名的事项停在 merge-ready，等她点击。
-6. **运行 root 层。** 真正新抬高被钉住的门禁或预算值（CI 只允许收紧的那种上限）需要你的新会签，且只在验证者给出证据后授予；吸收已在 main 落地的值是漂移，不是抬高。约每 30 分钟对所有 owner 跑一次审计 tick：节奏必须由真实唤醒机制承载（宿主原生定时器／自动化），绝不交给记忆或易丢失的完成通知；宿主无后台／定时能力时，审计并入当前会话的清收点推进，并如实说明会话结束即停止。每个 tick 先从安装位置重读本 Playbook 的当前正文，再重读已布防的程序目标，对照两者审计运行；当轮 tick 内修复漂移，并按紧急事项处理。用一次通用存活或状态探测逐个点名 owner，收集决策轨迹。只把副作用计为进度：提交、推送、PR 或检查状态的变化、已落盘入库的报告；一条泳道跑过预期运行时长仍无副作用即视为卡死，立即让其退场并派替代者，不等它客气地返回。合并成批发生时，跑一次复盘 pass，外加一遍合并后机器人评论清扫。
+6. **运行 root 层。** 真正新抬高被钉住的门禁或预算值（CI 只允许收紧的那种上限）需要你的新会签，且只在验证者给出证据后授予；吸收已在 main 落地的值是漂移，不是抬高。约每 1 小时对所有 owner 跑一次审计 tick：节奏必须由真实唤醒机制承载（宿主原生定时器／自动化），绝不交给记忆或易丢失的完成通知；宿主无后台／定时能力时，审计并入当前会话的清收点推进，并如实说明会话结束即停止。每个 tick 先从安装位置重读本 Playbook 的当前正文，再重读已布防的程序目标，对照两者审计运行；当轮 tick 内修复漂移，并按紧急事项处理。用一次通用存活或状态探测逐个点名 owner，收集决策轨迹。只把副作用计为进度：提交、推送、PR 或检查状态的变化、已落盘入库的报告；一条泳道跑过预期运行时长仍无副作用即视为卡死，立即让其退场并派替代者，不等它客气地返回。合并成批发生时，跑一次复盘 pass，外加一遍合并后机器人评论清扫。
 7. **operator 停止时立即退场。** 她的暂停或退场指令立即作为零写入命令传达到每个 owner。owner 持各自简报待命，直到她解除。
 
 ## 必要条件与停止
@@ -45,4 +45,4 @@
 
 回复队列及每个 PR 的 owner、状态和 head SHA；每个 verdict 及产出它的 swarm；合并了什么、每个 owner 接下来领了什么；授予的会签及理由；打开的 operator 门禁；收集到的决策轨迹存放位置。另返回结果、当前产物版本、实际验证和证据、未完成项及跳过原因。流程不自动授予提交、推送、评论、合并或发布权限。
 
-来源：[pstack autopilot-full](https://github.com/cursor/plugins/blob/93b00b89ef425a9c1bac0d0b317dfc49c930ac99/pstack/skills/poteto-mode/playbooks/autopilot-full.md)。
+来源：[pstack autopilot-full](https://github.com/cursor/plugins/blob/23e4138daa01c42d4969f7a5465f82704e64f798/pstack/skills/poteto-mode/playbooks/autopilot-full.md)。
