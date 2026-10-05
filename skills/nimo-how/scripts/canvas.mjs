@@ -59,6 +59,16 @@ function references(value, allowed, label, limit, minimum = 0) {
   if (new Set(value).size !== value.length || value.some((item) => !allowed.has(item))) fail('INVALID_MODEL', `${label} contains duplicate or unknown references`);
 }
 
+function validateOverviewSections(sections, label, nodeIds) {
+  array(sections, label, 100);
+  for (const section of sections) {
+    object(section, `${label}.section`, ['title', 'description', 'nodeIds']);
+    string(section.title, `${label}.section.title`, 240);
+    if (section.description !== undefined) string(section.description, `${label}.section.description`);
+    references(section.nodeIds, nodeIds, `${label}.section.nodeIds`, 300);
+  }
+}
+
 function sourcePath(value) {
   string(value, 'source.path', 512);
   if (value.startsWith('/') || /[\\:<>"|?*\x00-\x1f]/.test(value) || value.split('/').some((part) => !part || part === '.' || part === '..' || /[. ]$/.test(part))) {
@@ -97,6 +107,7 @@ export function validateModel(input) {
   array(input.nodes, 'nodes', 300, 1);
   array(input.edges, 'edges', 1000);
   array(input.journeys, 'journeys', 100);
+  const journeyIds = uniqueIds(input.journeys, 'journeys');
   for (const group of input.groups) {
     object(group, 'group', ['id', 'title']);
     string(group.title, 'group.title', 240);
@@ -128,15 +139,30 @@ export function validateModel(input) {
     }
     if (input.objectNodeIds !== undefined) references(input.objectNodeIds, nodeIds, 'objectNodeIds', 300);
     if (input.overview !== undefined) {
-      object(input.overview, 'overview', ['description', 'sections']);
+      object(input.overview, 'overview', ['description', 'sections', 'components', 'flowJourneyIds', 'development', 'physical']);
       string(input.overview.description, 'overview.description');
-      array(input.overview.sections, 'overview.sections', 100);
-      for (const section of input.overview.sections) {
-        object(section, 'overview.section', ['title', 'description', 'nodeIds']);
-        string(section.title, 'overview.section.title', 240);
-        if (section.description !== undefined) string(section.description, 'overview.section.description');
-        references(section.nodeIds, nodeIds, 'overview.section.nodeIds', 300);
+      validateOverviewSections(input.overview.sections, 'overview.sections', nodeIds);
+      if (input.overview.components !== undefined) {
+        array(input.overview.components, 'overview.components', 100);
+        uniqueIds(input.overview.components, 'overview.components');
+        const assignedNodeIds = new Set();
+        for (const component of input.overview.components) {
+          object(component, 'overview.component', ['id', 'title', 'description', 'nodeIds']);
+          string(component.title, 'overview.component.title', 240);
+          string(component.description, 'overview.component.description');
+          references(component.nodeIds, nodeIds, `overview.components.${component.id}.nodeIds`, 300, 1);
+          for (const nodeId of component.nodeIds) {
+            if (assignedNodeIds.has(nodeId)) fail('INVALID_MODEL', `overview.components contains duplicate member ${nodeId}`);
+            assignedNodeIds.add(nodeId);
+          }
+        }
       }
+      if (input.overview.flowJourneyIds !== undefined) {
+        if (!input.overview.components?.length) fail('INVALID_MODEL', 'overview.flowJourneyIds requires nonempty overview.components');
+        references(input.overview.flowJourneyIds, journeyIds, 'overview.flowJourneyIds', 3);
+      }
+      if (input.overview.development !== undefined) validateOverviewSections(input.overview.development, 'overview.development', nodeIds);
+      if (input.overview.physical !== undefined) validateOverviewSections(input.overview.physical, 'overview.physical', nodeIds);
     }
   }
   const categoryIds = uniqueIds(categories, 'categories');
@@ -148,7 +174,6 @@ export function validateModel(input) {
     if (!nodeIds.has(edge.source) || !nodeIds.has(edge.target)) fail('INVALID_MODEL', `edge ${edge.id} refers to an unknown node`);
   }
   const edgeIds = uniqueIds(input.edges, 'edges');
-  uniqueIds(input.journeys, 'journeys');
   let stepCount = 0;
   for (const journey of input.journeys) {
     object(journey, 'journey', ['id', 'title', 'description', 'steps', ...(v2 ? ['categoryId', 'status', 'preconditions', 'completion', 'reason'] : [])]);
@@ -294,6 +319,20 @@ export function escapeModelJson(model) {
   return JSON.stringify(model).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
 }
 
+function inlineGraphModule(source) {
+  if (/^\s*import\s/m.test(source)) fail('INVALID_VIEWER', 'graph helper must not import external code');
+  return source.replace(/^export function /gm, 'function ');
+}
+
+function inlineViewerRuntime(source) {
+  const graphImport = "import { layoutComponentGraph, layoutGraph, projectComponentGraph, projectComponentHighlight, projectSceneGraph, projectStepHighlight, zoomAtPoint } from './graph.mjs';\n";
+  const normalized = source.replace(/\r\n/g, '\n');
+  if (!normalized.startsWith(graphImport)) fail('INVALID_VIEWER', 'viewer runtime graph import is unsupported');
+  const body = normalized.slice(graphImport.length);
+  if (/^\s*import\s/m.test(body)) fail('INVALID_VIEWER', 'viewer runtime contains an unsupported import');
+  return body.replace(/^export function /gm, 'function ');
+}
+
 async function lockPublication(base) {
   const lockPath = path.join(base, '.publish.lock');
   let handle;
@@ -330,9 +369,15 @@ export async function generate(input, { projectRoot, cwd = process.cwd(), out } 
   const snapshot = await captureSnapshot(model, root);
   if (model.snapshot && (snapshot.head !== model.snapshot.head || snapshot.sources.some((source) => model.snapshot.sources.find((old) => old.path === source.path)?.sha256 !== source.sha256))) fail('STALE_MODEL', 'source changed while reusing an existing snapshot');
   const generated = { ...model, snapshot, generatedAt: new Date().toISOString() };
-  const template = await fs.readFile(path.join(scriptDirectory, 'viewer.html'), 'utf8');
-  const html = template.replace('/*__NIMO_MODEL__*/', () => escapeModelJson(generated));
-  if (html === template) fail('INVALID_VIEWER', 'viewer model placeholder is missing');
+  const [template, graphSource, runtimeSource] = await Promise.all([
+    fs.readFile(path.join(scriptDirectory, 'viewer.html'), 'utf8'),
+    fs.readFile(path.join(scriptDirectory, 'graph.mjs'), 'utf8'),
+    fs.readFile(path.join(scriptDirectory, 'viewer-runtime.mjs'), 'utf8'),
+  ]);
+  if (!template.includes('/*__NIMO_GRAPH__*/') || !template.includes('/*__NIMO_RUNTIME__*/') || !template.includes('/*__NIMO_MODEL__*/')) fail('INVALID_VIEWER', 'viewer bundle placeholders are incomplete');
+  const withGraph = template.replace('/*__NIMO_GRAPH__*/', () => inlineGraphModule(graphSource));
+  const withRuntime = withGraph.replace('/*__NIMO_RUNTIME__*/', () => inlineViewerRuntime(runtimeSource));
+  const html = withRuntime.replace('/*__NIMO_MODEL__*/', () => escapeModelJson(generated));
   const modelText = `${JSON.stringify(generated, null, 2)}\n`;
   await safeDirectory(base, true);
   const release = await lockPublication(base);
