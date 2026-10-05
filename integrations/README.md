@@ -2,13 +2,13 @@
 
 核心只使用标准 SKILL.md、Markdown 和 Node.js 工具。模型、Agent、权限、会话、真实操作面及持续运行由当前宿主提供，不要求特定编程产品。
 
-所有集成使用相同的 47 个 Skill，支持面仅限以下 5 个宿主：
+所有集成使用相同的 48 个 Skill，支持面仅限以下 5 个宿主：
 
 | 宿主 | 目录 | 状态 |
 |---|---|---|
 | [Codex](codex/README.md) | `~/.codex/skills` | 已在真实宿主验证 |
 | [Claude Code](claude-code/README.md) | `~/.claude/skills` | 已在真实宿主验证 |
-| [OpenCode](opencode/README.md) | `~/.config/opencode/skills` | 已验证技能识别（`opencode debug skill` 47/47） |
+| [OpenCode](opencode/README.md) | `~/.config/opencode/skills` | 已验证技能识别（`opencode debug skill` 48/48） |
 | [Cursor](cursor/README.md) | 用户级技能目录 | 目录约定与脚本就绪 |
 | [dsh（DeepSeek Harness）](dsh/README.md) | `~/.dsh/skills` | 目录约定与脚本就绪 |
 

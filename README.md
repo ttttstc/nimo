@@ -171,6 +171,8 @@ interrogate:       $interrogate 评审这个 PR。
 
 tdd:               $tdd 实现
 
+correct:           $correct 把我反复纠正你的这类错误变成仓库约束。
+
 unslop:            能不能 unslop 并收紧新改动？
 
 reflect:           $reflect 那次跑太久了。把学到的记下来，下次不重复。
@@ -198,6 +200,7 @@ knowledge refresh: $nimo 刷新项目知识；如果还没有项目事实就建�
 | [nimo-interrogate](skills/nimo-interrogate/SKILL.md)                     | 有个 diff，想让几个不同模型试着打破它，含严格代码质量视角。                      |
 | [nimo-figure-it-out](skills/nimo-figure-it-out/SKILL.md)                 | 没有更窄 playbook 可用——设计可审计执行方案（大型迁移、多部分改动）。              |
 | [nimo-tdd](skills/nimo-tdd/SKILL.md)                                     | 修 bug 且有便宜本地测试路径——先写失败测试，再写修复。                        |
+| [nimo-correct](skills/nimo-correct/SKILL.md)                             | 你反复纠正 agent 同一类错误——挖历史归类，按最高层级修复，维护"规则→强制手段"表。        |
 | [nimo-verify](skills/nimo-verify/SKILL.md)                               | 实现后 / 回归 / 合入 / 交付前验证——走真实用户路径，不放宽预期。                 |
 | [nimo-inspect](skills/nimo-inspect/SKILL.md)                             | 按需生成本地离线任务报告，分开展示历史判定、当前适用性、证据状态和明确声明的会话。 |
 | [nimo-deslop](skills/nimo-deslop/SKILL.md)                               | 提交前清理本次差异：叙述性注释、死兼容路径、无关改动。                           |

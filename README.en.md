@@ -271,6 +271,8 @@ interrogate:       $interrogate review this PR.
 
 tdd:               $tdd implement
 
+correct:           $correct turn the mistakes i keep correcting into repo constraints.
+
 unslop:            can we unslop and tighten the new changes?
 
 reflect:           $reflect that took too long. capture what we learned so the next run doesn't
@@ -295,6 +297,7 @@ show-me-your-work: $show-me-your-work keep a decision trail i can review when i'
 | [nimo-interrogate](skills/nimo-interrogate/SKILL.md)                     | you have a diff and want several different models to try to break it, including a strict code-quality lens.                                |
 | [nimo-figure-it-out](skills/nimo-figure-it-out/SKILL.md)                 | no bundled playbook fits. designs a rigorous, auditable playbook for the task (large migrations, multi-part changes).                      |
 | [nimo-tdd](skills/nimo-tdd/SKILL.md)                                     | you're fixing a bug and there's a cheap local test path. write the failing test first, then the fix.                                       |
+| [nimo-correct](skills/nimo-correct/SKILL.md)                             | you keep correcting agents for the same mistakes. mines history for mistake classes, fixes each at the highest level that works, and keeps a table pairing each rule with what enforces it. |
 | [nimo-verify](skills/nimo-verify/SKILL.md)                               | post-implementation / regression / pre-merge / pre-ship verification — real user paths, no loosened expectations.                          |
 | [nimo-inspect](skills/nimo-inspect/SKILL.md)                             | on-demand offline task report with recorded verdict, applicability, evidence layers, and declared Sessions.                             |
 | [nimo-deslop](skills/nimo-deslop/SKILL.md)                               | pre-commit cleanup of the current diff: narrative comments, dead compat paths, unrelated changes.                                          |
