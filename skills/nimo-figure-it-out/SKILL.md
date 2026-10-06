@@ -21,7 +21,7 @@ description: "当没有更具体的 Playbook 适用时，为大型迁移、多�
 - **任务范围**：量化大致单元数、工作量，以及前期理解过程中发现的阻塞项。
 - **严谨度**：按不可逆性、影响范围和验证难度决定。高风险工作需要更多检查点和可审计产物；低风险、可逆步骤不必机械增加流程。
 
-开始多小时级运行前，把这三项和关键取舍展示出来。可逆工作可以继续推进，遵守 nimo-principle-never-block-on-the-human；但长时间运行本身应设置一次人工可见的检查点。
+开始多小时级运行前，把这三项和关键取舍展示出来。可逆工作可以继续推进，遵守 nimo-principle-never-block-on-the-human；但长时间运行本身应设置一次人工可见的检查点。这三项里属于用户决策、代码查不出的部分拿不准时，先运行 [nimo-grilling](../nimo-grilling/SKILL.md) 对齐。
 
 ## 阶段 B：设计工作流
 
@@ -78,6 +78,7 @@ description: "当没有更具体的 Playbook 适用时，为大型迁移、多�
 
 ## 必要依赖
 
+- [nimo-grilling](../nimo-grilling/SKILL.md)
 - [nimo-architect](../nimo-architect/SKILL.md)
 - [nimo-show-me-your-work](../nimo-show-me-your-work/SKILL.md)
 

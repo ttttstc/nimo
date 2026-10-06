@@ -18,6 +18,7 @@
 按科学方法行事。每行上线的代码都要能追溯到运行时证据。"也许有帮助"的保险式改动是假设不是修复，不上线。证据推翻某个假设时，撤销它所促动的改动。上线的只有证据支持的最小改动，仅此而已。性能问题同此纪律，证据就是 trace。
 
 1. 亲自在匹配的操作面上复现（按 [nimo-verify](../../nimo-verify/SKILL.md) 的真实操作面规则，不可协商）。不把复现交给用户。某个调试或插桩协议说"让用户来跑"也不能覆盖本条；由你驱动插桩后的运行时。只有给出明确、具体的理由说明控制面够不到目标时才问用户，且要先把控制面推到它能到达的极限。可访问的环境中直接复现不了就合成触发条件、收紧条件或加插桩；真实环境不可访问时按 `nimo-verify` 记录受阻或用户声明跳过，不无限尝试。复现不了的缺陷，无法证明已修复。
+   例外：分歧若在"预期行为本身"（而非实现有 bug），在复现前先运行 [nimo-grilling](../../nimo-grilling/SKILL.md) 把预期对齐；否则复现优先。
 2. 二分定位成因。列出候选假设，逐个排除直到只剩一个。用 [nimo-how](../../nimo-how/SKILL.md)（受影响子系统）和 [nimo-why](../../nimo-why/SKILL.md)（回归历史）给假设做种子。每轮选能切掉最多剩余问题空间的分割，拿到运行时证据，排除一个。程序状态不清楚时，加插桩或日志，在代码运行时读取。不许猜。漫长或顽固的搜索用宿主的长任务／循环机制驱动；宿主没有这类机制时，由主 Agent 自行维持迭代纪律并记录。在第 3 步 architect／interrogate 扇出之前，先用运行时证据确认幸存的机制；建立在貌似合理但未确认成因上的设计，可能全体一致地错，而真实成因就在隔壁子系统。
 3. 规划修复。跨函数边界时先跑 [nimo-architect](../../nimo-architect/SKILL.md)；architect 只出设计，实现由委派者承担。把实现委派给子 Agent（用户配置的缺陷修复模型），给出明确范围；亲自审阅它的 diff。宿主没有独立子 Agent 时，主 Agent 顺序扮演实现者并记录降级，降级下的自审不称独立审查。
 4. **建立修复验证范围并验证。** 修复完成后统一由 [nimo-verify](../../nimo-verify/SKILL.md) 审视主要修复场景，再按下述路由补齐资产并验证；不要求所有修复都在编码前创建测试套件。原始复现是必测场景，同时列出本次修复必须保持的关键不变量和最小相关回归。若稳定、可复用的复现或回归场景没有对应 `.nimo/verification/` 资产，调用 [nimo-verification-create](../../nimo-verification-create/SKILL.md) 增量补齐；已有资产因修复而漂移时，调用 [nimo-verification-maintain](../../nimo-verification-maintain/SKILL.md) 做定向维护。随后统一调用 [nimo-verify](../../nimo-verify/SKILL.md) 在同一真实操作面验证：原始复现现在通过，关键不变量和合理影响范围没有未处理失败。这是修复成立性验证，还不一定是最终交付证据；"无法判定"、缺少必要场景或操作面错误不算通过。单元测试显示的是局部分支行为，不能替代缺陷消失的真实证明。
@@ -38,6 +39,7 @@
 ## 所需 Skill
 
 - [nimo-how](../../nimo-how/SKILL.md)
+- [nimo-grilling](../../nimo-grilling/SKILL.md)
 - [nimo-why](../../nimo-why/SKILL.md)
 - [nimo-architect](../../nimo-architect/SKILL.md)
 - [nimo-interrogate](../../nimo-interrogate/SKILL.md)

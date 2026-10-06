@@ -116,6 +116,7 @@ cd nimo
 | [runtime-forensics](skills/nimo-mode/playbooks/runtime-forensics.md) | 运行时取证：诊断活体症状（泄漏、空转、闪烁）。                   |
 | [trace-forensics](skills/nimo-mode/playbooks/trace-forensics.md)     | 分析已有取证产物（cpuprofile、trace、heap snapshot）。 |
 | [visual-parity](skills/nimo-mode/playbooks/visual-parity.md)         | 像素级 UI 一致性验证。                             |
+| [codebase-health](skills/nimo-mode/playbooks/codebase-health.md)     | 代码库健康巡检：扫热点，出深化机会报告，选中后回流 feature。        |
 | [authoring-a-skill](skills/nimo-mode/playbooks/authoring-a-skill.md) | 编写或修改 SKILL.md。                           |
 | [eval](skills/nimo-mode/playbooks/eval.md)                           | Skill 行为评测：盲跑候选，隔离比较，回归检查。                |
 | [babysit](skills/nimo-mode/playbooks/babysit.md)                     | 检查或跟进 PR：冲突、评审线程、CI。                      |
@@ -187,12 +188,13 @@ knowledge refresh: $nimo 刷新项目知识；如果还没有项目事实就建�
 
 ## skills
 
-`nimo-mode` 在步骤需要时自动调用大部分 skill（`how`、`why`、`architect`、`arena`、`swarm`、`interrogate`、`unslop`、`no-comments`、`technical-writing`、`tdd` 及各原则）。知识审计第一版只接受用户显式调用或定时/外部例程调用，不由普通工程任务主动触发。下表是你要直接用的时候：
+`nimo-mode` 在步骤需要时自动调用大部分 skill（`how`、`grilling`、`why`、`architect`、`arena`、`swarm`、`interrogate`、`unslop`、`no-comments`、`technical-writing`、`tdd` 及各原则）。知识审计第一版只接受用户显式调用或定时/外部例程调用，不由普通工程任务主动触发。下表是你要直接用的时候：
 
 | skill                                                                    | 什么时候用                                                 |
 | ------------------------------------------------------------------------ | ----------------------------------------------------- |
 | [nimo-mode](skills/nimo-mode/SKILL.md)                                   | 任何正经任务的默认入口。                                          |
 | [nimo-how](skills/nimo-how/SKILL.md)                                     | 用 L0 组件与主流程理解项目，再按 4+1 阅读职责、运行协作、源码、部署和场景；实现细节在章节展开。 |
+| [nimo-grilling](skills/nimo-grilling/SKILL.md)                           | 设计前把一件事讨论清楚：逐轮追问对齐意图、边界、验收与术语，不做结构设计。                 |
 | [nimo-why](skills/nimo-why/SKILL.md)                                     | 想知道某东西为什么这样建——运行时枚举七类证据并行查。                           |
 | [nimo-architect](skills/nimo-architect/SKILL.md)                         | 准备写跨函数边界代码，先定调用方用法、类型与模块形状。                           |
 | [nimo-arena](skills/nimo-arena/SKILL.md)                                 | 同一任务并行 N 个候选，逐字读完后嫁接最强部分。                             |

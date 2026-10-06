@@ -17,7 +17,7 @@
 
 你拥有设计。规划、审查、验证；委派实现，保持主导。
 
-1. 对受影响子系统运行 [nimo-how](../../nimo-how/SKILL.md)。
+1. 对受影响子系统运行 [nimo-how](../../nimo-how/SKILL.md) 建立事实基础。意图不清、出现未定义术语、设计空间开放或跨边界取舍时，接着运行 [nimo-grilling](../../nimo-grilling/SKILL.md) 对齐意图；它只走非结构分支，结构留给第 2 步。机械修改与范围明确的修复跳过。
 2. 用 [nimo-architect](../../nimo-architect/SKILL.md) 做并行设计探索。architect 只交付设计（候选、综合决策与类型／签名草案），实现由第 4 步承担。跳过时保留记录 `nimo-architect skipped: <原因>`；不许把设计决定静默折叠进实现。
 3. 把吞吐量检查点写成四条 todo 项。某个维度确实不适用（单文件、无扇出）时，保留该项并标 `n/a: <原因>`，不许删掉：
    - **阻塞的第一步。** 门禁先于扇出运行。
@@ -46,6 +46,7 @@
 ## 所需 Skill
 
 - [nimo-how](../../nimo-how/SKILL.md)
+- [nimo-grilling](../../nimo-grilling/SKILL.md)
 - [nimo-architect](../../nimo-architect/SKILL.md)
 - [nimo-arena](../../nimo-arena/SKILL.md)
 - [nimo-interrogate](../../nimo-interrogate/SKILL.md)

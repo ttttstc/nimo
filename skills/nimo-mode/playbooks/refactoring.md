@@ -22,7 +22,7 @@
 
 夹带行为变化的重构失去安全网。清理暴露出缺失功能或真实缺陷时，把它拆出去，先对着固定的契约交付结构变化。允许重新设计，但要点名并改走 feature。大型或跨切面的结构工作（跨大量调用点的迁移、多子系统的协同重塑）属于 [nimo-figure-it-out](../../nimo-figure-it-out/SKILL.md)；本 Playbook 只管聚焦到中等规模的改动。
 
-1. 先固定行为契约。运行 [nimo-how](../../nimo-how/SKILL.md) 了解受影响子系统的契约，然后写特征测试、快照或等价性 harness，在任何结构移动之前捕获当前行为。harness 让"重构"成为可检验的主张（[nimo-principle-prove-it-works](../../nimo-principle-prove-it-works/SKILL.md)）。区域没有测试覆盖时，先写 pin 再动结构。类型检查和 lint 不是 pin。
+1. 先固定行为契约。运行 [nimo-how](../../nimo-how/SKILL.md) 了解受影响子系统的契约，然后写特征测试、快照或等价性 harness，在任何结构移动之前捕获当前行为。harness 让"重构"成为可检验的主张（[nimo-principle-prove-it-works](../../nimo-principle-prove-it-works/SKILL.md)）。区域没有测试覆盖时，先写 pin 再动结构。类型检查和 lint 不是 pin。重构范围或动机不清时，先运行 [nimo-grilling](../../nimo-grilling/SKILL.md) 对齐意图；结构目标仍归第 3 步的 architect。
 2. 按 [nimo-principle-model-the-domain](../../nimo-principle-model-the-domain/SKILL.md) 点名代码缺失的结构：散落布尔量之上的状态机、分散分支之上的表或注册表、重复形状假设之上的类型化模型、临时拼凑变更之上的 reducer。形状已经清晰且局部时，无聊代码保留；重塑必须删除分支或非法状态，不是增加间接层。
 3. 点名目标形状。陈述如果今天从头构建，模块布局、类型和调用图应该是什么样（[nimo-principle-foundational-thinking](../../nimo-principle-foundational-thinking/SKILL.md)、[nimo-principle-redesign-from-first-principles](../../nimo-principle-redesign-from-first-principles/SKILL.md)）。目标跨函数边界时，先运行 [nimo-architect](../../nimo-architect/SKILL.md) 对形状做并行设计探索再动手；architect 只交付设计，结构实施由本流程负责。
 4. 先减后加。删除死重、折叠单调用包装、去掉冗余校验器、清除孤儿引用，然后才引入新形状（[nimo-principle-subtract-before-you-add](../../nimo-principle-subtract-before-you-add/SKILL.md)）。到达目标形状的最小改动上线（[nimo-principle-laziness-protocol](../../nimo-principle-laziness-protocol/SKILL.md)）。"也许有帮助"的投机清理被撤销，不是留着搭车。
@@ -42,6 +42,7 @@
 ## 所需 Skill
 
 - [nimo-how](../../nimo-how/SKILL.md)
+- [nimo-grilling](../../nimo-grilling/SKILL.md)
 - [nimo-architect](../../nimo-architect/SKILL.md)
 - [nimo-verify](../../nimo-verify/SKILL.md)
 - [nimo-figure-it-out](../../nimo-figure-it-out/SKILL.md)

@@ -189,6 +189,7 @@ key points:
 | [runtime-forensics](skills/nimo-mode/playbooks/runtime-forensics.md) | diagnose a live symptom (leak, idle-cpu spin, glitch) from instrumentation.                                 |
 | [trace-forensics](skills/nimo-mode/playbooks/trace-forensics.md)     | diagnose a captured profiling artifact (cpuprofile, trace, heap snapshot).                                  |
 | [visual-parity](skills/nimo-mode/playbooks/visual-parity.md)         | pixel-exact UI equivalence between two implementations.                                                     |
+| [codebase-health](skills/nimo-mode/playbooks/codebase-health.md)     | codebase health check: scan hotspots, produce a deepening-opportunity report, route the pick into feature.  |
 | [authoring-a-skill](skills/nimo-mode/playbooks/authoring-a-skill.md) | writing or editing a SKILL.md.                                                                              |
 | [eval](skills/nimo-mode/playbooks/eval.md)                           | test how a skill or prompt change affects agent behavior, blinded.                                          |
 | [babysit](skills/nimo-mode/playbooks/babysit.md)                     | drive a PR to merge-ready: conflicts, review threads, CI.                                                   |
@@ -284,12 +285,13 @@ show-me-your-work: $show-me-your-work keep a decision trail i can review when i'
 
 ## skills
 
-`nimo-mode` runs most of these for you when a step needs them (`how`, `why`, `architect`, `arena`, `swarm`, `interrogate`, `unslop`, `no-comments`, `technical-writing`, `tdd`, and the principles). the table below is for when you want one directly:
+`nimo-mode` runs most of these for you when a step needs them (`how`, `grilling`, `why`, `architect`, `arena`, `swarm`, `interrogate`, `unslop`, `no-comments`, `technical-writing`, `tdd`, and the principles). the table below is for when you want one directly:
 
 | skill                                                                    | use it when                                                                                                                                |
 | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | [nimo-mode](skills/nimo-mode/SKILL.md)                                   | default entry point for engineering tasks.                                                                                                 |
 | [nimo-how](skills/nimo-how/SKILL.md)                                     | understand a project through L0 components and flows, then explore the 4+1 perspectives: responsibilities, runtime cooperation, code, deployment, and scenarios; expand details within chapters. |
+| [nimo-grilling](skills/nimo-grilling/SKILL.md)                           | talk one thing through before design: rounds of questions settle intent, boundaries, acceptance, and terms; no structural design.          |
 | [nimo-why](skills/nimo-why/SKILL.md)                                     | you want to know why something was built this way. discovers seven evidence categories at run time and queries each in parallel.           |
 | [nimo-architect](skills/nimo-architect/SKILL.md)                         | you're about to write code that crosses a function boundary and want the caller's usage, types, and module shape settled first.            |
 | [nimo-arena](skills/nimo-arena/SKILL.md)                                 | you want N parallel attempts at the same thing, then to grab the best parts of each.                                                       |
