@@ -5,7 +5,7 @@ description: nimo 项目当前任务验证资产入口，执行由 nimo-verify �
 
 # 当前功能验证
 
-[how 画布](features/how-canvas.md)覆盖默认解释与画布、浏览器导览、输入与产物边界、源码快照复用和包安装影响。
+[how 画布](features/how-canvas.md)覆盖文本解释、按需画布、浏览器导览、输入与产物边界、源码快照复用和包安装影响。
 
 [Knowledge 状态身份](features/knowledge-state.md)覆盖内部目标路径、根目录别名、手工修改刷新与外部目标边界。
 
