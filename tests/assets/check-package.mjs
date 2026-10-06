@@ -16,6 +16,7 @@ export const ENTRY_SKILLS = Object.freeze([
 
 export const TASK_SKILLS = Object.freeze([
   'nimo-how',
+  'nimo-grilling',
   'nimo-inspect',
   'nimo-why',
   'nimo-architect',
@@ -80,6 +81,7 @@ export const PLAYBOOKS = Object.freeze([
   'runtime-forensics.md',
   'trace-forensics.md',
   'visual-parity.md',
+  'codebase-health.md',
   'authoring-a-skill.md',
   'eval.md',
   'opening-a-pr.md',
@@ -102,11 +104,11 @@ export const EXPECTED_SKILLS = Object.freeze([
 ]);
 
 assert.equal(ENTRY_SKILLS.length, 3, 'asset contract: three entry Skills');
-assert.equal(TASK_SKILLS.length, 22, 'asset contract: twenty-two task Skills');
+assert.equal(TASK_SKILLS.length, 23, 'asset contract: twenty-three task Skills');
 assert.equal(PRINCIPLE_SKILLS.length, 23, 'asset contract: twenty-three principle Skills');
-assert.equal(new Set(EXPECTED_SKILLS).size, 48, 'asset contract: Skill names must be unique');
-assert.equal(PLAYBOOKS.length, 23, 'asset contract: twenty-three Playbooks');
-assert.equal(new Set(PLAYBOOKS).size, 23, 'asset contract: Playbook names must be unique');
+assert.equal(new Set(EXPECTED_SKILLS).size, 49, 'asset contract: Skill names must be unique');
+assert.equal(PLAYBOOKS.length, 24, 'asset contract: twenty-four Playbooks');
+assert.equal(new Set(PLAYBOOKS).size, 24, 'asset contract: Playbook names must be unique');
 
 const EXPECTED_SKILL_SET = new Set(EXPECTED_SKILLS);
 const SUPPORTED_REFERENCE_EXTENSIONS = new Set([

@@ -60,7 +60,7 @@ description: "nimo 工程任务总入口。用户明确调用 nimo，或任务�
 | 请求 | Playbook |
 |---|---|
 | 新增或改变行为 | [feature](playbooks/feature.md) |
-| 理解项目、梳理应用架构或业务运行链路、上手导览 | [nimo-how](../nimo-how/SKILL.md)，默认解释与导览画布 |
+| 理解项目、梳理应用架构或业务运行链路、上手导览 | [nimo-how](../nimo-how/SKILL.md)，默认文本解释；画布按显式要求 |
 | 查看 Agent 开发任务的执行记录、验证依据或任务证据，或 `nimo inspect [task-id]` | [nimo-inspect](../nimo-inspect/SKILL.md) |
 | 缺陷修复 | [bug-fix](playbooks/bug-fix.md) |
 | 只读理解与判断 | [investigation](playbooks/investigation.md) |
@@ -71,6 +71,7 @@ description: "nimo 工程任务总入口。用户明确调用 nimo，或任务�
 | 运行时取证 | [runtime-forensics](playbooks/runtime-forensics.md) |
 | 分析已有取证产物 | [trace-forensics](playbooks/trace-forensics.md) |
 | 保持视觉一致 | [visual-parity](playbooks/visual-parity.md) |
+| 代码库健康巡检、寻找深化机会 | [codebase-health](playbooks/codebase-health.md) |
 | 创建或修改 Skill | [authoring-a-skill](playbooks/authoring-a-skill.md) |
 | 把反复纠正的同类错误变成仓库约束 | [nimo-correct](../nimo-correct/SKILL.md) |
 | Skill 行为评测 | [eval](playbooks/eval.md) |

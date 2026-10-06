@@ -14,7 +14,7 @@
 本流程拥有计划，不拥有代码。计划是所有者逐格执行的清单，是操作者据证据审计的合同：一格是一个工作单元，勾一格只当它的证据存在。适用于跨阶段或跨 PR 栈的工作。计划就是交付物，不实施。
 
 1. 变更只有一两个文件、做法显然时，跳过计划：说明这一点并停止。
-2. 写计划前先用原型消灭可观测未知。关于布局、时序、行为或某个 API 是否可用的问题，跑 [prototype](prototype.md)。保留分支、SHA 和截图给附录 A。只把任何试验都裁定不了的产品或偏好决定拿去问操作者，并给出选项（[nimo-principle-never-block-on-the-human](../../nimo-principle-never-block-on-the-human/SKILL.md)）。
+2. 写计划前先用原型消灭可观测未知。关于布局、时序、行为或某个 API 是否可用的问题，跑 [prototype](prototype.md)。保留分支、SHA 和截图给附录 A。只把任何试验都裁定不了的产品或偏好决定拿去问操作者，并给出选项（[nimo-principle-never-block-on-the-human](../../nimo-principle-never-block-on-the-human/SKILL.md)）。产品或偏好决策成体系、需要逐条对齐时，先运行 [nimo-grilling](../../nimo-grilling/SKILL.md) 走非结构分支；结构决策仍留给 nimo-architect 和计划骨架。
 3. 用独立子 Agent（独立上下文）探索（[nimo-principle-guard-the-context-window](../../nimo-principle-guard-the-context-window/SKILL.md)），模型按用户配置。每个返回文件指针、约定、测试命令和入口点，不内联转储。
 4. 把计划骨架复制进计划文件并填满每个占位符。操作者未指定路径时，写到任务工作区的 docs/ 目录。保留每个标题和每个子块的既有顺序。一节一个 PR：一个 PR 是一个带独立证据的变更（[nimo-principle-sequence-verifiable-units](../../nimo-principle-sequence-verifiable-units/SKILL.md)）。在"怎么读这份计划"里点名执行 Playbook：按 [autopilot-stack](autopilot-stack.md) 末尾的规则在 [autopilot-full](autopilot-full.md) 和 autopilot-stack 之间选；长期项目用 [orchestrate](orchestrate.md)。骨架内容见下文"计划骨架"。
 5. 按 [nimo-technical-writing](../../nimo-technical-writing/SKILL.md) 全文写作，再过 [nimo-unslop](../../nimo-unslop/SKILL.md)。正文是单一 Diátaxis 模式 how-to，附录承载解释和参考。两条规则逐字适用："不要任何抽象比喻"，"像海明威一样写作"。每个标题陈述任务或结论。不用长破折号，句中不用冒号。
@@ -65,6 +65,7 @@ perf 门是双边的：trunk 和 head 都必须产出指定指标。trunk 缺该
 使用 [计划模板](../references/plan-template.md)，替换所有示例内容后运行结构检查。
 
 - [nimo-how](../../nimo-how/SKILL.md)
+- [nimo-grilling](../../nimo-grilling/SKILL.md)
 - [nimo-swarm](../../nimo-swarm/SKILL.md)
 - [nimo-verify](../../nimo-verify/SKILL.md)
 - [nimo-deslop](../../nimo-deslop/SKILL.md)
