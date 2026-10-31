@@ -291,6 +291,7 @@ show-me-your-work: $show-me-your-work keep a decision trail i can review when i'
 | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | [nimo-mode](skills/nimo-mode/SKILL.md)                                   | default entry point for engineering tasks.                                                                                                 |
 | [nimo-how](skills/nimo-how/SKILL.md)                                     | understand a project from source-grounded text by default; on request, generate an L0-component and 4+1 guided canvas. |
+| [nimo-statechart](skills/nimo-statechart/SKILL.md)                       | check state changes with TLA+ and generate a Mermaid statechart with paths to broken rules. |
 | [nimo-grilling](skills/nimo-grilling/SKILL.md)                           | talk one thing through before design: rounds of questions settle intent, boundaries, acceptance, and terms; no structural design.          |
 | [nimo-why](skills/nimo-why/SKILL.md)                                     | you want to know why something was built this way. discovers seven evidence categories at run time and queries each in parallel.           |
 | [nimo-architect](skills/nimo-architect/SKILL.md)                         | you're about to write code that crosses a function boundary and want the caller's usage, types, and module shape settled first.            |

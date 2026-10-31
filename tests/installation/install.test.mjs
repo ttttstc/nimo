@@ -13,7 +13,7 @@ const INSTALLER_URL = pathToFileURL(join(REPO_ROOT, 'skills', 'nimo-mode', 'scri
 const EXPECTED_SKILLS = [
   'configure-nimo', 'nimo-arena', 'nimo-architect', 'nimo-deslop', 'nimo-figure-it-out', 'nimo-grilling', 'nimo-how', 'nimo-inspect', 'nimo-interrogate',
   'nimo-knowledge-audit', 'nimo-knowledge-maintain', 'nimo-mode', 'nimo-no-comments', 'nimo-setup', 'nimo-show-me-your-work', 'nimo-skill-author', 'nimo-skill-evaluate',
-  'nimo-swarm', 'nimo-tdd', 'nimo-correct', 'nimo-technical-writing', 'nimo-unslop', 'nimo-verification-create', 'nimo-verification-maintain', 'nimo-verify', 'nimo-why',
+  'nimo-statechart', 'nimo-swarm', 'nimo-tdd', 'nimo-correct', 'nimo-technical-writing', 'nimo-unslop', 'nimo-verification-create', 'nimo-verification-maintain', 'nimo-verify', 'nimo-why',
   'nimo-principle-attack-the-premise', 'nimo-principle-boundary-discipline', 'nimo-principle-build-the-lever', 'nimo-principle-encode-lessons-in-structure',
   'nimo-principle-exhaust-the-design-space', 'nimo-principle-experience-first', 'nimo-principle-fix-root-causes',
   'nimo-principle-foundational-thinking', 'nimo-principle-guard-the-context-window', 'nimo-principle-laziness-protocol',
@@ -135,14 +135,14 @@ async function removeTemp(root) {
   await rm(resolvedRoot, { recursive: true, force: true });
 }
 
-test('clean install contains all 49 Skills and remains runnable after source removal', async () => {
+test('clean install contains all 50 Skills and remains runnable after source removal', async () => {
   const root = await makeTemp('install');
   try {
     const source = await copySourceFixture(root);
     const home = join(root, '目标 home with spaces 中文');
     const target = join(home, 'skills');
     const sourceSkills = await skillDirectories(join(source, 'skills'));
-    assert.equal(sourceSkills.length, 49, 'the package source must contain exactly 49 Skills');
+    assert.equal(sourceSkills.length, 50, 'the package source must contain exactly 50 Skills');
     assert.deepEqual(sourceSkills, EXPECTED_SKILLS, 'the package source must contain the specified Skill set');
 
     const outcome = await invoke(install, { source, target });
@@ -190,6 +190,23 @@ test('clean install contains all 49 Skills and remains runnable after source rem
     await rm(source, { recursive: true, force: true });
     const afterSourceRemoval = await import(pathToFileURL(installedConfig).href);
     assert.ok(afterSourceRemoval, 'installed script still imports after the source is gone');
+    const installedStatechart = join(target, 'nimo-statechart', 'scripts');
+    const { spawnSync } = await import('node:child_process');
+    const statechart = spawnSync(process.execPath, [join(installedStatechart, 'statechart.ts'),
+      join(installedStatechart, 'test', 'corpus', 'Login', 'Login.tla'), '--out', join(root, 'statechart-output')], {
+      encoding: 'utf8', windowsHide: true,
+      env: { ...process.env, TLA2TOOLS: join(root, 'absent.jar'), JAVA: join(root, 'absent-java') },
+    });
+    assert.equal(statechart.status, 2, statechart.stderr);
+    assert.match(statechart.stderr, /SANY could not read/);
+    if (process.env.TLA2TOOLS) {
+      const checked = spawnSync(process.execPath, [join(installedStatechart, 'statechart.ts'),
+        join(installedStatechart, 'test', 'corpus', 'Login', 'Login.tla'), '--out', join(root, 'statechart-checked')], {
+        encoding: 'utf8', windowsHide: true, timeout: 120_000,
+      });
+      assert.equal(checked.status, 0, checked.stderr);
+      assert.match(await readFile(join(root, 'statechart-checked', 'chart.mmd'), 'utf8'), /stateDiagram-v2/);
+    }
   } finally {
     await removeTemp(root);
   }
