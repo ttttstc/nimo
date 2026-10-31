@@ -1,2 +1,5 @@
 # shell 脚本必须保持 LF 行尾，CRLF 会导致 bash 无法执行
 *.sh text eol=lf
+
+# Statechart fixtures and its extensionless shell launcher require LF.
+skills/nimo-statechart/** text eol=lf

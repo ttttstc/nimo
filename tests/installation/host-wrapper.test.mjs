@@ -105,7 +105,7 @@ async function assertLifecycle(host, root, install, uninstall, homeArgs) {
   await mkdir(npmCache, { recursive: true });
   const env = { ...process.env, npm_config_cache: npmCache };
   await install(home, homeArgs, env);
-  assert.equal((await skillDirectories(skillsRoot)).length, 49, `${host.name} wrapper installed all 49 Skills`);
+  assert.equal((await skillDirectories(skillsRoot)).length, 50, `${host.name} wrapper installed all 50 Skills`);
   assert.equal(await exists(join(skillsRoot, '.nimo-manifest.json')), true, `${host.name} wrapper wrote the JSON manifest`);
 
   const modified = join(skillsRoot, 'nimo-mode', 'SKILL.md');
@@ -200,7 +200,7 @@ test('Bash wrappers pass syntax checks and smoke install/uninstall when Git Bash
 
   async function bashPath(path) {
     if (process.platform !== 'win32') return path;
-    const result = await run(bash, ['-lc', 'cd "$1" && pwd', 'bash', path]);
+    const result = await run(bash, ['--noprofile', '--norc', '-c', 'cd "$1" && pwd', 'bash', path]);
     return result.stdout.trim();
   }
 
@@ -216,7 +216,7 @@ test('Bash wrappers pass syntax checks and smoke install/uninstall when Git Bash
       const env = { ...process.env, npm_config_cache: npmCache };
       await run(bash, [host.bashInstall, '--source', sourceArg, host.bashHome, homeArg], env);
       const skillsRoot = join(home, 'skills');
-      assert.equal((await skillDirectories(skillsRoot)).length, 49, `${host.name} Bash wrapper installed all 49 Skills`);
+      assert.equal((await skillDirectories(skillsRoot)).length, 50, `${host.name} Bash wrapper installed all 50 Skills`);
       await run(bash, [host.bashUninstall, '--source', sourceArg, host.bashHome, homeArg], env);
       assert.equal(await exists(join(skillsRoot, '.nimo-manifest.json')), false, `${host.name} Bash wrapper removed its manifest`);
     } finally {
