@@ -44,6 +44,7 @@ export const TASK_SKILLS = Object.freeze([
   'nimo-ketchup',
   'nimo-recall',
   'nimo-reflect',
+  'nimo-automate-me',
 ]);
 
 export const PRINCIPLE_NAMES = Object.freeze([
@@ -110,9 +111,9 @@ export const EXPECTED_SKILLS = Object.freeze([
 ]);
 
 assert.equal(ENTRY_SKILLS.length, 4, 'asset contract: four entry Skills');
-assert.equal(TASK_SKILLS.length, 28, 'asset contract: twenty-eight task Skills');
+assert.equal(TASK_SKILLS.length, 29, 'asset contract: twenty-nine task Skills');
 assert.equal(PRINCIPLE_SKILLS.length, 23, 'asset contract: twenty-three principle Skills');
-assert.equal(new Set(EXPECTED_SKILLS).size, 55, 'asset contract: Skill names must be unique');
+assert.equal(new Set(EXPECTED_SKILLS).size, 56, 'asset contract: Skill names must be unique');
 assert.equal(PLAYBOOKS.length, 24, 'asset contract: twenty-four Playbooks');
 assert.equal(new Set(PLAYBOOKS).size, 24, 'asset contract: Playbook names must be unique');
 
