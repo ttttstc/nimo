@@ -295,6 +295,28 @@ function checkForbiddenExecution(result, root, files) {
   }
 }
 
+function checkDocumentedSkillCounts(result, root, files) {
+  const markers = [/(\d+)\s*个\s*Skill/g, /(\d+)\s+Skills\b/g];
+  for (const file of files) {
+    if (path.extname(file).toLowerCase() !== '.md') continue;
+    const text = fs.readFileSync(file, 'utf8');
+    for (const pattern of markers) {
+      for (const match of text.matchAll(pattern)) {
+        const documented = Number(match[1]);
+        if (documented === EXPECTED_SKILLS.length) continue;
+        addError(result, 'documented-skill-count',
+          `${relativePath(root, file)} documents ${documented} Skills, but the package contains ${EXPECTED_SKILLS.length}`,
+          {
+            file: relativePath(root, file),
+            line: lineNumberAt(text, match.index),
+            documented,
+            actual: EXPECTED_SKILLS.length,
+          });
+      }
+    }
+  }
+}
+
 function packageFiles(root) {
   const result = [];
   const pending = ['skills', 'integrations']
@@ -445,6 +467,7 @@ export function checkPackage(packageRoot) {
   result.counts.references = checkRelativeReferences(result, root, packageAssetFiles);
   checkSkillNameTokens(result, root, packageAssetFiles);
   checkForbiddenExecution(result, root, packageAssetFiles);
+  checkDocumentedSkillCounts(result, root, packageAssetFiles);
 
   if (result.warnings.length > 0) {
     addWarning(result, 'warnings-present', `${result.warnings.length} warning(s) require review`);
