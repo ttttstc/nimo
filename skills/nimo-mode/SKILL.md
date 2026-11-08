@@ -52,6 +52,8 @@ description: "nimo 工程任务总入口。用户明确调用 nimo，或任务�
 
 引用增删查使用 [configure-nimo](../configure-nimo/SKILL.md)，安装与环境检测使用 [nimo-setup](../nimo-setup/SKILL.md)。配置查询不启动代码设计。
 
+第一次使用、要一条完整轨迹，或要「这类请求该走哪条流程」的对照表时，读 [使用手册](references/guide/README.md)；它只解释流程与判据，不新增规则。
+
 知识请求直接路由，不伪装成普通 Playbook：
 
 - 用户明确要求“审计 / 检查知识是否过时、漂移、索引是否正确”时使用 [nimo-knowledge-audit](../nimo-knowledge-audit/SKILL.md)。第一版只接受用户显式请求或定时/外部例程明确调用，普通工程任务不得主动触发。
