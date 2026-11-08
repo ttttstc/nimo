@@ -45,7 +45,7 @@ description: "采信、上报或据以决策一个自己测出来的数字之前
 
 [prove-it-works](../nimo-principle-prove-it-works/SKILL.md) 查的是「输出是不是真的」。本条查的是「你测出来的这个数，是不是你以为的那件事」。两者都要做，顺序上先 prove-it-works，再解释数字。
 
-性能数字仍要走 [性能用例与测量协议](../nimo-verification-create/references/performance-testing.md) 的全流程；eval 结果同样对每个 trial 问一遍上面三问。
+性能数字仍要走 [性能用例与测量协议](../nimo-verification-create/references/performance-testing.md) 的全流程；eval 结果同样对每个 trial 问一遍上面三问。数字已经写进交付说明、要复核它对不对时，用 [测量结论复核](../nimo-verification-create/references/measurement-review.md) 逐条检验。
 
 ## 应用证据
 
