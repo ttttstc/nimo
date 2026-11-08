@@ -30,6 +30,7 @@ description: "nimo 工程任务总入口。用户明确调用 nimo，或任务�
 - [把重复错误变成约束](../nimo-principle-encode-lessons-in-structure/SKILL.md)：同一纠正或错误反复出现。
 - [比较实质方案](../nimo-principle-exhaust-the-design-space/SKILL.md)：缺少先例且存在多个可行结构或交互。
 - [以使用结果为先](../nimo-principle-experience-first/SKILL.md)：产品、交互、接口和范围取舍。
+- [解释这个数字](../nimo-principle-explain-the-number/SKILL.md)：采信、上报或据以决策一个测出来的数字。
 - [修复根因](../nimo-principle-fix-root-causes/SKILL.md)：缺陷或运行状态异常。
 - [先明确数据结构](../nimo-principle-foundational-thinking/SKILL.md)：写逻辑前选择核心类型、数据结构或共享状态关系。
 - [保留必要上下文](../nimo-principle-guard-the-context-window/SKILL.md)：大文件、大输出、复杂调查、委派和恢复。
@@ -65,6 +66,7 @@ description: "nimo 工程任务总入口。用户明确调用 nimo，或任务�
 | 查看 Agent 开发任务的执行记录、验证依据或任务证据，或 `nimo inspect [task-id]` | [nimo-inspect](../nimo-inspect/SKILL.md) |
 | 缺陷修复 | [bug-fix](playbooks/bug-fix.md) |
 | 只读理解与判断 | [investigation](playbooks/investigation.md) |
+| 判断一个改动会在别处破坏什么、合入前证「所以它是安全的」 | [nimo-blast-radius](../nimo-blast-radius/SKILL.md) |
 | 保持行为的结构调整 | [refactoring](playbooks/refactoring.md) |
 | 用廉价试验回答设计问题 | [prototype](playbooks/prototype.md) |
 | 一次性能问题修复 | [perf-issue](playbooks/perf-issue.md) |
