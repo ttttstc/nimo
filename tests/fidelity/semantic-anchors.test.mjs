@@ -21,6 +21,7 @@ const CURRENT_UPSTREAM_SHA = 'f5bdd6826fd0a0d9cbc4347134c3a74a200b9d9d';
 const CORRECT_SKILL_UPSTREAM_SHA = '9511e60321f7e533a187d62854a3d53a53752874';
 const ARCHITECT_FLAGS_UPSTREAM_SHA = 'a58628271271837ef5f386adca29c0812683a19a';
 const PROCESS_SYNC_UPSTREAM_SHA = '23e4138daa01c42d4969f7a5465f82704e64f798';
+const LATEST_SYNC_UPSTREAM_SHA = '6b0300214a09fd6029cfb7077043125758cd1fd2';
 
 const PLAYBOOKS = [
   'feature.md', 'bug-fix.md', 'investigation.md', 'refactoring.md', 'prototype.md',
@@ -48,7 +49,7 @@ const DIRECT_TASK_SKILLS = [
   'nimo-how', 'nimo-why', 'nimo-architect', 'nimo-arena', 'nimo-swarm',
   'nimo-interrogate', 'nimo-figure-it-out', 'nimo-tdd', 'nimo-correct',
   'nimo-unslop', 'nimo-technical-writing', 'nimo-no-comments', 'nimo-show-me-your-work',
-  'nimo-verification-create', 'nimo-verification-maintain',
+  'nimo-verification-create', 'nimo-verification-maintain', 'nimo-teach',
 ];
 
 const CURRENT_SYNCED_ARTIFACTS = new Set([
@@ -74,6 +75,11 @@ const PROCESS_SYNCED_ARTIFACTS = new Set([
   'skills/nimo-mode/playbooks/autopilot-full.md',
   'skills/nimo-mode/playbooks/autopilot-stack.md',
   'skills/nimo-mode/playbooks/opening-a-pr.md',
+]);
+
+const LATEST_SYNCED_ARTIFACTS = new Set([
+  'skills/nimo-help/SKILL.md',
+  'skills/nimo-teach/SKILL.md',
 ]);
 
 function read(relativePath) {
@@ -277,6 +283,7 @@ test('every directly-derived artifact cites its expected upstream revision', () 
     const expectedSha = ARCHITECT_FLAGS_SYNCED_ARTIFACTS.has(relativePath) ? ARCHITECT_FLAGS_UPSTREAM_SHA
       : CORRECT_SKILL_SYNCED_ARTIFACTS.has(relativePath) ? CORRECT_SKILL_UPSTREAM_SHA
       : PROCESS_SYNCED_ARTIFACTS.has(relativePath) ? PROCESS_SYNC_UPSTREAM_SHA
+      : LATEST_SYNCED_ARTIFACTS.has(relativePath) ? LATEST_SYNC_UPSTREAM_SHA
       : CURRENT_SYNCED_ARTIFACTS.has(relativePath) ? CURRENT_UPSTREAM_SHA
       : LEGACY_UPSTREAM_SHA;
     if (!read(relativePath).includes(expectedSha)) missing.push(`${relativePath} -> ${expectedSha}`);
