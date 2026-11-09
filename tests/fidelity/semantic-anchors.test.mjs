@@ -34,6 +34,7 @@ const PLAYBOOKS = [
 const PRINCIPLES = [
   'attack-the-premise', 'boundary-discipline', 'build-the-lever',
   'encode-lessons-in-structure', 'exhaust-the-design-space', 'experience-first',
+  'explain-the-number',
   'fix-root-causes', 'foundational-thinking', 'guard-the-context-window',
   'laziness-protocol', 'make-operations-idempotent',
   'migrate-callers-then-delete-legacy-apis', 'minimize-reader-load',
@@ -45,7 +46,7 @@ const PRINCIPLES = [
 ];
 
 const DIRECT_TASK_SKILLS = [
-  'nimo-how', 'nimo-why', 'nimo-architect', 'nimo-arena', 'nimo-swarm',
+  'nimo-how', 'nimo-why', 'nimo-architect', 'nimo-blast-radius', 'nimo-arena', 'nimo-swarm',
   'nimo-interrogate', 'nimo-figure-it-out', 'nimo-tdd', 'nimo-correct',
   'nimo-unslop', 'nimo-technical-writing', 'nimo-no-comments', 'nimo-show-me-your-work',
   'nimo-verification-create', 'nimo-verification-maintain',
@@ -74,6 +75,7 @@ const PROCESS_SYNCED_ARTIFACTS = new Set([
   'skills/nimo-mode/playbooks/autopilot-full.md',
   'skills/nimo-mode/playbooks/autopilot-stack.md',
   'skills/nimo-mode/playbooks/opening-a-pr.md',
+  'skills/nimo-principle-explain-the-number/SKILL.md',
 ]);
 
 function read(relativePath) {
