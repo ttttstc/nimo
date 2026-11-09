@@ -85,6 +85,7 @@ description: "nimo 工程任务总入口。用户明确调用 nimo，或任务�
 | 代码库健康巡检、寻找深化机会 | [codebase-health](playbooks/codebase-health.md) |
 | 创建或修改 Skill | [authoring-a-skill](playbooks/authoring-a-skill.md) |
 | 把反复纠正的同类错误变成仓库约束 | [nimo-correct](../nimo-correct/SKILL.md) |
+| 这次对话里值得落到技能上的教训 | [nimo-reflect](../nimo-reflect/SKILL.md) |
 | Skill 行为评测 | [eval](playbooks/eval.md) |
 | 整理并创建 PR | [opening-a-pr](playbooks/opening-a-pr.md) |
 | 检查或跟进 PR | [babysit](playbooks/babysit.md) |
@@ -95,6 +96,8 @@ description: "nimo 工程任务总入口。用户明确调用 nimo，或任务�
 | 独立事项实现并合入 | [autopilot-full](playbooks/autopilot-full.md) |
 | 实现并交付 PR 链 | [autopilot-stack](playbooks/autopilot-stack.md) |
 | 接续已有工作 | [session-pickup](playbooks/session-pickup.md) |
+| 从用户上次说话讲到现在变了什么、他在等什么 | [nimo-ketchup](../nimo-ketchup/SKILL.md) |
+| 跨最近几次会话重建上下文，先看现在到哪 | [nimo-recall](../nimo-recall/SKILL.md) |
 | 安全暂停 | [pause-safely](playbooks/pause-safely.md) |
 | 核实后清理工作目录 | [worktree-cleanup](playbooks/worktree-cleanup.md) |
 

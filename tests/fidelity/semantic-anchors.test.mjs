@@ -51,6 +51,7 @@ const DIRECT_TASK_SKILLS = [
   'nimo-interrogate', 'nimo-figure-it-out', 'nimo-tdd', 'nimo-correct',
   'nimo-unslop', 'nimo-technical-writing', 'nimo-no-comments', 'nimo-show-me-your-work',
   'nimo-verification-create', 'nimo-verification-maintain', 'nimo-teach',
+  'nimo-ketchup', 'nimo-recall', 'nimo-reflect',
 ];
 
 const CURRENT_SYNCED_ARTIFACTS = new Set([
@@ -82,6 +83,9 @@ const PROCESS_SYNCED_ARTIFACTS = new Set([
 const LATEST_SYNCED_ARTIFACTS = new Set([
   'skills/nimo-help/SKILL.md',
   'skills/nimo-teach/SKILL.md',
+  'skills/nimo-ketchup/SKILL.md',
+  'skills/nimo-recall/SKILL.md',
+  'skills/nimo-reflect/SKILL.md',
 ]);
 
 function read(relativePath) {
