@@ -24,10 +24,13 @@ description: "为项目建立或补齐本地验证资产。日常按当前任务
 | 已确认的工作 | 路由与停止点 |
 |---|---|
 | 构筑性能测试、采集基线或检查退化 | 按需读取 [性能用例与测量协议](references/performance-testing.md)，由本 Skill 构筑资产，交给 `nimo-verify` 执行；发现慢不自动修改产品 |
+| 复核一句已经写好的性能结论 | 按需读取 [测量结论复核](references/measurement-review.md)，只检验那句话的四项，不重写用例与协议 |
 | 修复一个具体性能问题 | 转 [perf-issue](../nimo-mode/playbooks/perf-issue.md)，携带场景、授权、已有资产和证据 |
 | 持续改善某项指标 | 转 [hillclimb](../nimo-mode/playbooks/hillclimb.md)，携带场景、授权及已约定目标、预算和停止条件 |
 
 两个性能 Playbook 仍可直接进入。它们缺资产时调用本 Skill，只补资产并返回原调用方，不再次路由同一优化请求。Maintain 修复已有资产；Verify 执行已有资产时不必重读构筑参考。没有性能授权时，不加载上述测量协议，不新增测速依赖、基线或性能门禁。确认性能测试不等于授权产品优化、CI 接线、定时任务或部署。
+
+**形式化检查既不是性能项，也不是必补项。** 需要证明不变量（并发顺序、重试与幂等、状态机迁移、协议解析、内存安全）且用户已明确要求或已确认这项风险时，按 [形式化检查](references/formal-verification.md) 建立模型或 harness；授权门槛、产物落点、覆盖记录与「过期模型」的判断都在那篇里。它证明的是模型，不能顶替行为验证：交付摘要里模型结论与行为结论分栏记录。代码变动后的对齐与同步提交由 [形式化资产同步](../nimo-verification-maintain/references/formal-drift.md) 规定。
 
 ## 1. 盘问仓库，而不是盘问用户
 
