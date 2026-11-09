@@ -12,6 +12,7 @@ export const ENTRY_SKILLS = Object.freeze([
   'nimo-mode',
   'nimo-setup',
   'configure-nimo',
+  'nimo-help',
 ]);
 
 export const TASK_SKILLS = Object.freeze([
@@ -39,6 +40,10 @@ export const TASK_SKILLS = Object.freeze([
   'nimo-skill-author',
   'nimo-deslop',
   'nimo-verify',
+  'nimo-teach',
+  'nimo-ketchup',
+  'nimo-recall',
+  'nimo-reflect',
 ]);
 
 export const PRINCIPLE_NAMES = Object.freeze([
@@ -104,10 +109,10 @@ export const EXPECTED_SKILLS = Object.freeze([
   ...PRINCIPLE_SKILLS,
 ]);
 
-assert.equal(ENTRY_SKILLS.length, 3, 'asset contract: three entry Skills');
-assert.equal(TASK_SKILLS.length, 24, 'asset contract: twenty-four task Skills');
+assert.equal(ENTRY_SKILLS.length, 4, 'asset contract: four entry Skills');
+assert.equal(TASK_SKILLS.length, 28, 'asset contract: twenty-eight task Skills');
 assert.equal(PRINCIPLE_SKILLS.length, 23, 'asset contract: twenty-three principle Skills');
-assert.equal(new Set(EXPECTED_SKILLS).size, 50, 'asset contract: Skill names must be unique');
+assert.equal(new Set(EXPECTED_SKILLS).size, 55, 'asset contract: Skill names must be unique');
 assert.equal(PLAYBOOKS.length, 24, 'asset contract: twenty-four Playbooks');
 assert.equal(new Set(PLAYBOOKS).size, 24, 'asset contract: Playbook names must be unique');
 

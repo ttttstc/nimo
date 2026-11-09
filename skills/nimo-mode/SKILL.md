@@ -54,6 +54,8 @@ description: "nimo 工程任务总入口。用户明确调用 nimo，或任务�
 
 第一次使用、要一条完整轨迹，或要「这类请求该走哪条流程」的对照表时，读 [使用手册](references/guide/README.md)；它只解释流程与判据，不新增规则。
 
+不知道该用哪个技能、问怎么用、或运行跑歪了要修时，用 [nimo-help](../nimo-help/SKILL.md)。它只回答、给可发送的提示词与出处，不替用户开始干活。
+
 知识请求直接路由，不伪装成普通 Playbook：
 
 - 用户明确要求“审计 / 检查知识是否过时、漂移、索引是否正确”时使用 [nimo-knowledge-audit](../nimo-knowledge-audit/SKILL.md)。第一版只接受用户显式请求或定时/外部例程明确调用，普通工程任务不得主动触发。
@@ -67,6 +69,7 @@ description: "nimo 工程任务总入口。用户明确调用 nimo，或任务�
 | 查看 Agent 开发任务的执行记录、验证依据或任务证据，或 `nimo inspect [task-id]` | [nimo-inspect](../nimo-inspect/SKILL.md) |
 | 缺陷修复 | [bug-fix](playbooks/bug-fix.md) |
 | 只读理解与判断 | [investigation](playbooks/investigation.md) |
+| 把一个改动、一个机制或一段设计讲到对方能复述 | [nimo-teach](../nimo-teach/SKILL.md) |
 | 保持行为的结构调整 | [refactoring](playbooks/refactoring.md) |
 | 用廉价试验回答设计问题 | [prototype](playbooks/prototype.md) |
 | 一次性能问题修复 | [perf-issue](playbooks/perf-issue.md) |
@@ -77,6 +80,7 @@ description: "nimo 工程任务总入口。用户明确调用 nimo，或任务�
 | 代码库健康巡检、寻找深化机会 | [codebase-health](playbooks/codebase-health.md) |
 | 创建或修改 Skill | [authoring-a-skill](playbooks/authoring-a-skill.md) |
 | 把反复纠正的同类错误变成仓库约束 | [nimo-correct](../nimo-correct/SKILL.md) |
+| 这次对话里值得落到技能上的教训 | [nimo-reflect](../nimo-reflect/SKILL.md) |
 | Skill 行为评测 | [eval](playbooks/eval.md) |
 | 整理并创建 PR | [opening-a-pr](playbooks/opening-a-pr.md) |
 | 检查或跟进 PR | [babysit](playbooks/babysit.md) |
@@ -87,6 +91,8 @@ description: "nimo 工程任务总入口。用户明确调用 nimo，或任务�
 | 独立事项实现并合入 | [autopilot-full](playbooks/autopilot-full.md) |
 | 实现并交付 PR 链 | [autopilot-stack](playbooks/autopilot-stack.md) |
 | 接续已有工作 | [session-pickup](playbooks/session-pickup.md) |
+| 从用户上次说话讲到现在变了什么、他在等什么 | [nimo-ketchup](../nimo-ketchup/SKILL.md) |
+| 跨最近几次会话重建上下文，先看现在到哪 | [nimo-recall](../nimo-recall/SKILL.md) |
 | 安全暂停 | [pause-safely](playbooks/pause-safely.md) |
 | 核实后清理工作目录 | [worktree-cleanup](playbooks/worktree-cleanup.md) |
 
