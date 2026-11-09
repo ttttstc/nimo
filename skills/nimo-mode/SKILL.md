@@ -70,6 +70,7 @@ description: "nimo 工程任务总入口。用户明确调用 nimo，或任务�
 | 缺陷修复 | [bug-fix](playbooks/bug-fix.md) |
 | 只读理解与判断 | [investigation](playbooks/investigation.md) |
 | 把一个改动、一个机制或一段设计讲到对方能复述 | [nimo-teach](../nimo-teach/SKILL.md) |
+| 把用户的工作习惯沉淀成个人偏好、以后都按他的方式来 | [nimo-automate-me](../nimo-automate-me/SKILL.md) |
 | 保持行为的结构调整 | [refactoring](playbooks/refactoring.md) |
 | 用廉价试验回答设计问题 | [prototype](playbooks/prototype.md) |
 | 一次性能问题修复 | [perf-issue](playbooks/perf-issue.md) |
